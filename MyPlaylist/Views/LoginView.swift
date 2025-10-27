@@ -1,0 +1,22 @@
+import SwiftUI
+
+struct LoginView: View {
+    let login: () -> Void
+
+    var body: some View {
+        VStack {
+            Spacer()
+            Button(action: login) {
+                Text("Login with Spotify")
+                    .font(.custom("SpotifyMix-Medium", size: 20))
+                    .foregroundColor(Color.spotifyText)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.spotifyGreen)
+                    .cornerRadius(50)
+            }
+            .padding(.horizontal, 23)
+        }
+        .background(Color.spotifyText.ignoresSafeArea())
+    }
+}
