@@ -7,66 +7,87 @@ struct SpotifyAuthResponse: Decodable {
     let refresh_token: String?
 }
 
-// ArtistsResponse moved to SpotifyAPIService.swift to avoid duplication
+enum SpotifyAuthError: Error {
+    case missingCodeVerifier
+    case invalidHTTPStatus(Int)
+    case decodingError(Error)
+}
 
 class SpotifyAuthService {
     static let clientID = "ad27c119b1734fd4b8b10795a180aeaa"
-    static let clientSecret = "84f5cf35b2a54d5486503301440384cc"
     static let redirectURI = "myplaylist://callback"
     static let scope = "user-top-read user-read-recently-played user-read-currently-playing user-read-playback-state user-library-read playlist-read-private playlist-read-collaborative user-follow-read"
-    
-    static var tokenExpirationDate: Date? {
-        get {
-            return UserDefaults.standard.object(forKey: "token_expiration_date") as? Date
-        }
+
+    private static var tokenExpirationDate: Date? {
+        get { TokenStorage.loadExpirationDate() }
         set {
-            UserDefaults.standard.set(newValue, forKey: "token_expiration_date")
+            guard let date = newValue else {
+                TokenStorage.deleteExpirationDate()
+                return
+            }
+            TokenStorage.saveExpirationDate(date)
         }
     }
 
-    static func loginURLString() -> String {
-        return """
-        https://accounts.spotify.com/authorize?response_type=code&client_id=\(clientID)&scope=\(scope)&redirect_uri=\(redirectURI)&show_dialog=true
-        """
+    static func loginURL() -> URL? {
+        let codeVerifier = SpotifyPKCE.generateVerifier()
+        TokenStorage.saveCodeVerifier(codeVerifier)
+        let codeChallenge = SpotifyPKCE.codeChallenge(for: codeVerifier)
+
+        var components = URLComponents(string: "https://accounts.spotify.com/authorize")
+        components?.queryItems = [
+            URLQueryItem(name: "response_type", value: "code"),
+            URLQueryItem(name: "client_id", value: clientID),
+            URLQueryItem(name: "scope", value: scope),
+            URLQueryItem(name: "redirect_uri", value: redirectURI),
+            URLQueryItem(name: "code_challenge", value: codeChallenge),
+            URLQueryItem(name: "code_challenge_method", value: "S256"),
+            URLQueryItem(name: "show_dialog", value: "true")
+        ]
+
+        return components?.url
     }
 
     // MARK: - Fetch Access Token
     static func fetchAccessToken(code: String, completion: @escaping (String?) -> Void) {
-        let url = URL(string: "https://accounts.spotify.com/api/token")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
+        guard let codeVerifier = TokenStorage.loadCodeVerifier() else {
+            print("Missing code verifier for PKCE exchange.")
+            completion(nil)
+            return
+        }
 
-        let credentials = "\(clientID):\(clientSecret)"
-        let encodedCredentials = Data(credentials.utf8).base64EncodedString()
-        request.addValue("Basic \(encodedCredentials)", forHTTPHeaderField: "Authorization")
+        var request = URLRequest(url: URL(string: "https://accounts.spotify.com/api/token")!)
+        request.httpMethod = "POST"
         request.addValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
 
-        let bodyParams = [
-            "grant_type": "authorization_code",
-            "code": code,
-            "redirect_uri": redirectURI
+        var components = URLComponents()
+        components.queryItems = [
+            URLQueryItem(name: "grant_type", value: "authorization_code"),
+            URLQueryItem(name: "code", value: code),
+            URLQueryItem(name: "redirect_uri", value: redirectURI),
+            URLQueryItem(name: "client_id", value: clientID),
+            URLQueryItem(name: "code_verifier", value: codeVerifier)
         ]
-        request.httpBody = bodyParams
-            .map { "\($0.key)=\($0.value)" }
-            .joined(separator: "&")
-            .data(using: .utf8)
+        request.httpBody = components.percentEncodedQuery?.data(using: .utf8)
 
-        URLSession.shared.dataTask(with: request) { data, _, error in
-            guard let data = data, error == nil else {
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            defer { TokenStorage.deleteCodeVerifier() }
+
+            guard error == nil, let data = data, let httpResponse = response as? HTTPURLResponse else {
                 print("Error fetching access token: \(error?.localizedDescription ?? "Unknown error")")
+                completion(nil)
+                return
+            }
+
+            guard httpResponse.statusCode == 200 else {
+                print("Failed to fetch access token, status code: \(httpResponse.statusCode)")
                 completion(nil)
                 return
             }
 
             do {
                 let authResponse = try JSONDecoder().decode(SpotifyAuthResponse.self, from: data)
-                
-                // 儲存 access token 與 refresh token
-                UserDefaults.standard.set(authResponse.access_token, forKey: "access_token")
-                if let refreshToken = authResponse.refresh_token {
-                    UserDefaults.standard.set(refreshToken, forKey: "refresh_token")
-                }
-                tokenExpirationDate = Date().addingTimeInterval(TimeInterval(authResponse.expires_in))
+                persistTokens(response: authResponse)
                 completion(authResponse.access_token)
             } catch {
                 print("Error decoding access token: \(error)")
@@ -77,43 +98,41 @@ class SpotifyAuthService {
 
     // MARK: - Refresh Access Token
     static func refreshAccessToken(completion: @escaping (String?) -> Void) {
-        guard let refreshToken = UserDefaults.standard.string(forKey: "refresh_token") else {
+        guard let refreshToken = TokenStorage.loadRefreshToken() else {
             print("No refresh token available")
             completion(nil)
             return
         }
 
-        let url = URL(string: "https://accounts.spotify.com/api/token")!
-        var request = URLRequest(url: url)
+        var request = URLRequest(url: URL(string: "https://accounts.spotify.com/api/token")!)
         request.httpMethod = "POST"
-
-        let credentials = "\(clientID):\(clientSecret)"
-        let encodedCredentials = Data(credentials.utf8).base64EncodedString()
-        request.addValue("Basic \(encodedCredentials)", forHTTPHeaderField: "Authorization")
         request.addValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
 
-        let bodyParams = [
-            "grant_type": "refresh_token",
-            "refresh_token": refreshToken
+        var components = URLComponents()
+        components.queryItems = [
+            URLQueryItem(name: "grant_type", value: "refresh_token"),
+            URLQueryItem(name: "refresh_token", value: refreshToken),
+            URLQueryItem(name: "client_id", value: clientID)
         ]
-        request.httpBody = bodyParams
-            .map { "\($0.key)=\($0.value)" }
-            .joined(separator: "&")
-            .data(using: .utf8)
+        request.httpBody = components.percentEncodedQuery?.data(using: .utf8)
 
-        URLSession.shared.dataTask(with: request) { data, _, error in
-            guard let data = data, error == nil else {
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            guard error == nil, let data = data, let httpResponse = response as? HTTPURLResponse else {
                 print("Error refreshing access token: \(error?.localizedDescription ?? "Unknown error")")
+                completion(nil)
+                return
+            }
+
+            guard httpResponse.statusCode == 200 else {
+                print("Failed to refresh access token, status code: \(httpResponse.statusCode)")
+                TokenStorage.clearAll()
                 completion(nil)
                 return
             }
 
             do {
                 let authResponse = try JSONDecoder().decode(SpotifyAuthResponse.self, from: data)
-
-                // 儲存新的 access token
-                UserDefaults.standard.set(authResponse.access_token, forKey: "access_token")
-                tokenExpirationDate = Date().addingTimeInterval(TimeInterval(authResponse.expires_in))
+                persistTokens(response: authResponse, fallbackRefreshToken: refreshToken)
                 completion(authResponse.access_token)
             } catch {
                 print("Error decoding refreshed access token: \(error)")
@@ -121,24 +140,33 @@ class SpotifyAuthService {
             }
         }.resume()
     }
-    
+
     // MARK: - Ensure Valid Access Token
     static func ensureValidAccessToken(completion: @escaping (String?) -> Void) {
-        if let expirationDate = tokenExpirationDate, expirationDate > Date(),
-           let accessToken = UserDefaults.standard.string(forKey: "access_token") {
-            completion(accessToken)
+        if let expirationDate = tokenExpirationDate,
+           expirationDate > Date(),
+           let storedToken = TokenStorage.loadAccessToken() {
+            completion(storedToken)
         } else {
             refreshAccessToken(completion: completion)
         }
     }
-    
-    // MARK: - Fetch Top Artists method moved to SpotifyAPIService
-    // MARK: - 檢查 Token 是否過期
-        static func isTokenExpired() -> Bool {
-            // 確認 tokenExpirationDate 是否存在且尚未過期
-            guard let expirationDate = tokenExpirationDate else {
-                return true // 若無過期日期，視為已過期
-            }
-            return Date() >= expirationDate // 當前時間 >= 過期時間，則視為過期
+
+    static func logout() {
+        TokenStorage.clearAll()
+    }
+
+    // MARK: - Token helpers
+    static func isTokenExpired() -> Bool {
+        guard let expirationDate = tokenExpirationDate else { return true }
+        return Date() >= expirationDate
+    }
+
+    private static func persistTokens(response: SpotifyAuthResponse, fallbackRefreshToken: String? = nil) {
+        TokenStorage.saveAccessToken(response.access_token)
+        if let refreshToken = response.refresh_token ?? fallbackRefreshToken {
+            TokenStorage.saveRefreshToken(refreshToken)
         }
+        tokenExpirationDate = Date().addingTimeInterval(TimeInterval(response.expires_in))
+    }
 }

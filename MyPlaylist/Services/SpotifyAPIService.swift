@@ -1,6 +1,18 @@
 import Foundation
 
 class SpotifyAPIService {
+
+    private static func handleUnauthorized(response: URLResponse?) -> Bool {
+        guard let httpResponse = response as? HTTPURLResponse else { return false }
+        if httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
+            DispatchQueue.main.async {
+                SpotifyAuthService.logout()
+                NotificationCenter.default.post(name: .spotifyUnauthorized, object: nil)
+            }
+            return true
+        }
+        return false
+    }
     
     static func fetchTopTracks(accessToken: String, timeRange: String, completion: @escaping ([Track]) -> Void) {
         let url = URL(string: "https://api.spotify.com/v1/me/top/tracks?limit=50&time_range=\(timeRange)")!
@@ -10,6 +22,11 @@ class SpotifyAPIService {
         URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
                 print("Error fetching top tracks: \(error.localizedDescription)")
+                completion([])
+                return
+            }
+
+            if handleUnauthorized(response: response) {
                 completion([])
                 return
             }
@@ -42,6 +59,11 @@ class SpotifyAPIService {
                 return
             }
 
+            if handleUnauthorized(response: response) {
+                completion(nil)
+                return
+            }
+
             do {
                 let user = try JSONDecoder().decode(SpotifyUser.self, from: data)
                 completion(user)
@@ -60,6 +82,11 @@ class SpotifyAPIService {
         URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
                 print("Error fetching top artists: \(error.localizedDescription)")
+                completion([])
+                return
+            }
+
+            if handleUnauthorized(response: response) {
                 completion([])
                 return
             }
@@ -93,6 +120,11 @@ class SpotifyAPIService {
                 return
             }
 
+            if handleUnauthorized(response: response) {
+                completion([])
+                return
+            }
+
             guard let data = data else {
                 print("No data received from Spotify API")
                 completion([])
@@ -118,6 +150,11 @@ class SpotifyAPIService {
         URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
                 print("Error fetching currently playing: \(error.localizedDescription)")
+                completion(nil)
+                return
+            }
+
+            if handleUnauthorized(response: response) {
                 completion(nil)
                 return
             }
@@ -158,6 +195,11 @@ class SpotifyAPIService {
                 return
             }
 
+            if handleUnauthorized(response: response) {
+                completion([])
+                return
+            }
+
             guard let data = data else {
                 print("No data received from Spotify API")
                 completion([])
@@ -183,6 +225,11 @@ class SpotifyAPIService {
         URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
                 print("Error fetching saved tracks: \(error.localizedDescription)")
+                completion([])
+                return
+            }
+
+            if handleUnauthorized(response: response) {
                 completion([])
                 return
             }
@@ -216,6 +263,11 @@ class SpotifyAPIService {
                 return
             }
 
+            if handleUnauthorized(response: response) {
+                completion([])
+                return
+            }
+
             guard let data = data else {
                 print("No data received from Spotify API")
                 completion([])
@@ -241,6 +293,11 @@ class SpotifyAPIService {
         URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
                 print("Error fetching followed artists: \(error.localizedDescription)")
+                completion([])
+                return
+            }
+
+            if handleUnauthorized(response: response) {
                 completion([])
                 return
             }

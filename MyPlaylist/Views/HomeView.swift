@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 
 // MARK: - 漸層淡出文字視圖（HomeView 專用）
 struct HomeFadingText: View {
@@ -97,6 +98,8 @@ extension View {
 }
 
 struct HomeView: View {
+    @Environment(\.scenePhase) private var scenePhase
+    private let currentlyPlayingTimer = Timer.publish(every: 12, on: .main, in: .common).autoconnect()
     @State private var currentlyPlaying: CurrentlyPlayingTrack? = nil
     @State private var recentlyPlayed: [RecentlyPlayedTrack] = []
     @State private var savedTracks: [SavedTrackItem] = []
@@ -186,6 +189,15 @@ struct HomeView: View {
         }
         .onAppear {
             loadData()
+        }
+        .onReceive(currentlyPlayingTimer) { _ in
+            guard scenePhase == .active else { return }
+            refreshCurrentlyPlaying()
+        }
+        .onChange(of: scenePhase) { newPhase in
+            if newPhase == .active {
+                refreshCurrentlyPlaying()
+            }
         }
         .sheet(isPresented: $showAllRecentlyPlayed) {
             RecentlyPlayedView(audioPlayer: audioPlayer, accessToken: accessToken)
@@ -514,6 +526,14 @@ struct HomeView: View {
             self.isLoading = false
         }
     }
+    
+    private func refreshCurrentlyPlaying() {
+        SpotifyAPIService.fetchCurrentlyPlaying(accessToken: accessToken) { track in
+            DispatchQueue.main.async {
+                self.currentlyPlaying = track
+            }
+        }
+    }
 }
 
 struct CurrentlyPlayingCard: View {
@@ -541,6 +561,7 @@ struct CurrentlyPlayingCard: View {
                 .aspectRatio(1, contentMode: .fit)
                 .frame(maxHeight: 100)
                 .clipShape(RoundedRectangle(cornerRadius: 10))
+                .id(url.absoluteString)
             } else {
                 RoundedRectangle(cornerRadius: 10)
                     .fill(Color.gray.opacity(0.3))

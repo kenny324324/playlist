@@ -95,19 +95,28 @@ struct ContentView: View {
                 checkIfLoggedIn()  // App 從背景返回時檢查登入狀態
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .spotifyUnauthorized)) { _ in
+            resetSessionState()
+        }
     }
 
     // Spotify 登入流程
     func login() {
-        guard let url = URL(string: SpotifyAuthService.loginURLString()) else { return }
+        guard let url = SpotifyAuthService.loginURL() else { return }
         UIApplication.shared.open(url)
     }
 
     // 登出流程
     func logout() {
-        UserDefaults.standard.removeObject(forKey: "access_token")
+        SpotifyAuthService.logout()
+        resetSessionState()
+    }
+
+    private func resetSessionState() {
         self.accessToken = nil
         self.isLoggedIn = false
+        self.userProfile = nil
+        self.tracks = []
     }
 
     // Spotify 回調處理
@@ -116,40 +125,33 @@ struct ContentView: View {
 
         SpotifyAuthService.fetchAccessToken(code: code) { token in
             DispatchQueue.main.async {
-                if let token = token {
-                    // 儲存 token 並更新狀態
-                    UserDefaults.standard.set(token, forKey: "access_token")
-                    self.accessToken = token
-                    self.isLoggedIn = true  // 更新登入狀態
-                    fetchUserProfile(token: token)
-                    fetchTopTracks(token: token, timeRange: .shortTerm)
+                guard let token = token else {
+                    resetSessionState()
+                    return
                 }
+                establishSession(with: token)
             }
         }
     }
 
     // 檢查是否已登入
     func checkIfLoggedIn() {
-        if let token = UserDefaults.standard.string(forKey: "access_token") {
-            self.accessToken = token
-            self.isLoggedIn = true
-            fetchUserProfile(token: token)
-            fetchTopTracks(token: token, timeRange: .shortTerm)
-        } else {
-            SpotifyAuthService.refreshAccessToken { newToken in
-                if let newToken = newToken {
-                    DispatchQueue.main.async {
-                        self.accessToken = newToken
-                        self.isLoggedIn = true
-                        UserDefaults.standard.set(newToken, forKey: "access_token")
-                        fetchUserProfile(token: newToken)
-                        fetchTopTracks(token: newToken, timeRange: .shortTerm)
-                    }
-                } else {
-                    print("需要重新登入")
+        SpotifyAuthService.ensureValidAccessToken { token in
+            DispatchQueue.main.async {
+                guard let token = token else {
+                    resetSessionState()
+                    return
                 }
+                establishSession(with: token)
             }
         }
+    }
+
+    private func establishSession(with token: String) {
+        self.accessToken = token
+        self.isLoggedIn = true
+        fetchUserProfile(token: token)
+        fetchTopTracks(token: token, timeRange: .shortTerm)
     }
 
     // 取得使用者資料
@@ -194,4 +196,3 @@ enum TimeRange: String, CaseIterable {
 #Preview {
     ContentView()
 }
-
