@@ -114,58 +114,114 @@ struct HomeView: View {
     
     let accessToken: String
     let userProfile: SpotifyUser?
+    let isLoggedIn: Bool
+    let login: () -> Void
     let logout: () -> Void
     
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
-                ScrollView(showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 20) {
-                        // 正在播放區域
-                        currentlyPlayingSection
-                        
-                        // 最近收藏的歌曲區域
-                        savedTracksSection
-                        
-                        // 最近收藏的專輯區域
-                        savedAlbumsSection
-                        
-                        // 用戶的播放列表區域
-                        userPlaylistsSection
-                        
-                        // 最近播放區域
-                        recentlyPlayedSection
-                        
-                        // 追蹤的藝術家區域
-                        followedArtistsSection
-                            .padding(.bottom, 30)
+                if isLoggedIn {
+                    ScrollView(showsIndicators: false) {
+                        VStack(alignment: .leading, spacing: 20) {
+                            // 正在播放區域
+                            currentlyPlayingSection
+                            
+                            // 最近收藏的歌曲區域
+                            savedTracksSection
+                            
+                            // 最近收藏的專輯區域
+                            savedAlbumsSection
+                            
+                            // 用戶的播放列表區域
+                            userPlaylistsSection
+                            
+                            // 最近播放區域
+                            recentlyPlayedSection
+                            
+                            // 追蹤的藝術家區域
+                            followedArtistsSection
+                                .padding(.bottom, 30)
+                        }
+                        .padding(.horizontal)
+                        .padding(.top, 20)
                     }
-                    .padding(.horizontal)
-                    .padding(.top, 20)
+                } else {
+                    // 未登入提示
+                    VStack(spacing: 20) {
+                        Spacer()
+                        Image(systemName: "music.note.list")
+                            .font(.system(size: 60))
+                            .foregroundColor(.gray)
+                        Text("請登入 Spotify")
+                            .font(.custom("SpotifyMix-Bold", size: 24))
+                            .foregroundColor(.white)
+                        Text("登入後即可查看您的音樂資料")
+                            .font(.custom("SpotifyMix-Medium", size: 16))
+                            .foregroundColor(.gray)
+                        Spacer()
+                    }
                 }
             }
             .navigationTitle("首頁")
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    if let user = userProfile,
-                       let imageUrl = user.images?.first?.url,
-                       let url = URL(string: imageUrl) {
-                        Button(action: {
-                            showUserProfile = true
-                        }) {
-                            AsyncImage(url: url) { image in
-                                image.resizable()
-                                    .clipShape(Circle())
-                            } placeholder: {
-                                ProgressView()
+                    if isLoggedIn {
+                        // 已登入：顯示頭像
+                        if let user = userProfile,
+                           let imageUrl = user.images?.first?.url,
+                           let url = URL(string: imageUrl) {
+                            Button(action: {
+                                showUserProfile = true
+                            }) {
+                                AsyncImage(url: url) { image in
+                                    image.resizable()
+                                        .clipShape(Circle())
+                                } placeholder: {
+                                    ProgressView()
+                                }
+                                .frame(width: 30, height: 30)
                             }
                             .frame(width: 30, height: 30)
+                            .contentShape(Rectangle())
+                            .sheet(isPresented: $showUserProfile) {
+                                UserProfileView(userProfile: user, accessToken: accessToken, logout: logout)
+                                    .presentationDetents([.medium])
+                            }
                         }
-                        .frame(width: 30, height: 30)
-                        .contentShape(Rectangle())
-                        .sheet(isPresented: $showUserProfile) {
-                            UserProfileView(userProfile: user, accessToken: accessToken, logout: logout)
-                                .presentationDetents([.medium])
+                    } else {
+                        // 未登入：顯示登入按鈕
+                        if #available(iOS 26.0, *) {
+                            Button(action: login) {
+                                Text("登入")
+                                    .font(.custom("SpotifyMix-Bold", size: 18))
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 4)
+                            }
+                            .buttonStyle(.glassProminent)
+                            .tint(Color.spotifyGreen)
+                        } else if #available(iOS 17.0, *) {
+                            Button(action: login) {
+                                Text("登入")
+                                    .font(.custom("SpotifyMix-Bold", size: 18))
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 4)
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.large)
+                            .tint(Color.spotifyGreen)
+                        } else {
+                            Button(action: login) {
+                                Text("登入")
+                                    .font(.custom("SpotifyMix-Bold", size: 18))
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 4)
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .tint(Color.spotifyGreen)
                         }
                     }
                 }
@@ -188,15 +244,28 @@ struct HomeView: View {
             }
         }
         .onAppear {
-            loadData()
+            if isLoggedIn {
+                loadData(using: accessToken)
+            }
         }
         .onReceive(currentlyPlayingTimer) { _ in
-            guard scenePhase == .active else { return }
+            guard scenePhase == .active && isLoggedIn else { return }
             refreshCurrentlyPlaying()
         }
         .onChange(of: scenePhase) { newPhase in
-            if newPhase == .active {
+            if newPhase == .active && isLoggedIn {
                 refreshCurrentlyPlaying()
+            }
+        }
+        .onChange(of: isLoggedIn) { loggedIn in
+            loggedIn ? loadData(using: accessToken) : clearData()
+        }
+        .onChange(of: accessToken) { token in
+            // 當 accessToken 更新時（登入成功），載入資料
+            if !token.isEmpty {
+                loadData(using: token)
+            } else {
+                clearData()
             }
         }
         .sheet(isPresented: $showAllRecentlyPlayed) {
@@ -261,7 +330,10 @@ struct HomeView: View {
             } else {
                 LazyVStack(spacing: 10) {
                     ForEach(Array(recentlyPlayed.prefix(10))) { item in
-                        RecentlyPlayedRow(item: item, audioPlayer: audioPlayer)
+                        NavigationLink(destination: TrackDetailView(trackId: item.track.id, accessToken: accessToken, audioPlayer: audioPlayer)) {
+                            RecentlyPlayedRow(item: item, audioPlayer: audioPlayer)
+                        }
+                        .buttonStyle(PlainButtonStyle())
                     }
                 }
                 
@@ -318,7 +390,10 @@ struct HomeView: View {
             } else {
                 LazyVStack(spacing: 10) {
                     ForEach(savedTracks.prefix(5)) { item in
-                        SavedTrackRow(item: item, audioPlayer: audioPlayer)
+                        NavigationLink(destination: TrackDetailView(trackId: item.track.id, accessToken: accessToken, audioPlayer: audioPlayer)) {
+                            SavedTrackRow(item: item, audioPlayer: audioPlayer)
+                        }
+                        .buttonStyle(PlainButtonStyle())
                     }
                 }
             }
@@ -463,14 +538,20 @@ struct HomeView: View {
         }
     }
     
-    private func loadData() {
+    private func loadData(using tokenOverride: String? = nil) {
+        let authToken = tokenOverride ?? accessToken
+        guard !authToken.isEmpty else {
+            isLoading = false
+            return
+        }
+        
         isLoading = true
         
         let group = DispatchGroup()
         
         // 獲取正在播放的歌曲
         group.enter()
-        SpotifyAPIService.fetchCurrentlyPlaying(accessToken: accessToken) { track in
+        SpotifyAPIService.fetchCurrentlyPlaying(accessToken: authToken) { track in
             DispatchQueue.main.async {
                 self.currentlyPlaying = track
                 group.leave()
@@ -479,7 +560,7 @@ struct HomeView: View {
         
         // 獲取最近播放的歌曲
         group.enter()
-        SpotifyAPIService.fetchRecentlyPlayed(accessToken: accessToken) { tracks in
+        SpotifyAPIService.fetchRecentlyPlayed(accessToken: authToken) { tracks in
             DispatchQueue.main.async {
                 self.recentlyPlayed = tracks
                 group.leave()
@@ -488,7 +569,7 @@ struct HomeView: View {
         
         // 獲取收藏的歌曲
         group.enter()
-        SpotifyAPIService.fetchSavedTracks(accessToken: accessToken, limit: 10) { tracks in
+        SpotifyAPIService.fetchSavedTracks(accessToken: authToken, limit: 10) { tracks in
             DispatchQueue.main.async {
                 self.savedTracks = tracks
                 group.leave()
@@ -497,7 +578,7 @@ struct HomeView: View {
         
         // 獲取收藏的專輯
         group.enter()
-        SpotifyAPIService.fetchSavedAlbums(accessToken: accessToken, limit: 10) { albums in
+        SpotifyAPIService.fetchSavedAlbums(accessToken: authToken, limit: 10) { albums in
             DispatchQueue.main.async {
                 self.savedAlbums = albums
                 group.leave()
@@ -506,7 +587,7 @@ struct HomeView: View {
         
         // 獲取用戶播放列表
         group.enter()
-        SpotifyAPIService.fetchUserPlaylists(accessToken: accessToken) { playlists in
+        SpotifyAPIService.fetchUserPlaylists(accessToken: authToken) { playlists in
             DispatchQueue.main.async {
                 self.userPlaylists = playlists
                 group.leave()
@@ -515,7 +596,7 @@ struct HomeView: View {
         
         // 獲取追蹤的藝術家
         group.enter()
-        SpotifyAPIService.fetchFollowedArtists(accessToken: accessToken, limit: 20) { artists in
+        SpotifyAPIService.fetchFollowedArtists(accessToken: authToken, limit: 20) { artists in
             DispatchQueue.main.async {
                 self.followedArtists = artists
                 group.leave()
@@ -528,11 +609,22 @@ struct HomeView: View {
     }
     
     private func refreshCurrentlyPlaying() {
+        guard !accessToken.isEmpty else { return }
         SpotifyAPIService.fetchCurrentlyPlaying(accessToken: accessToken) { track in
             DispatchQueue.main.async {
                 self.currentlyPlaying = track
             }
         }
+    }
+    
+    private func clearData() {
+        currentlyPlaying = nil
+        recentlyPlayed = []
+        savedTracks = []
+        savedAlbums = []
+        userPlaylists = []
+        followedArtists = []
+        isLoading = true
     }
 }
 
@@ -692,6 +784,7 @@ struct RecentlyPlayedRow: View {
                         .background(Color.spotifyGreen)
                         .clipShape(Circle())
                 }
+                .buttonStyle(BorderlessButtonStyle())
             }
         }
         .frame(height: 45)
@@ -900,6 +993,7 @@ struct SavedTrackRow: View {
                         .background(Color.spotifyGreen)
                         .clipShape(Circle())
                 }
+                .buttonStyle(BorderlessButtonStyle())
             }
         }
         .frame(height: 45)

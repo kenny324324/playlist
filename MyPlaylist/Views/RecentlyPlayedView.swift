@@ -38,8 +38,11 @@ struct RecentlyPlayedView: View {
                     ScrollView {
                         LazyVStack(spacing: 10) {
                             ForEach(recentlyPlayed) { item in
-                                RecentlyPlayedRow(item: item, audioPlayer: audioPlayer)
-                                    .padding(.horizontal)
+                                NavigationLink(destination: TrackDetailView(trackId: item.track.id, accessToken: accessToken, audioPlayer: audioPlayer)) {
+                                    RecentlyPlayedRow(item: item, audioPlayer: audioPlayer)
+                                        .padding(.horizontal)
+                                }
+                                .buttonStyle(PlainButtonStyle())
                             }
                         }
                         .padding(.top, 20)

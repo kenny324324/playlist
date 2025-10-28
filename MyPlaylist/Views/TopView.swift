@@ -3,6 +3,8 @@ import SwiftUI
 struct TopView: View {
     @ObservedObject var audioPlayer: AudioPlayer
     var userProfile: SpotifyUser?
+    let isLoggedIn: Bool
+    let login: () -> Void
     let logout: () -> Void
     let accessToken: String
     
@@ -59,7 +61,20 @@ struct TopView: View {
                 }
             }
             .onAppear {
-                loadData()
+                if isLoggedIn {
+                    loadData()
+                }
+            }
+            .onChange(of: isLoggedIn) { loggedIn in
+                if !loggedIn {
+                    clearData()
+                }
+            }
+            .onChange(of: accessToken) { token in
+                // 當 accessToken 更新時（登入成功），載入資料
+                if !token.isEmpty && isLoggedIn {
+                    loadData()
+                }
             }
         }
     }
@@ -68,7 +83,22 @@ struct TopView: View {
     
     private var contentView: some View {
         Group {
-            if isLoading {
+            if !isLoggedIn {
+                // 未登入提示
+                VStack(spacing: 20) {
+                    Spacer()
+                    Image(systemName: "chart.bar.fill")
+                        .font(.system(size: 60))
+                        .foregroundColor(.gray)
+                    Text("請登入 Spotify")
+                        .font(.custom("SpotifyMix-Bold", size: 24))
+                        .foregroundColor(.white)
+                    Text("登入後即可查看您的排行榜")
+                        .font(.custom("SpotifyMix-Medium", size: 16))
+                        .foregroundColor(.gray)
+                    Spacer()
+                }
+            } else if isLoading {
                 // 載入中：顯示 15 個佔位符，禁止捲動
                 ScrollView(showsIndicators: false) {
                     LazyVStack(spacing: 5) {
@@ -183,15 +213,24 @@ struct TopView: View {
     
     private var tracksContent: some View {
         ForEach(Array(tracks.enumerated()), id: \.element.id) { index, track in
-            TrackRow(
-                track: track,
-                index: index + 1,
-                audioPlayer: audioPlayer,
-                selectedTrack: $selectedTrack,
-                showPlayer: $showPlayer
-            )
-            .padding(.horizontal, 12)
-            .padding(.bottom, 5)
+            NavigationLink(
+                destination: TrackDetailView(
+                    trackId: track.id,
+                    accessToken: accessToken,
+                    audioPlayer: audioPlayer
+                )
+            ) {
+                TrackRow(
+                    track: track,
+                    index: index + 1,
+                    audioPlayer: audioPlayer,
+                    selectedTrack: $selectedTrack,
+                    showPlayer: $showPlayer
+                )
+                .padding(.horizontal, 12)
+                .padding(.bottom, 5)
+            }
+            .buttonStyle(PlainButtonStyle())
         }
     }
     
@@ -227,26 +266,40 @@ struct TopView: View {
     
     private var userProfileButton: some View {
         Group {
-            if let user = userProfile,
-               let imageUrl = user.images?.first?.url {
-                Button(action: {
-                    showUserProfile = true
-                }) {
-                    AsyncImageView(
-                        url: imageUrl,
-                        placeholder: "person.fill",
-                        size: CGSize(width: 30, height: 30),
-                        cornerRadius: 15,
-                        isCircle: true
-                    )
+            if isLoggedIn {
+                // 已登入：顯示頭像
+                if let user = userProfile,
+                   let imageUrl = user.images?.first?.url {
+                    Button(action: {
+                        showUserProfile = true
+                    }) {
+                        AsyncImageView(
+                            url: imageUrl,
+                            placeholder: "person.fill",
+                            size: CGSize(width: 30, height: 30),
+                            cornerRadius: 15,
+                            isCircle: true
+                        )
+                    }
+                    .sheet(isPresented: $showUserProfile) {
+                        UserProfileView(
+                            userProfile: user,
+                            accessToken: accessToken,
+                            logout: logout
+                        )
+                        .presentationDetents([.medium])
+                    }
                 }
-                .sheet(isPresented: $showUserProfile) {
-                    UserProfileView(
-                        userProfile: user,
-                        accessToken: accessToken,
-                        logout: logout
-                    )
-                    .presentationDetents([.medium])
+            } else {
+                // 未登入：顯示登入按鈕
+                Button(action: login) {
+                    Text("登入")
+                        .font(.custom("SpotifyMix-Medium", size: 14))
+                        .foregroundColor(Color.spotifyText)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 6)
+                        .background(Color.spotifyGreen)
+                        .cornerRadius(20)
                 }
             }
         }
@@ -309,6 +362,13 @@ struct TopView: View {
     
     private func sortedGenres() -> [(key: String, value: Int)] {
         genres.sorted { $0.value > $1.value }
+    }
+    
+    private func clearData() {
+        tracks = []
+        artists = []
+        genres = [:]
+        isLoading = false
     }
     
     private func loadingPlaceholder(index: Int) -> some View {
@@ -411,6 +471,8 @@ struct TopView: View {
     TopView(
         audioPlayer: AudioPlayer(),
         userProfile: nil,
+        isLoggedIn: false,
+        login: {},
         logout: {},
         accessToken: ""
     )

@@ -1,4 +1,5 @@
 import SwiftUI
+import AuthenticationServices
 
 extension Color {
     static let spotifyGreen = Color(red: 0.11, green: 0.84, blue: 0.38)
@@ -12,6 +13,9 @@ struct ContentView: View {
     @State private var userProfile: SpotifyUser? = nil
     @State private var selectedTab = 0  // 控制選中的 tab
     @ObservedObject var audioPlayer = AudioPlayer()
+    
+    // 用於 ASWebAuthenticationSession
+    @StateObject private var presentationContextProvider = WebAuthenticationPresentationContextProvider()
 
     // 確保畫面在狀態變化時強制更新
     @Environment(\.scenePhase) var scenePhase
@@ -20,68 +24,86 @@ struct ContentView: View {
         ZStack {
             Color.spotifyText.ignoresSafeArea()
 
-            if isLoggedIn {
-                if #available(iOS 26.0, *) {
-                    TabView(selection: $selectedTab) {
-                        Tab("首頁", systemImage: "house.fill", value: 0) {
-                            HomeView(
-                                audioPlayer: audioPlayer,
-                                accessToken: accessToken ?? "",
-                                userProfile: userProfile,
-                                logout: logout
-                            )
-                        }
-                        
-                        Tab("排行榜", systemImage: "chart.bar.fill", value: 1) {
-                            TopView(
-                                audioPlayer: audioPlayer,
-                                userProfile: userProfile,
-                                logout: logout,
-                                accessToken: accessToken ?? ""
-                            )
-                        }
-                        
-                        Tab("設定", systemImage: "gearshape.fill", value: 2) {
-                            SettingsView()
-                        }
+            if #available(iOS 26.0, *) {
+                TabView(selection: $selectedTab) {
+                    Tab("首頁", systemImage: "house.fill", value: 0) {
+                        HomeView(
+                            audioPlayer: audioPlayer,
+                            accessToken: accessToken ?? "",
+                            userProfile: userProfile,
+                            isLoggedIn: isLoggedIn,
+                            login: login,
+                            logout: logout
+                        )
                     }
-                    .tint(Color.spotifyGreen)
-                    .tabViewStyle(.sidebarAdaptable)
-                    //.tabBarMinimizeBehavior(.onScrollDown)
-                    /*.tabViewBottomAccessory{
-                        Text("\(Image(systemName: "swift")) Made with SwiftUI")
-                            .foregroundStyle(.orange)
-                            .padding()
-                    }*/
-                } else {
-                    TabView(selection: $selectedTab) {
-                        Tab("首頁", systemImage: "house.fill", value: 0) {
-                            HomeView(
-                                audioPlayer: audioPlayer,
-                                accessToken: accessToken ?? "",
-                                userProfile: userProfile,
-                                logout: logout
-                            )
-                        }
-                        
-                        Tab("排行榜", systemImage: "chart.bar.fill", value: 1) {
-                            TopView(
-                                audioPlayer: audioPlayer,
-                                userProfile: userProfile,
-                                logout: logout,
-                                accessToken: accessToken ?? ""
-                            )
-                        }
-                        
-                        Tab("設定", systemImage: "gearshape.fill", value: 2) {
-                            SettingsView()
-                        }
+                    
+                    Tab("排行榜", systemImage: "chart.bar.fill", value: 1) {
+                        TopView(
+                            audioPlayer: audioPlayer,
+                            userProfile: userProfile,
+                            isLoggedIn: isLoggedIn,
+                            login: login,
+                            logout: logout,
+                            accessToken: accessToken ?? ""
+                        )
                     }
-                    .tint(Color.spotifyGreen)
-                    .tabViewStyle(.sidebarAdaptable)
+                    .disabled(!isLoggedIn)
+                    
+                    Tab("設定", systemImage: "gearshape.fill", value: 2) {
+                        SettingsView()
+                    }
+                    .disabled(!isLoggedIn)
                 }
+                .tint(Color.spotifyGreen)
+                .tabViewStyle(.sidebarAdaptable)
+                .onChange(of: isLoggedIn) { loggedIn in
+                    if !loggedIn {
+                        selectedTab = 0
+                    }
+                }
+                //.tabBarMinimizeBehavior(.onScrollDown)
+                /*.tabViewBottomAccessory{
+                    Text("\(Image(systemName: "swift")) Made with SwiftUI")
+                        .foregroundStyle(.orange)
+                        .padding()
+                }*/
             } else {
-                LoginView(login: login)  // 顯示登入畫面
+                TabView(selection: $selectedTab) {
+                    Tab("首頁", systemImage: "house.fill", value: 0) {
+                        HomeView(
+                            audioPlayer: audioPlayer,
+                            accessToken: accessToken ?? "",
+                            userProfile: userProfile,
+                            isLoggedIn: isLoggedIn,
+                            login: login,
+                            logout: logout
+                        )
+                    }
+                    
+                    Tab("排行榜", systemImage: "chart.bar.fill", value: 1) {
+                        TopView(
+                            audioPlayer: audioPlayer,
+                            userProfile: userProfile,
+                            isLoggedIn: isLoggedIn,
+                            login: login,
+                            logout: logout,
+                            accessToken: accessToken ?? ""
+                        )
+                    }
+                    .disabled(!isLoggedIn)
+                    
+                    Tab("設定", systemImage: "gearshape.fill", value: 2) {
+                        SettingsView()
+                    }
+                    .disabled(!isLoggedIn)
+                }
+                .tint(Color.spotifyGreen)
+                .tabViewStyle(.sidebarAdaptable)
+                .onChange(of: isLoggedIn) { loggedIn in
+                    if !loggedIn {
+                        selectedTab = 0
+                    }
+                }
             }
         }
         .onOpenURL { url in
@@ -100,15 +122,33 @@ struct ContentView: View {
         }
     }
 
-    // Spotify 登入流程
+    // Spotify 登入流程 - 新版使用 ASWebAuthenticationSession
+    func login() {
+        SpotifyAuthServiceV2.shared.login(presentationContext: presentationContextProvider) { result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let token):
+                    self.establishSession(with: token)
+                case .failure(let error):
+                    print("登入失敗: \(error.localizedDescription)")
+                    self.resetSessionState()
+                }
+            }
+        }
+    }
+    
+    // 舊版登入流程 - 使用外部瀏覽器（若需要恢復，取消註解並註解掉上面的新版）
+    /*
     func login() {
         guard let url = SpotifyAuthService.loginURL() else { return }
         UIApplication.shared.open(url)
     }
+    */
 
     // 登出流程
     func logout() {
-        SpotifyAuthService.logout()
+        SpotifyAuthServiceV2.logout()  // 新版
+        // SpotifyAuthService.logout()  // 舊版，若需要恢復則取消註解
         resetSessionState()
     }
 
@@ -136,7 +176,8 @@ struct ContentView: View {
 
     // 檢查是否已登入
     func checkIfLoggedIn() {
-        SpotifyAuthService.ensureValidAccessToken { token in
+        SpotifyAuthServiceV2.ensureValidAccessToken { token in  // 新版
+        // SpotifyAuthService.ensureValidAccessToken { token in  // 舊版，若需要恢復則取消註解
             DispatchQueue.main.async {
                 guard let token = token else {
                     resetSessionState()

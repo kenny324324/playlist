@@ -170,4 +170,77 @@ struct FollowedArtistsResponse: Codable {
     struct ArtistsContainer: Codable {
         let items: [Artist]
     }
+}
+
+// MARK: - Track Detail Models
+struct TrackDetail: Codable {
+    let id: String
+    let name: String
+    let artists: [TrackDetailArtist]
+    let album: TrackDetailAlbum
+    let duration_ms: Int
+    let explicit: Bool
+    let popularity: Int
+    let preview_url: String?
+    let external_urls: ExternalUrls
+    let track_number: Int
+    
+    struct TrackDetailArtist: Codable, Identifiable {
+        let id: String
+        let name: String
+    }
+    
+    struct TrackDetailAlbum: Codable {
+        let id: String
+        let name: String
+        let images: [SpotifyImage]
+        let release_date: String?
+        let total_tracks: Int
+    }
+    
+    struct ExternalUrls: Codable {
+        let spotify: String
+    }
+}
+
+// MARK: - Audio Features Models
+struct AudioFeatures: Codable {
+    let id: String
+    let danceability: Double
+    let energy: Double
+    let key: Int
+    let loudness: Double
+    let mode: Int
+    let speechiness: Double
+    let acousticness: Double
+    let instrumentalness: Double
+    let liveness: Double
+    let valence: Double
+    let tempo: Double
+    let duration_ms: Int
+    let time_signature: Int
+    
+    // 輔助計算屬性
+    var keyString: String {
+        let keys = ["C", "C♯/D♭", "D", "D♯/E♭", "E", "F", "F♯/G♭", "G", "G♯/A♭", "A", "A♯/B♭", "B"]
+        return keys[key]
+    }
+    
+    var modeString: String {
+        return mode == 1 ? "大調" : "小調"
+    }
+}
+
+// MARK: - Artist Detail Models
+struct ArtistDetail: Codable {
+    let id: String
+    let name: String
+    let genres: [String]
+    let images: [SpotifyImage]
+    let followers: Followers
+    let popularity: Int
+    
+    struct Followers: Codable {
+        let total: Int
+    }
 } 

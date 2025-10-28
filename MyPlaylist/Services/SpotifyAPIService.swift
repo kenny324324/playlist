@@ -317,5 +317,109 @@ class SpotifyAPIService {
             }
         }.resume()
     }
+    
+    // MARK: - Track Detail APIs
+    
+    // 獲取歌曲詳細資訊
+    static func fetchTrackDetail(trackId: String, accessToken: String, completion: @escaping (TrackDetail?) -> Void) {
+        let url = URL(string: "https://api.spotify.com/v1/tracks/\(trackId)")!
+        var request = URLRequest(url: url)
+        request.addValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                print("Error fetching track detail: \(error.localizedDescription)")
+                completion(nil)
+                return
+            }
+            
+            if handleUnauthorized(response: response) {
+                completion(nil)
+                return
+            }
+            
+            guard let data = data else {
+                print("No data received from Spotify API")
+                completion(nil)
+                return
+            }
+            
+            do {
+                let trackDetail = try JSONDecoder().decode(TrackDetail.self, from: data)
+                completion(trackDetail)
+            } catch {
+                print("Error decoding track detail: \(error.localizedDescription)")
+                completion(nil)
+            }
+        }.resume()
+    }
+    
+    // 獲取歌曲音訊特徵
+    static func fetchAudioFeatures(trackId: String, accessToken: String, completion: @escaping (AudioFeatures?) -> Void) {
+        let url = URL(string: "https://api.spotify.com/v1/audio-features/\(trackId)")!
+        var request = URLRequest(url: url)
+        request.addValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                print("Error fetching audio features: \(error.localizedDescription)")
+                completion(nil)
+                return
+            }
+            
+            if handleUnauthorized(response: response) {
+                completion(nil)
+                return
+            }
+            
+            guard let data = data else {
+                print("No data received from Spotify API")
+                completion(nil)
+                return
+            }
+            
+            do {
+                let audioFeatures = try JSONDecoder().decode(AudioFeatures.self, from: data)
+                completion(audioFeatures)
+            } catch {
+                print("Error decoding audio features: \(error.localizedDescription)")
+                completion(nil)
+            }
+        }.resume()
+    }
+    
+    // 獲取藝人詳細資訊
+    static func fetchArtistDetail(artistId: String, accessToken: String, completion: @escaping (ArtistDetail?) -> Void) {
+        let url = URL(string: "https://api.spotify.com/v1/artists/\(artistId)")!
+        var request = URLRequest(url: url)
+        request.addValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                print("Error fetching artist detail: \(error.localizedDescription)")
+                completion(nil)
+                return
+            }
+            
+            if handleUnauthorized(response: response) {
+                completion(nil)
+                return
+            }
+            
+            guard let data = data else {
+                print("No data received from Spotify API")
+                completion(nil)
+                return
+            }
+            
+            do {
+                let artistDetail = try JSONDecoder().decode(ArtistDetail.self, from: data)
+                completion(artistDetail)
+            } catch {
+                print("Error decoding artist detail: \(error.localizedDescription)")
+                completion(nil)
+            }
+        }.resume()
+    }
 
 }

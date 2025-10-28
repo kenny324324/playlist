@@ -29,13 +29,16 @@ struct TopTracksView: View {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 15) {
                         ForEach(Array(tracks.enumerated()), id: \.element.id) { index, track in
-                            TrackRow(
-                                track: track,
-                                index: index + 1,
-                                audioPlayer: audioPlayer,
-                                selectedTrack: $selectedTrack,
-                                showPlayer: $showPlayer
-                            )
+                            NavigationLink(destination: TrackDetailView(trackId: track.id, accessToken: accessToken, audioPlayer: audioPlayer)) {
+                                TrackRow(
+                                    track: track,
+                                    index: index + 1,
+                                    audioPlayer: audioPlayer,
+                                    selectedTrack: $selectedTrack,
+                                    showPlayer: $showPlayer
+                                )
+                            }
+                            .buttonStyle(PlainButtonStyle())
                         }
                     }
                     .padding(.top, 20)

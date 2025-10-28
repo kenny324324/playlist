@@ -62,72 +62,66 @@ struct TrackRow: View {
             .frame(width: 50, alignment: .center)
             
             // 灰色框框內容
-            Button(action: {
-                // 點擊後跳轉到歌曲詳情頁面（稍後實現）
-                selectedTrack = track
-            }) {
-                HStack(spacing: 6) {
-                    // 專輯封面
-                    AsyncImage(url: URL(string: track.album.images.first?.url ?? "")) { phase in
-                        switch phase {
-                        case .empty:
-                            ZStack {
-                                Color.gray.opacity(0.3)
-                                Image(systemName: "music.note")
-                                    .foregroundColor(.gray)
-                                    .font(.system(size: 16))
-                            }
-                        case .success(let image):
-                            image
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                        case .failure:
-                            ZStack {
-                                Color.gray.opacity(0.3)
-                                Image(systemName: "music.note")
-                                    .foregroundColor(.gray)
-                                    .font(.system(size: 16))
-                            }
-                        @unknown default:
-                            EmptyView()
+            HStack(spacing: 6) {
+                // 專輯封面
+                AsyncImage(url: URL(string: track.album.images.first?.url ?? "")) { phase in
+                    switch phase {
+                    case .empty:
+                        ZStack {
+                            Color.gray.opacity(0.3)
+                            Image(systemName: "music.note")
+                                .foregroundColor(.gray)
+                                .font(.system(size: 16))
                         }
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    case .failure:
+                        ZStack {
+                            Color.gray.opacity(0.3)
+                            Image(systemName: "music.note")
+                                .foregroundColor(.gray)
+                                .font(.system(size: 16))
+                        }
+                    @unknown default:
+                        EmptyView()
                     }
-                    .aspectRatio(1, contentMode: .fit)
-                    .cornerRadius(6)
-                    .clipped()
-
-                    // 歌曲資訊
-                    VStack(alignment: .leading, spacing: 4) {
-                        FadingText(
-                            text: track.name,
-                            font: .custom("SpotifyMix-Bold", size: 17),
-                            foregroundColor: .white,
-                            backgroundColor: Color(red: 0.12, green: 0.12, blue: 0.12)
-                        )
-
-                        FadingText(
-                            text: track.artists.map(\.name).joined(separator: ", "),
-                            font: .custom("SpotifyMix-Medium", size: 15),
-                            foregroundColor: .gray,
-                            backgroundColor: Color(red: 0.12, green: 0.12, blue: 0.12)
-                        )
-                    }
-
-                    Spacer()
-
-                    // 右箭頭
-                    Image(systemName: "chevron.right")
-                        .foregroundColor(.gray)
-                        .font(.system(size: 14))
                 }
-                .frame(height: 45)
-                .padding(8)
-                .padding(.trailing, 12)
-                .background(Color(red: 0.12, green: 0.12, blue: 0.12))
-                .cornerRadius(10)
+                .aspectRatio(1, contentMode: .fit)
+                .cornerRadius(6)
+                .clipped()
+
+                // 歌曲資訊
+                VStack(alignment: .leading, spacing: 4) {
+                    FadingText(
+                        text: track.name,
+                        font: .custom("SpotifyMix-Bold", size: 17),
+                        foregroundColor: .white,
+                        backgroundColor: Color(red: 0.12, green: 0.12, blue: 0.12)
+                    )
+
+                    FadingText(
+                        text: track.artists.map(\.name).joined(separator: ", "),
+                        font: .custom("SpotifyMix-Medium", size: 15),
+                        foregroundColor: .gray,
+                        backgroundColor: Color(red: 0.12, green: 0.12, blue: 0.12)
+                    )
+                }
+
+                Spacer()
+
+                // 右箭頭
+                Image(systemName: "chevron.right")
+                    .foregroundColor(.gray)
+                    .font(.system(size: 14))
             }
+            .frame(height: 45)
+            .padding(8)
+            .padding(.trailing, 12)
+            .background(Color(red: 0.12, green: 0.12, blue: 0.12))
+            .cornerRadius(10)
         }
         .frame(maxWidth: .infinity)
-        .buttonStyle(PlainButtonStyle())
     }
 }
