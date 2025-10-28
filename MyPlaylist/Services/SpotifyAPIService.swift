@@ -232,16 +232,15 @@ class SpotifyAPIService {
         }.resume()
     }
     
-    // 新增：獲取推薦歌曲
-    static func fetchRecommendations(accessToken: String, limit: Int = 10, completion: @escaping ([Track]) -> Void) {
-        // 使用一些預設的種子來獲取推薦（實際應用中可以根據用戶的熱門藝術家/曲目來生成）
-        let url = URL(string: "https://api.spotify.com/v1/recommendations?limit=\(limit)&seed_genres=pop,rock")!
+    // 新增：獲取追蹤的藝術家
+    static func fetchFollowedArtists(accessToken: String, limit: Int = 20, completion: @escaping ([Artist]) -> Void) {
+        let url = URL(string: "https://api.spotify.com/v1/me/following?type=artist&limit=\(limit)")!
         var request = URLRequest(url: url)
         request.addValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
         URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
-                print("Error fetching recommendations: \(error.localizedDescription)")
+                print("Error fetching followed artists: \(error.localizedDescription)")
                 completion([])
                 return
             }
@@ -253,68 +252,10 @@ class SpotifyAPIService {
             }
 
             do {
-                let recommendationsResponse = try JSONDecoder().decode(RecommendationsResponse.self, from: data)
-                completion(recommendationsResponse.tracks)
+                let followedArtistsResponse = try JSONDecoder().decode(FollowedArtistsResponse.self, from: data)
+                completion(followedArtistsResponse.artists.items)
             } catch {
-                print("Error decoding recommendations: \(error.localizedDescription)")
-                completion([])
-            }
-        }.resume()
-    }
-    
-    // 新增：獲取新發行音樂
-    static func fetchNewReleases(accessToken: String, limit: Int = 10, completion: @escaping ([Album]) -> Void) {
-        let url = URL(string: "https://api.spotify.com/v1/browse/new-releases?limit=\(limit)")!
-        var request = URLRequest(url: url)
-        request.addValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            if let error = error {
-                print("Error fetching new releases: \(error.localizedDescription)")
-                completion([])
-                return
-            }
-
-            guard let data = data else {
-                print("No data received from Spotify API")
-                completion([])
-                return
-            }
-
-            do {
-                let newReleasesResponse = try JSONDecoder().decode(NewReleasesResponse.self, from: data)
-                completion(newReleasesResponse.albums.items)
-            } catch {
-                print("Error decoding new releases: \(error.localizedDescription)")
-                completion([])
-            }
-        }.resume()
-    }
-    
-    // 新增：獲取精選播放列表
-    static func fetchFeaturedPlaylists(accessToken: String, limit: Int = 10, completion: @escaping ([Playlist]) -> Void) {
-        let url = URL(string: "https://api.spotify.com/v1/browse/featured-playlists?limit=\(limit)")!
-        var request = URLRequest(url: url)
-        request.addValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            if let error = error {
-                print("Error fetching featured playlists: \(error.localizedDescription)")
-                completion([])
-                return
-            }
-
-            guard let data = data else {
-                print("No data received from Spotify API")
-                completion([])
-                return
-            }
-
-            do {
-                let featuredPlaylistsResponse = try JSONDecoder().decode(FeaturedPlaylistsResponse.self, from: data)
-                completion(featuredPlaylistsResponse.playlists.items)
-            } catch {
-                print("Error decoding featured playlists: \(error.localizedDescription)")
+                print("Error decoding followed artists: \(error.localizedDescription)")
                 completion([])
             }
         }.resume()

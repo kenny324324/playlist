@@ -46,15 +46,63 @@ struct HomeFadingText: View {
     }
 }
 
+// MARK: - 水平滾動淡出遮罩修飾符
+struct HorizontalScrollFadingModifier: ViewModifier {
+    let backgroundColor: Color
+    
+    func body(content: Content) -> some View {
+        content
+            .overlay(
+                HStack(spacing: 0) {
+                    // 左側漸層遮罩
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            backgroundColor,
+                            backgroundColor.opacity(0.8),
+                            backgroundColor.opacity(0.5),
+                            backgroundColor.opacity(0.2),
+                            backgroundColor.opacity(0)
+                        ]),
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                    .frame(width: 20)
+                    
+                    Spacer()
+                    
+                    // 右側漸層遮罩
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            backgroundColor.opacity(0),
+                            backgroundColor.opacity(0.2),
+                            backgroundColor.opacity(0.5),
+                            backgroundColor.opacity(0.8),
+                            backgroundColor
+                        ]),
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                    .frame(width: 20)
+                }
+                .padding(.horizontal, -20)
+                .allowsHitTesting(false)
+            )
+    }
+}
+
+extension View {
+    func horizontalScrollFading(backgroundColor: Color = .black) -> some View {
+        self.modifier(HorizontalScrollFadingModifier(backgroundColor: backgroundColor))
+    }
+}
+
 struct HomeView: View {
     @State private var currentlyPlaying: CurrentlyPlayingTrack? = nil
     @State private var recentlyPlayed: [RecentlyPlayedTrack] = []
     @State private var savedTracks: [SavedTrackItem] = []
     @State private var savedAlbums: [SavedAlbumItem] = []
     @State private var userPlaylists: [Playlist] = []
-    @State private var recommendations: [Track] = []
-    @State private var newReleases: [Album] = []
-    @State private var featuredPlaylists: [Playlist] = []
+    @State private var followedArtists: [Artist] = []
     @State private var isLoading = true
     @State private var showUserProfile = false
     @State private var refreshRotation: Double = 0
@@ -68,9 +116,8 @@ struct HomeView: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
-                ScrollView {
+                ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 20) {
-                        // 上半部（個人化內容）
                         // 正在播放區域
                         currentlyPlayingSection
                         
@@ -83,18 +130,12 @@ struct HomeView: View {
                         // 用戶的播放列表區域
                         userPlaylistsSection
                         
-                        // 下半部（發現新音樂）
                         // 最近播放區域
                         recentlyPlayedSection
                         
-                        // 為你推薦區域
-                        recommendationsSection
-                        
-                        // 新發行音樂區域
-                        newReleasesSection
-                        
-                        // 精選播放列表區域
-                        featuredPlaylistsSection
+                        // 追蹤的藝術家區域
+                        followedArtistsSection
+                            .padding(.bottom, 30)
                     }
                     .padding(.horizontal)
                     .padding(.top, 20)
@@ -285,7 +326,9 @@ struct HomeView: View {
                             AlbumPlaceholder()
                         }
                     }
+                    .padding(.horizontal, 20)
                 }
+                .padding(.horizontal, -20)
             } else if savedAlbums.isEmpty {
                 VStack(spacing: 10) {
                     Image(systemName: "square.stack")
@@ -300,13 +343,18 @@ struct HomeView: View {
                 .background(Color(red: 0.12, green: 0.12, blue: 0.12))
                 .cornerRadius(15)
             } else {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
-                        ForEach(savedAlbums.prefix(10)) { item in
-                            AlbumCard(album: item.album)
+                ZStack {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 12) {
+                            ForEach(savedAlbums.prefix(10)) { item in
+                                AlbumCard(album: item.album)
+                            }
                         }
+                        .padding(.horizontal, 20)
                     }
+                    .padding(.horizontal, -20)
                 }
+                .horizontalScrollFading()
             }
         }
     }
@@ -324,7 +372,9 @@ struct HomeView: View {
                             PlaylistPlaceholder()
                         }
                     }
+                    .padding(.horizontal, 20)
                 }
+                .padding(.horizontal, -20)
             } else if userPlaylists.isEmpty {
                 VStack(spacing: 10) {
                     Image(systemName: "music.note.list")
@@ -339,72 +389,44 @@ struct HomeView: View {
                 .background(Color(red: 0.12, green: 0.12, blue: 0.12))
                 .cornerRadius(15)
             } else {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
-                        ForEach(userPlaylists.prefix(10)) { playlist in
-                            PlaylistCard(playlist: playlist)
+                ZStack {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 12) {
+                            ForEach(userPlaylists.prefix(10)) { playlist in
+                                PlaylistCard(playlist: playlist)
+                            }
                         }
+                        .padding(.horizontal, 20)
                     }
+                    .padding(.horizontal, -20)
                 }
+                .horizontalScrollFading()
             }
         }
     }
     
-    private var recommendationsSection: some View {
+    private var followedArtistsSection: some View {
         VStack(alignment: .leading, spacing: 15) {
-            Text("為你推薦")
+            Text("追蹤的藝術家")
                 .font(.custom("SpotifyMix-Bold", size: 22))
                 .foregroundColor(.white)
             
-            if isLoading && recommendations.isEmpty {
-                LazyVStack(spacing: 10) {
-                    ForEach(0..<5, id: \.self) { _ in
-                        RecentlyPlayedPlaceholder()
-                    }
-                }
-            } else if recommendations.isEmpty {
-                VStack(spacing: 10) {
-                    Image(systemName: "sparkles")
-                        .font(.system(size: 40))
-                        .foregroundColor(.gray)
-                    Text("暫無推薦")
-                        .font(.custom("SpotifyMix-Medium", size: 18))
-                        .foregroundColor(.gray)
-                }
-                .frame(maxWidth: .infinity, minHeight: 100)
-                .padding(16)
-                .background(Color(red: 0.12, green: 0.12, blue: 0.12))
-                .cornerRadius(15)
-            } else {
-                LazyVStack(spacing: 10) {
-                    ForEach(recommendations.prefix(5)) { track in
-                        RecommendationRow(track: track, audioPlayer: audioPlayer)
-                    }
-                }
-            }
-        }
-    }
-    
-    private var newReleasesSection: some View {
-        VStack(alignment: .leading, spacing: 15) {
-            Text("新發行音樂")
-                .font(.custom("SpotifyMix-Bold", size: 22))
-                .foregroundColor(.white)
-            
-            if isLoading && newReleases.isEmpty {
+            if isLoading && followedArtists.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
                         ForEach(0..<5, id: \.self) { _ in
-                            AlbumPlaceholder()
+                            ArtistPlaceholder()
                         }
                     }
+                    .padding(.horizontal, 20)
                 }
-            } else if newReleases.isEmpty {
+                .padding(.horizontal, -20)
+            } else if followedArtists.isEmpty {
                 VStack(spacing: 10) {
-                    Image(systemName: "music.note.list")
+                    Image(systemName: "person.2")
                         .font(.system(size: 40))
                         .foregroundColor(.gray)
-                    Text("暫無新發行")
+                    Text("暫無追蹤藝術家")
                         .font(.custom("SpotifyMix-Medium", size: 18))
                         .foregroundColor(.gray)
                 }
@@ -413,52 +435,18 @@ struct HomeView: View {
                 .background(Color(red: 0.12, green: 0.12, blue: 0.12))
                 .cornerRadius(15)
             } else {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
-                        ForEach(newReleases.prefix(10)) { album in
-                            AlbumCard(album: album)
+                ZStack {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 12) {
+                            ForEach(followedArtists.prefix(20)) { artist in
+                                ArtistCard(artist: artist)
+                            }
                         }
+                        .padding(.horizontal, 20)
                     }
+                    .padding(.horizontal, -20)
                 }
-            }
-        }
-    }
-    
-    private var featuredPlaylistsSection: some View {
-        VStack(alignment: .leading, spacing: 15) {
-            Text("精選播放列表")
-                .font(.custom("SpotifyMix-Bold", size: 22))
-                .foregroundColor(.white)
-            
-            if isLoading && featuredPlaylists.isEmpty {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
-                        ForEach(0..<5, id: \.self) { _ in
-                            PlaylistPlaceholder()
-                        }
-                    }
-                }
-            } else if featuredPlaylists.isEmpty {
-                VStack(spacing: 10) {
-                    Image(systemName: "star")
-                        .font(.system(size: 40))
-                        .foregroundColor(.gray)
-                    Text("暫無精選")
-                        .font(.custom("SpotifyMix-Medium", size: 18))
-                        .foregroundColor(.gray)
-                }
-                .frame(maxWidth: .infinity, minHeight: 100)
-                .padding(16)
-                .background(Color(red: 0.12, green: 0.12, blue: 0.12))
-                .cornerRadius(15)
-            } else {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
-                        ForEach(featuredPlaylists.prefix(10)) { playlist in
-                            PlaylistCard(playlist: playlist)
-                        }
-                    }
-                }
+                .horizontalScrollFading()
             }
         }
     }
@@ -513,29 +501,11 @@ struct HomeView: View {
             }
         }
         
-        // 獲取推薦歌曲
+        // 獲取追蹤的藝術家
         group.enter()
-        SpotifyAPIService.fetchRecommendations(accessToken: accessToken, limit: 10) { tracks in
+        SpotifyAPIService.fetchFollowedArtists(accessToken: accessToken, limit: 20) { artists in
             DispatchQueue.main.async {
-                self.recommendations = tracks
-                group.leave()
-            }
-        }
-        
-        // 獲取新發行音樂
-        group.enter()
-        SpotifyAPIService.fetchNewReleases(accessToken: accessToken, limit: 10) { albums in
-            DispatchQueue.main.async {
-                self.newReleases = albums
-                group.leave()
-            }
-        }
-        
-        // 獲取精選播放列表
-        group.enter()
-        SpotifyAPIService.fetchFeaturedPlaylists(accessToken: accessToken, limit: 10) { playlists in
-            DispatchQueue.main.async {
-                self.featuredPlaylists = playlists
+                self.followedArtists = artists
                 group.leave()
             }
         }
@@ -952,17 +922,23 @@ struct AlbumCard: View {
             .cornerRadius(8)
             .clipped()
             
-            Text(album.name)
-                .font(.custom("SpotifyMix-Medium", size: 14))
-                .foregroundColor(.white)
-                .lineLimit(1)
-                .frame(width: 140, alignment: .leading)
+            HomeFadingText(
+                text: album.name,
+                font: .custom("SpotifyMix-Medium", size: 14),
+                foregroundColor: .white,
+                backgroundColor: .black,
+                lineLimit: 1
+            )
+            .frame(width: 140, alignment: .leading)
             
-            Text(album.artists.map(\.name).joined(separator: ", "))
-                .font(.custom("SpotifyMix-Medium", size: 12))
-                .foregroundColor(.gray)
-                .lineLimit(1)
-                .frame(width: 140, alignment: .leading)
+            HomeFadingText(
+                text: album.artists.map(\.name).joined(separator: ", "),
+                font: .custom("SpotifyMix-Medium", size: 12),
+                foregroundColor: .gray,
+                backgroundColor: .black,
+                lineLimit: 1
+            )
+            .frame(width: 140, alignment: .leading)
         }
     }
 }
@@ -999,29 +975,29 @@ struct PlaylistCard: View {
             .cornerRadius(8)
             .clipped()
             
-            Text(playlist.name)
-                .font(.custom("SpotifyMix-Medium", size: 14))
-                .foregroundColor(.white)
-                .lineLimit(2)
-                .frame(width: 140, alignment: .leading)
+            HomeFadingText(
+                text: playlist.name,
+                font: .custom("SpotifyMix-Medium", size: 14),
+                foregroundColor: .white,
+                backgroundColor: .black,
+                lineLimit: 1
+            )
+            .frame(width: 140, alignment: .leading)
         }
     }
 }
 
-struct RecommendationRow: View {
-    let track: Track
-    @ObservedObject var audioPlayer: AudioPlayer
+struct ArtistCard: View {
+    let artist: Artist
     
     var body: some View {
-        HStack(spacing: 6) {
-            AsyncImage(url: URL(string: track.album.images.first?.url ?? "")) { phase in
+        VStack(alignment: .center, spacing: 8) {
+            AsyncImage(url: URL(string: artist.images.first?.url ?? "")) { phase in
                 switch phase {
                 case .empty:
                     ZStack {
                         Color.gray.opacity(0.3)
-                        Image(systemName: "music.note")
-                            .foregroundColor(.gray)
-                            .font(.system(size: 20))
+                        ProgressView()
                     }
                 case .success(let image):
                     image
@@ -1030,55 +1006,40 @@ struct RecommendationRow: View {
                 case .failure:
                     ZStack {
                         Color.gray.opacity(0.3)
-                        Image(systemName: "music.note")
+                        Image(systemName: "person.fill")
                             .foregroundColor(.gray)
-                            .font(.system(size: 20))
+                            .font(.system(size: 40))
                     }
                 @unknown default:
                     EmptyView()
                 }
             }
             .aspectRatio(1, contentMode: .fit)
-            .cornerRadius(8)
-            .clipped()
+            .frame(width: 140)
+            .clipShape(Circle())
             
-            VStack(alignment: .leading, spacing: 4) {
+            ZStack {
                 HomeFadingText(
-                    text: track.name,
-                    font: .custom("SpotifyMix-Medium", size: 16),
-                    foregroundColor: .white,
-                    backgroundColor: Color(red: 0.12, green: 0.12, blue: 0.12)
-                )
-                
-                HomeFadingText(
-                    text: track.artists.map(\.name).joined(separator: ", "),
+                    text: artist.name,
                     font: .custom("SpotifyMix-Medium", size: 14),
-                    foregroundColor: .gray,
-                    backgroundColor: Color(red: 0.12, green: 0.12, blue: 0.12)
+                    foregroundColor: .white,
+                    backgroundColor: .black,
+                    lineLimit: 1
                 )
             }
+            .frame(width: 140)
             
-            Spacer()
-            
-            if let previewUrl = track.previewUrl {
-                Button(action: {
-                    audioPlayer.playPreview(from: previewUrl)
-                }) {
-                    Image(systemName: audioPlayer.isPlaying && audioPlayer.currentPreviewUrl == previewUrl ? "pause.fill" : "play.fill")
-                        .font(.system(size: 16))
-                        .foregroundColor(.white)
-                        .frame(width: 30, height: 30)
-                        .background(Color.spotifyGreen)
-                        .clipShape(Circle())
-                }
+            ZStack {
+                HomeFadingText(
+                    text: "\(artist.followers.total.formatted()) 位追蹤者",
+                    font: .custom("SpotifyMix-Medium", size: 12),
+                    foregroundColor: .gray,
+                    backgroundColor: .black,
+                    lineLimit: 1
+                )
             }
+            .frame(width: 140)
         }
-        .frame(height: 45)
-        .padding(8)
-        .padding(.trailing, 12)
-        .background(Color(red: 0.12, green: 0.12, blue: 0.12))
-        .cornerRadius(10)
-        .frame(maxWidth: .infinity)
     }
 }
 
@@ -1114,6 +1075,27 @@ struct PlaylistPlaceholder: View {
             RoundedRectangle(cornerRadius: 4)
                 .fill(Color.gray.opacity(0.3))
                 .frame(width: 120, height: 14)
+                .shimmer()
+        }
+    }
+}
+
+struct ArtistPlaceholder: View {
+    var body: some View {
+        VStack(alignment: .center, spacing: 8) {
+            Circle()
+                .fill(Color.gray.opacity(0.3))
+                .frame(width: 140, height: 140)
+                .shimmer()
+            
+            RoundedRectangle(cornerRadius: 4)
+                .fill(Color.gray.opacity(0.3))
+                .frame(width: 100, height: 14)
+                .shimmer()
+            
+            RoundedRectangle(cornerRadius: 4)
+                .fill(Color.gray.opacity(0.3))
+                .frame(width: 80, height: 12)
                 .shimmer()
         }
     }

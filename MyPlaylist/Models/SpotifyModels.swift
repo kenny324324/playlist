@@ -163,25 +163,11 @@ struct Album: Codable, Identifiable {
     }
 }
 
-// MARK: - Recommendations Models
-struct RecommendationsResponse: Codable {
-    let tracks: [Track]
-}
-
-// MARK: - New Releases Models
-struct NewReleasesResponse: Codable {
-    let albums: AlbumsContainer
+// MARK: - Followed Artists Models
+struct FollowedArtistsResponse: Codable {
+    let artists: ArtistsContainer
     
-    struct AlbumsContainer: Codable {
-        let items: [Album]
-    }
-}
-
-// MARK: - Featured Playlists Models
-struct FeaturedPlaylistsResponse: Codable {
-    let playlists: PlaylistsContainer
-    
-    struct PlaylistsContainer: Codable {
-        let items: [Playlist]
+    struct ArtistsContainer: Codable {
+        let items: [Artist]
     }
 } 

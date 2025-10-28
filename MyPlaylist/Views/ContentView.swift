@@ -47,12 +47,12 @@ struct ContentView: View {
                     }
                     .tint(Color.spotifyGreen)
                     .tabViewStyle(.sidebarAdaptable)
-                    .tabBarMinimizeBehavior(.onScrollDown)
-                    .tabViewBottomAccessory{
+                    //.tabBarMinimizeBehavior(.onScrollDown)
+                    /*.tabViewBottomAccessory{
                         Text("\(Image(systemName: "swift")) Made with SwiftUI")
                             .foregroundStyle(.orange)
                             .padding()
-                    }
+                    }*/
                 } else {
                     TabView(selection: $selectedTab) {
                         Tab("首頁", systemImage: "house.fill", value: 0) {

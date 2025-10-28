@@ -101,30 +101,44 @@ struct UserProfileView: View {
 
     private var playlistSection: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            LazyVGrid(columns: Array(repeating: GridItem(), count: 3), spacing: 5) {
-                ForEach(playlists) { playlist in
-                    HStack(alignment: .center, spacing: 10) {
-                        playlistImageView(for: playlist)
-                            .frame(width: 50, height: 50)
-                            .clipShape(RoundedRectangle(cornerRadius: 0))
+            HStack(alignment: .top, spacing: 20) {
+                ForEach(0..<Int(ceil(Double(playlists.count) / 3.0)), id: \.self) { pageIndex in
+                    VStack(alignment: .leading, spacing: 10) {
+                        ForEach(getPlaylistsForPage(pageIndex)) { playlist in
+                            HStack(alignment: .center, spacing: 10) {
+                                playlistImageView(for: playlist)
+                                    .frame(width: 50, height: 50)
+                                    .clipShape(RoundedRectangle(cornerRadius: 5))
 
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(playlist.name)
-                                .font(.custom("SpotifyMix-Medium", size: 16))
-                                .foregroundColor(.white)
-                                .lineLimit(1)
-                            
-                            Text(playlist.owner.display_name ?? "Unknown Owner")
-                                .font(.custom("SpotifyMix-Medium", size: 14))
-                                .foregroundColor(.white.opacity(0.6))
-                                .lineLimit(1)
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(playlist.name)
+                                        .font(.custom("SpotifyMix-Medium", size: 16))
+                                        .foregroundColor(.white)
+                                        .lineLimit(1)
+                                    
+                                    Text(playlist.owner.display_name ?? "Unknown Owner")
+                                        .font(.custom("SpotifyMix-Medium", size: 14))
+                                        .foregroundColor(.white.opacity(0.6))
+                                        .lineLimit(1)
+                                }
+                                Spacer()
+                            }
+                            .frame(width: 300, height: 60)
                         }
-                        Spacer()
+                        
+                        Spacer(minLength: 0)
                     }
-                    .frame(width: 300, height: 60, alignment: .leading)
+                    .frame(height: 200)
                 }
             }
         }
+        .frame(height: 200)
+    }
+    
+    private func getPlaylistsForPage(_ pageIndex: Int) -> [Playlist] {
+        let startIndex = pageIndex * 3
+        let endIndex = min(startIndex + 3, playlists.count)
+        return Array(playlists[startIndex..<endIndex])
     }
 
     private var logoutButton: some View {

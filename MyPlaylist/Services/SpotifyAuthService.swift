@@ -13,7 +13,7 @@ class SpotifyAuthService {
     static let clientID = "ad27c119b1734fd4b8b10795a180aeaa"
     static let clientSecret = "84f5cf35b2a54d5486503301440384cc"
     static let redirectURI = "myplaylist://callback"
-    static let scope = "user-top-read user-read-recently-played user-read-currently-playing user-read-playback-state"
+    static let scope = "user-top-read user-read-recently-played user-read-currently-playing user-read-playback-state user-library-read playlist-read-private playlist-read-collaborative user-follow-read"
     
     static var tokenExpirationDate: Date? {
         get {
