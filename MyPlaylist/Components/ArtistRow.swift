@@ -40,6 +40,36 @@ struct ArtistFadingText: View {
 struct ArtistRow: View {
     let artist: Artist
     let index: Int  // 顯示藝術家的排名
+    
+    // 格式化追蹤者數量
+    private func formatFollowers(_ count: Int) -> String {
+        let locale = Locale.current
+        let isChineseLocale = locale.language.languageCode?.identifier == "zh"
+        
+        if isChineseLocale {
+            // 中文：使用「萬位追蹤者」
+            if count >= 10000 {
+                let value = Double(count) / 10000.0
+                return String(format: "%.1f萬位追蹤者", value)
+            } else {
+                return "\(count)位追蹤者"
+            }
+        } else {
+            // 英文：使用「M followers」、「B followers」
+            if count >= 1_000_000_000 {
+                let value = Double(count) / 1_000_000_000.0
+                return String(format: "%.1fB followers", value)
+            } else if count >= 1_000_000 {
+                let value = Double(count) / 1_000_000.0
+                return String(format: "%.1fM followers", value)
+            } else if count >= 1_000 {
+                let value = Double(count) / 1_000.0
+                return String(format: "%.1fK followers", value)
+            } else {
+                return "\(count) followers"
+            }
+        }
+    }
 
     var body: some View {
         HStack(alignment: .center, spacing: 8) {
@@ -97,7 +127,7 @@ struct ArtistRow: View {
                     )
 
                     ArtistFadingText(
-                        text: "Followers: \(artist.followers.total)",
+                        text: formatFollowers(artist.followers.total),
                         font: .custom("SpotifyMix-Medium", size: 15),
                         foregroundColor: .gray,
                         backgroundColor: Color(red: 0.12, green: 0.12, blue: 0.12)
@@ -111,11 +141,13 @@ struct ArtistRow: View {
                     Text("Popularity")
                         .foregroundColor(.gray)
                         .font(.custom("SpotifyMix-Medium", size: 14))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                     Text("\(artist.popularity)")
                         .foregroundColor(Color.spotifyGreen)
                         .font(.custom("SpotifyMix-Medium", size: 16))
                 }
-                .frame(width: 60, alignment: .trailing)
+                .frame(width: 70, alignment: .trailing)
             }
             .frame(height: 45)
             .padding(8)

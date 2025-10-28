@@ -45,28 +45,17 @@ struct TopView: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
-                // 上方類型選擇 Tab
-                contentTypeSelector
-                
                 // 主要內容區域
                 contentView
-                
-                // 下方時間選擇 Tab
-                timeRangeSelector
-                
-                // 播放器功能已移除
             }
-            .navigationBarHidden(true)
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Text("Made by Kenny")
-                        .font(.custom("SpotifyMix-Medium", size: 14))
-                        .foregroundColor(.gray)
-                        .opacity(0.7)
-                }
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
                     userProfileButton
+                }
+
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    toolbarFilterMenus
                 }
             }
             .onAppear {
@@ -75,51 +64,121 @@ struct TopView: View {
         }
     }
     
-    private var contentTypeSelector: some View {
-        HStack(spacing: 0) {
-            ForEach(ContentType.allCases, id: \.self) { type in
-                Button(action: {
-                    selectedContentType = type
-                    loadData()
-                }) {
-                    VStack(spacing: 8) {
-                        Text(type.title)
-                            .font(.custom("SpotifyMix-Medium", size: 18))
-                            .foregroundColor(selectedContentType == type ? Color.spotifyGreen : .gray)
-                        
-                        Rectangle()
-                            .fill(selectedContentType == type ? Color.spotifyGreen : Color.clear)
-                            .frame(height: 2)
-                    }
-                }
-                .frame(maxWidth: .infinity)
-            }
-        }
-        .padding(.horizontal)
-        .padding(.top, 10)
-    }
+    private var contentTypeSelector: some View { EmptyView() }
     
     private var contentView: some View {
-        ScrollView(showsIndicators: false) {
-            LazyVStack(spacing: 5) {
-                if isLoading {
-                    // 顯示載入中的佔位符
-                    ForEach(0..<8, id: \.self) { index in
-                        loadingPlaceholder(index: index + 1)
+        Group {
+            if isLoading {
+                // 載入中：顯示 15 個佔位符，禁止捲動
+                ScrollView(showsIndicators: false) {
+                    LazyVStack(spacing: 5) {
+                        ForEach(0..<15, id: \.self) { index in
+                            loadingPlaceholder(index: index + 1)
+                        }
                     }
-                } else {
-                    switch selectedContentType {
-                    case .tracks:
-                        tracksContent
-                    case .artists:
-                        artistsContent
-                    case .genres:
-                        genresContent
+                    .padding(.top, 20)
+                    .padding(.bottom, 30)
+                }
+                .disabled(true)
+            } else {
+                // 載入完成：顯示實際內容，可以捲動
+                ScrollView(showsIndicators: false) {
+                    LazyVStack(spacing: 5) {
+                        switch selectedContentType {
+                        case .tracks:
+                            tracksContent
+                        case .artists:
+                            artistsContent
+                        case .genres:
+                            genresContent
+                        }
                     }
+                    .padding(.top, 20)
+                    .padding(.bottom, 30)
                 }
             }
-            .padding(.top, 20)
         }
+    }
+
+    // 左右兩個按鈕 + Menu（左：類型；右：時間），中間保留分隔線（供 toolbar 使用）
+    private var toolbarFilterMenus: some View {
+        HStack(spacing: 8) {
+            // 類型選單按鈕
+            Menu {
+                ForEach(ContentType.allCases, id: \.self) { type in
+                    Button(action: {
+                        if selectedContentType != type {
+                            withAnimation(.easeInOut(duration: 0.5)) {
+                                selectedContentType = type
+                            }
+                            loadData()
+                        }
+                    }) {
+                        HStack {
+                            Text(type.title)
+                            if selectedContentType == type {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                }
+            } label: {
+                HStack(spacing: 6) {
+                    Text(selectedContentType.title)
+                        .font(.custom("SpotifyMix-Medium", size: 15))
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 12, weight: .medium))
+                        .opacity(0.8)
+                }
+                .foregroundColor(.white)
+                .padding(.vertical, 8)
+                .padding(.horizontal, 14)
+                .clipShape(Capsule())
+            }
+            .buttonStyle(PlainButtonStyle())
+
+            // 分隔線
+            Rectangle()
+                .fill(Color.white.opacity(0.2))
+                .frame(width: 1, height: 22)
+                .padding(.horizontal, 2)
+
+            // 時間選單按鈕
+            Menu {
+                ForEach(TimeRange.allCases, id: \.self) { range in
+                    Button(action: {
+                        if selectedTimeRange != range {
+                            withAnimation(.easeInOut(duration: 0.5)) {
+                                selectedTimeRange = range
+                            }
+                            loadData()
+                        }
+                    }) {
+                        HStack {
+                            Text(range.title)
+                            if selectedTimeRange == range {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                }
+            } label: {
+                HStack(spacing: 6) {
+                    Text(selectedTimeRange.title)
+                        .font(.custom("SpotifyMix-Medium", size: 15))
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 12, weight: .medium))
+                        .opacity(0.8)
+                }
+                .foregroundColor(.white)
+                .padding(.vertical, 8)
+                .padding(.horizontal, 14)
+                .clipShape(Capsule())
+            }
+            .buttonStyle(PlainButtonStyle())
+        }
+        .padding(.horizontal, 0)
+        .padding(.vertical, 6)
     }
     
     private var tracksContent: some View {
@@ -164,35 +223,7 @@ struct TopView: View {
         }
     }
     
-    private var timeRangeSelector: some View {
-        HStack(spacing: 8) {
-            ForEach(TimeRange.allCases, id: \.self) { range in
-                Button(action: {
-                    selectedTimeRange = range
-                    loadData()
-                }) {
-                    Text(range.title)
-                        .font(.custom("SpotifyMix-Medium", size: 15))
-                        .foregroundColor(selectedTimeRange == range ? Color.spotifyGreen : .white.opacity(0.7))
-                        .frame(minWidth: 64)
-                        .padding(.vertical, 6)
-                        .padding(.horizontal, 14)
-                        .background(
-                            selectedTimeRange == range ? Color.white.opacity(0.18) : Color.clear
-                        )
-                        .clipShape(Capsule())
-                }
-                .buttonStyle(PlainButtonStyle())
-            }
-        }
-        .padding(3)
-        .background(.ultraThinMaterial)
-        .clipShape(Capsule())
-        .shadow(color: Color.black.opacity(0.18), radius: 12, x: 0, y: 4)
-        .padding(.horizontal, 40)
-        .padding(.bottom, 18)
-        .offset(y: -10)
-    }
+    private var timeRangeSelector: some View { EmptyView() }
     
     private var userProfileButton: some View {
         Group {
