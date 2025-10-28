@@ -38,7 +38,7 @@ struct ContentView: View {
                         accessToken: accessToken ?? ""
                     )
                     .tabItem {
-                        Label("Top", systemImage: "chart.bar.fill")
+                        Label("排行榜", systemImage: "chart.bar.fill")
                     }
                     
                     SettingsView()

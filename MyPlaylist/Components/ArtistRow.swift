@@ -1,5 +1,42 @@
 import SwiftUI
 
+// MARK: - 漸層淡出文字視圖
+struct ArtistFadingText: View {
+    let text: String
+    let font: Font
+    let foregroundColor: Color
+    let backgroundColor: Color
+    
+    var body: some View {
+        ZStack(alignment: .leading) {
+            // 原始文字
+            Text(text)
+                .font(font)
+                .foregroundColor(foregroundColor)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            
+            // 右側漸層遮罩
+            HStack {
+                Spacer()
+                LinearGradient(
+                    gradient: Gradient(stops: [
+                        .init(color: backgroundColor.opacity(0), location: 0.0),
+                        .init(color: backgroundColor.opacity(0.3), location: 0.3),
+                        .init(color: backgroundColor.opacity(0.7), location: 0.7),
+                        .init(color: backgroundColor, location: 1.0)
+                    ]),
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+                .frame(width: 25)
+            }
+            .allowsHitTesting(false)
+        }
+        .frame(height: 20)
+    }
+}
+
 struct ArtistRow: View {
     let artist: Artist
     let index: Int  // 顯示藝術家的排名
@@ -14,35 +51,57 @@ struct ArtistRow: View {
                     .cornerRadius(1)
                 Text("#\(index)")
                     .foregroundColor(.white)
-                    .font(.custom("SpotifyMix-Bold", size: 20))
+                    .font(.custom("SpotifyMix-Bold", size: 22))
                     .lineLimit(1)
             }
             .frame(width: 50, alignment: .center)
 
             // 右側內容卡片
-            HStack(spacing: 12) {
+            HStack(spacing: 6) {
                 // 藝術家圖片
-                AsyncImageView(
-                    url: artist.images.first?.url,
-                    placeholder: "person.fill",
-                    size: CGSize(width: 45, height: 45),
-                    cornerRadius: 6,
-                    isCircle: false
-                )
+                AsyncImage(url: URL(string: artist.images.first?.url ?? "")) { phase in
+                    switch phase {
+                    case .empty:
+                        ZStack {
+                            Color.gray.opacity(0.3)
+                            Image(systemName: "person.fill")
+                                .foregroundColor(.gray)
+                                .font(.system(size: 16))
+                        }
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    case .failure:
+                        ZStack {
+                            Color.gray.opacity(0.3)
+                            Image(systemName: "person.fill")
+                                .foregroundColor(.gray)
+                                .font(.system(size: 16))
+                        }
+                    @unknown default:
+                        EmptyView()
+                    }
+                }
+                .aspectRatio(1, contentMode: .fit)
+                .cornerRadius(6)
+                .clipped()
 
                 // 藝術家名稱與追蹤者
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(artist.name)
-                        .foregroundColor(.white)
-                        .font(.custom("SpotifyMix-Bold", size: 15))
-                        .lineLimit(1)
-                        .truncationMode(.tail)
+                VStack(alignment: .leading, spacing: 4) {
+                    ArtistFadingText(
+                        text: artist.name,
+                        font: .custom("SpotifyMix-Bold", size: 17),
+                        foregroundColor: .white,
+                        backgroundColor: Color(red: 0.12, green: 0.12, blue: 0.12)
+                    )
 
-                    Text("Followers: \(artist.followers.total)")
-                        .foregroundColor(.gray)
-                        .font(.custom("SpotifyMix-Medium", size: 13))
-                        .lineLimit(1)
-                        .truncationMode(.tail)
+                    ArtistFadingText(
+                        text: "Followers: \(artist.followers.total)",
+                        font: .custom("SpotifyMix-Medium", size: 15),
+                        foregroundColor: .gray,
+                        backgroundColor: Color(red: 0.12, green: 0.12, blue: 0.12)
+                    )
                 }
 
                 Spacer()
@@ -51,18 +110,20 @@ struct ArtistRow: View {
                 VStack(spacing: 2) {
                     Text("Popularity")
                         .foregroundColor(.gray)
-                        .font(.custom("SpotifyMix-Medium", size: 12))
+                        .font(.custom("SpotifyMix-Medium", size: 14))
                     Text("\(artist.popularity)")
                         .foregroundColor(Color.spotifyGreen)
-                        .font(.custom("SpotifyMix-Medium", size: 14))
+                        .font(.custom("SpotifyMix-Medium", size: 16))
                 }
                 .frame(width: 60, alignment: .trailing)
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
-            .background(Color.gray.opacity(0.15))
+            .frame(height: 45)
+            .padding(8)
+            .padding(.trailing, 12)
+            .background(Color(red: 0.12, green: 0.12, blue: 0.12))
             .cornerRadius(10)
         }
+        .frame(maxWidth: .infinity)
         .buttonStyle(PlainButtonStyle())
     }
 }

@@ -30,7 +30,7 @@ struct TopGenresView: View {
                 // 左側 ToolbarItem
                 ToolbarItem(placement: .navigationBarLeading) {
                     Text("Made by Kenny")
-                        .font(.custom("SpotifyMix-Medium", size: 12))
+                        .font(.custom("SpotifyMix-Medium", size: 14))
                         .foregroundColor(.gray)
                         .opacity(0.7)
                 }
@@ -86,4 +86,20 @@ struct TopGenresView: View {
     private func sortedGenres() -> [(key: String, value: Int)] {
         genres.sorted { $0.value > $1.value }
     }
+}
+
+#Preview {
+    TopGenresView(
+        accessToken: "preview_token",
+        userProfile: SpotifyUser(
+            display_name: "Preview User",
+            images: [SpotifyImage(url: "https://i.scdn.co/image/ab6775700000ee85")],
+            email: "user@example.com",
+            id: "user123",
+            followers: SpotifyUser.Followers(total: 500)
+        ),
+        logout: {}
+    )
+    .preferredColorScheme(.dark)
+    .background(Color.spotifyText)
 }

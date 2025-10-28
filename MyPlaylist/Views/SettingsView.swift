@@ -14,17 +14,17 @@ struct SettingsView: View {
                     
                     // App 名稱
                     Text("MyPlaylist")
-                        .font(.custom("SpotifyMix-Bold", size: 32))
+                        .font(.custom("SpotifyMix-Bold", size: 34))
                         .foregroundColor(.white)
                     
                     // 版本資訊
                     Text("Version 1.0.0")
-                        .font(.custom("SpotifyMix-Medium", size: 16))
+                        .font(.custom("SpotifyMix-Medium", size: 18))
                         .foregroundColor(.gray)
                     
                     // 開發者資訊
                     Text("Made by Kenny")
-                        .font(.custom("SpotifyMix-Medium", size: 14))
+                        .font(.custom("SpotifyMix-Medium", size: 16))
                         .foregroundColor(.gray)
                 }
                 
@@ -33,7 +33,7 @@ struct SettingsView: View {
                 // 功能說明
                 VStack(alignment: .leading, spacing: 15) {
                     Text("功能特色")
-                        .font(.custom("SpotifyMix-Bold", size: 20))
+                        .font(.custom("SpotifyMix-Bold", size: 22))
                         .foregroundColor(.white)
                     
                     FeatureRow(icon: "house.fill", title: "首頁", description: "查看正在播放和最近播放")
@@ -68,15 +68,21 @@ struct FeatureRow: View {
             
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(.custom("SpotifyMix-Medium", size: 16))
+                    .font(.custom("SpotifyMix-Medium", size: 18))
                     .foregroundColor(.white)
                 
                 Text(description)
-                    .font(.custom("SpotifyMix-Medium", size: 12))
+                    .font(.custom("SpotifyMix-Medium", size: 14))
                     .foregroundColor(.gray)
             }
             
             Spacer()
         }
     }
+}
+
+#Preview {
+    SettingsView()
+        .preferredColorScheme(.dark)
+        .background(Color.spotifyText)
 }

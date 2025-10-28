@@ -44,7 +44,7 @@ struct TopTracksView: View {
                 .toolbar {
                     ToolbarItem(placement: .navigationBarLeading) {
                         Text("Made by Kenny")
-                            .font(.custom("SpotifyMix-Medium", size: 12))
+                            .font(.custom("SpotifyMix-Medium", size: 14))
                             .foregroundColor(.gray)
                             .opacity(0.7)
                     }
@@ -132,4 +132,37 @@ enum TrackTimeRange: String, CaseIterable {
         case .longTerm: return "1 Year"
         }
     }
+}
+
+#Preview {
+    TopTracksView(
+        tracks: .constant([
+            Track(
+                id: "track1",
+                name: "Preview Song 1",
+                previewUrl: "https://example.com/preview1.mp3",
+                artists: [Track.TrackArtist(name: "Artist 1")],
+                album: Track.TrackAlbum(images: [Track.TrackAlbum.TrackImage(url: "https://i.scdn.co/image/ab67616d0000b273")])
+            ),
+            Track(
+                id: "track2",
+                name: "Preview Song 2",
+                previewUrl: "https://example.com/preview2.mp3",
+                artists: [Track.TrackArtist(name: "Artist 2")],
+                album: Track.TrackAlbum(images: [Track.TrackAlbum.TrackImage(url: "https://i.scdn.co/image/ab67616d0000b273")])
+            )
+        ]),
+        audioPlayer: AudioPlayer(),
+        userProfile: SpotifyUser(
+            display_name: "Preview User",
+            images: [SpotifyImage(url: "https://i.scdn.co/image/ab6775700000ee85")],
+            email: "user@example.com",
+            id: "user123",
+            followers: SpotifyUser.Followers(total: 500)
+        ),
+        logout: {},
+        accessToken: "preview_token"
+    )
+    .preferredColorScheme(.dark)
+    .background(Color.spotifyText)
 }

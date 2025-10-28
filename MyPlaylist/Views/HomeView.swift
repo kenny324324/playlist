@@ -1,11 +1,58 @@
 import SwiftUI
 
+// MARK: - 漸層淡出文字視圖（HomeView 專用）
+struct HomeFadingText: View {
+    let text: String
+    let font: Font
+    let foregroundColor: Color
+    let backgroundColor: Color
+    let lineLimit: Int
+    
+    init(text: String, font: Font, foregroundColor: Color, backgroundColor: Color, lineLimit: Int = 1) {
+        self.text = text
+        self.font = font
+        self.foregroundColor = foregroundColor
+        self.backgroundColor = backgroundColor
+        self.lineLimit = lineLimit
+    }
+    
+    var body: some View {
+        ZStack(alignment: .leading) {
+            // 原始文字
+            Text(text)
+                .font(font)
+                .foregroundColor(foregroundColor)
+                .lineLimit(lineLimit)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            
+            // 右側漸層遮罩
+            HStack {
+                Spacer()
+                LinearGradient(
+                    gradient: Gradient(stops: [
+                        .init(color: backgroundColor.opacity(0), location: 0.0),
+                        .init(color: backgroundColor.opacity(0.3), location: 0.3),
+                        .init(color: backgroundColor.opacity(0.7), location: 0.7),
+                        .init(color: backgroundColor, location: 1.0)
+                    ]),
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+                .frame(width: 25)
+            }
+            .allowsHitTesting(false)
+        }
+        .frame(height: lineLimit == 1 ? 20 : CGFloat(20 * lineLimit))
+    }
+}
+
 struct HomeView: View {
     @State private var currentlyPlaying: CurrentlyPlayingTrack? = nil
     @State private var recentlyPlayed: [RecentlyPlayedTrack] = []
     @State private var isLoading = true
     @State private var showUserProfile = false
     @State private var refreshRotation: Double = 0
+    @State private var showAllRecentlyPlayed = false
     @ObservedObject var audioPlayer: AudioPlayer
     
     let accessToken: String
@@ -73,12 +120,15 @@ struct HomeView: View {
         .onAppear {
             loadData()
         }
+        .sheet(isPresented: $showAllRecentlyPlayed) {
+            RecentlyPlayedView(audioPlayer: audioPlayer, accessToken: accessToken)
+        }
     }
     
     private var currentlyPlayingSection: some View {
         VStack(alignment: .leading, spacing: 15) {
             Text("正在播放")
-                .font(.custom("SpotifyMix-Bold", size: 20))
+                .font(.custom("SpotifyMix-Bold", size: 22))
                 .foregroundColor(.white)
             
             if isLoading && currentlyPlaying == nil {
@@ -92,11 +142,12 @@ struct HomeView: View {
                         .font(.system(size: 40))
                         .foregroundColor(.gray)
                     Text("目前沒有播放音樂")
-                        .font(.custom("SpotifyMix-Medium", size: 16))
+                        .font(.custom("SpotifyMix-Medium", size: 18))
                         .foregroundColor(.gray)
                 }
-                .frame(maxWidth: .infinity, minHeight: 120)
-                .background(Color.white.opacity(0.1))
+                .frame(maxWidth: .infinity, minHeight: 100)
+                .padding(16)
+                .background(Color(red: 0.12, green: 0.12, blue: 0.12))
                 .cornerRadius(15)
             }
         }
@@ -105,7 +156,7 @@ struct HomeView: View {
     private var recentlyPlayedSection: some View {
         VStack(alignment: .leading, spacing: 15) {
             Text("最近播放")
-                .font(.custom("SpotifyMix-Bold", size: 20))
+                .font(.custom("SpotifyMix-Bold", size: 22))
                 .foregroundColor(.white)
             
             if isLoading && recentlyPlayed.isEmpty {
@@ -121,17 +172,40 @@ struct HomeView: View {
                         .font(.system(size: 40))
                         .foregroundColor(.gray)
                     Text("暫無播放紀錄")
-                        .font(.custom("SpotifyMix-Medium", size: 16))
+                        .font(.custom("SpotifyMix-Medium", size: 18))
                         .foregroundColor(.gray)
                 }
-                .frame(maxWidth: .infinity, minHeight: 120)
-                .background(Color.white.opacity(0.1))
+                .frame(maxWidth: .infinity, minHeight: 100)
+                .padding(16)
+                .background(Color(red: 0.12, green: 0.12, blue: 0.12))
                 .cornerRadius(15)
             } else {
                 LazyVStack(spacing: 10) {
-                    ForEach(recentlyPlayed) { item in
+                    ForEach(Array(recentlyPlayed.prefix(10))) { item in
                         RecentlyPlayedRow(item: item, audioPlayer: audioPlayer)
                     }
+                }
+                
+                // 如果有超過10首，顯示底部的查看更多按鈕
+                if recentlyPlayed.count > 10 {
+                    Button(action: {
+                        showAllRecentlyPlayed = true
+                    }) {
+                        HStack {
+                            Text("查看最近 \(recentlyPlayed.count) 首播放")
+                                .font(.custom("SpotifyMix-Medium", size: 16))
+                                .foregroundColor(.white)
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12))
+                                .foregroundColor(.white)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(Color.white.opacity(0.1))
+                        .cornerRadius(10)
+                    }
+                    .padding(.top, 5)
+                    .padding(.bottom, 20)
                 }
             }
         }
@@ -171,30 +245,60 @@ struct CurrentlyPlayingCard: View {
     @ObservedObject var audioPlayer: AudioPlayer
     
     var body: some View {
-        HStack(spacing: 15) {
+        HStack(spacing: 12) {
             // 專輯封面
-            AsyncImageView(
-                url: track.album.images.first?.url,
-                placeholder: "music.note",
-                size: CGSize(width: 80, height: 80),
-                cornerRadius: 10
-            )
+            if let imageUrl = track.album.images.first?.url,
+               let url = URL(string: imageUrl) {
+                AsyncImage(url: url) { image in
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                } placeholder: {
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(Color.gray.opacity(0.3))
+                        .overlay(
+                            Image(systemName: "music.note")
+                                .foregroundColor(.gray)
+                                .font(.system(size: 24))
+                        )
+                }
+                .aspectRatio(1, contentMode: .fit)
+                .frame(maxHeight: 100)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+            } else {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color.gray.opacity(0.3))
+                    .aspectRatio(1, contentMode: .fit)
+                    .frame(maxHeight: 100)
+                    .overlay(
+                        Image(systemName: "music.note")
+                            .foregroundColor(.gray)
+                            .font(.system(size: 24))
+                    )
+            }
             
-            VStack(alignment: .leading, spacing: 8) {
-                Text(track.name)
-                    .font(.custom("SpotifyMix-Bold", size: 18))
-                    .foregroundColor(.white)
-                    .lineLimit(2)
+            VStack(alignment: .leading, spacing: 6) {
+                HomeFadingText(
+                    text: track.name,
+                    font: .custom("SpotifyMix-Bold", size: 20),
+                    foregroundColor: .white,
+                    backgroundColor: Color(red: 0.12, green: 0.12, blue: 0.12),
+                    lineLimit: 2
+                )
                 
-                Text(track.artists.map(\.name).joined(separator: ", "))
-                    .font(.custom("SpotifyMix-Medium", size: 14))
-                    .foregroundColor(.gray)
-                    .lineLimit(1)
+                HomeFadingText(
+                    text: track.artists.map(\.name).joined(separator: ", "),
+                    font: .custom("SpotifyMix-Medium", size: 16),
+                    foregroundColor: .gray,
+                    backgroundColor: Color(red: 0.12, green: 0.12, blue: 0.12)
+                )
                 
-                Text(track.album.name)
-                    .font(.custom("SpotifyMix-Medium", size: 12))
-                    .foregroundColor(.gray)
-                    .lineLimit(1)
+                HomeFadingText(
+                    text: track.album.name,
+                    font: .custom("SpotifyMix-Medium", size: 14),
+                    foregroundColor: .gray,
+                    backgroundColor: Color(red: 0.12, green: 0.12, blue: 0.12)
+                )
                 
                 if let previewUrl = track.preview_url {
                     Button(action: {
@@ -204,7 +308,7 @@ struct CurrentlyPlayingCard: View {
                             Image(systemName: audioPlayer.isPlaying && audioPlayer.currentPreviewUrl == previewUrl ? "pause.fill" : "play.fill")
                             Text("試聽")
                         }
-                        .font(.custom("SpotifyMix-Medium", size: 12))
+                        .font(.custom("SpotifyMix-Medium", size: 14))
                         .foregroundColor(.white)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
@@ -216,9 +320,10 @@ struct CurrentlyPlayingCard: View {
             
             Spacer()
         }
-        .padding()
-        .background(Color.white.opacity(0.1))
+        .padding(16)
+        .background(Color(red: 0.12, green: 0.12, blue: 0.12))
         .cornerRadius(15)
+        .frame(maxWidth: .infinity)
     }
 }
 
@@ -227,31 +332,56 @@ struct RecentlyPlayedRow: View {
     @ObservedObject var audioPlayer: AudioPlayer
     
     var body: some View {
-        HStack(spacing: 12) {
-            AsyncImageView(
-                url: item.track.album.images.first?.url,
-                placeholder: "music.note",
-                size: CGSize(width: 50, height: 50),
-                cornerRadius: 8
-            )
+        HStack(spacing: 6) {
+            AsyncImage(url: URL(string: item.track.album.images.first?.url ?? "")) { phase in
+                switch phase {
+                case .empty:
+                    ZStack {
+                        Color.gray.opacity(0.3)
+                        Image(systemName: "music.note")
+                            .foregroundColor(.gray)
+                            .font(.system(size: 20))
+                    }
+                case .success(let image):
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                case .failure:
+                    ZStack {
+                        Color.gray.opacity(0.3)
+                        Image(systemName: "music.note")
+                            .foregroundColor(.gray)
+                            .font(.system(size: 20))
+                    }
+                @unknown default:
+                    EmptyView()
+                }
+            }
+            .aspectRatio(1, contentMode: .fit)
+            .cornerRadius(8)
+            .clipped()
             
             VStack(alignment: .leading, spacing: 4) {
-                Text(item.track.name)
-                    .font(.custom("SpotifyMix-Medium", size: 14))
-                    .foregroundColor(.white)
-                    .lineLimit(1)
+                HomeFadingText(
+                    text: item.track.name,
+                    font: .custom("SpotifyMix-Medium", size: 16),
+                    foregroundColor: .white,
+                    backgroundColor: Color(red: 0.12, green: 0.12, blue: 0.12)
+                )
                 
-                Text(item.track.artists.map(\.name).joined(separator: ", "))
-                    .font(.custom("SpotifyMix-Medium", size: 12))
-                    .foregroundColor(.gray)
-                    .lineLimit(1)
+                HomeFadingText(
+                    text: item.track.artists.map(\.name).joined(separator: ", "),
+                    font: .custom("SpotifyMix-Medium", size: 14),
+                    foregroundColor: .gray,
+                    backgroundColor: Color(red: 0.12, green: 0.12, blue: 0.12)
+                )
             }
             
             Spacer()
             
             // 歌曲時長
             Text(formatDuration(item.track.duration_ms))
-                .font(.custom("SpotifyMix-Medium", size: 12))
+                .font(.custom("SpotifyMix-Medium", size: 14))
                 .foregroundColor(.gray)
             
             if let previewUrl = item.track.preview_url {
@@ -267,10 +397,12 @@ struct RecentlyPlayedRow: View {
                 }
             }
         }
-        .padding(.horizontal)
-        .padding(.vertical, 8)
-        .background(Color.white.opacity(0.05))
+        .frame(height: 45)
+        .padding(8)
+        .padding(.trailing, 12)
+        .background(Color(red: 0.12, green: 0.12, blue: 0.12))
         .cornerRadius(10)
+        .frame(maxWidth: .infinity)
     }
     
     private func formatDuration(_ milliseconds: Int) -> String {
@@ -284,67 +416,69 @@ struct RecentlyPlayedRow: View {
 // MARK: - Placeholder Views
 struct CurrentlyPlayingPlaceholder: View {
     var body: some View {
-        HStack(spacing: 15) {
+        HStack(spacing: 12) {
             // 專輯封面佔位符
             RoundedRectangle(cornerRadius: 10)
-                .fill(Color.white.opacity(0.1))
-                .frame(width: 80, height: 80)
+                .fill(Color.gray.opacity(0.3))
+                .aspectRatio(1, contentMode: .fit)
+                .frame(maxHeight: 100)
                 .shimmer()
             
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 6) {
                 // 歌曲名稱佔位符
                 RoundedRectangle(cornerRadius: 4)
-                    .fill(Color.white.opacity(0.1))
-                    .frame(width: 180, height: 18)
+                    .fill(Color.gray.opacity(0.3))
+                    .frame(width: 180, height: 20)
                     .shimmer()
                 
                 // 藝術家佔位符
                 RoundedRectangle(cornerRadius: 4)
-                    .fill(Color.white.opacity(0.1))
-                    .frame(width: 120, height: 14)
+                    .fill(Color.gray.opacity(0.3))
+                    .frame(width: 120, height: 16)
                     .shimmer()
                 
                 // 專輯佔位符
                 RoundedRectangle(cornerRadius: 4)
-                    .fill(Color.white.opacity(0.1))
-                    .frame(width: 140, height: 12)
+                    .fill(Color.gray.opacity(0.3))
+                    .frame(width: 140, height: 14)
                     .shimmer()
                 
                 // 按鈕佔位符
                 RoundedRectangle(cornerRadius: 15)
-                    .fill(Color.white.opacity(0.1))
-                    .frame(width: 60, height: 24)
+                    .fill(Color.gray.opacity(0.3))
+                    .frame(width: 60, height: 28)
                     .shimmer()
             }
             
             Spacer()
         }
-        .padding()
-        .background(Color.white.opacity(0.1))
+        .padding(16)
+        .background(Color(red: 0.12, green: 0.12, blue: 0.12))
         .cornerRadius(15)
+        .frame(maxWidth: .infinity)
     }
 }
 
 struct RecentlyPlayedPlaceholder: View {
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 6) {
             // 專輯封面佔位符
             RoundedRectangle(cornerRadius: 8)
-                .fill(Color.white.opacity(0.1))
-                .frame(width: 50, height: 50)
+                .fill(Color.gray.opacity(0.3))
+                .aspectRatio(1, contentMode: .fit)
                 .shimmer()
             
             VStack(alignment: .leading, spacing: 4) {
                 // 歌曲名稱佔位符
                 RoundedRectangle(cornerRadius: 4)
-                    .fill(Color.white.opacity(0.1))
-                    .frame(width: 150, height: 14)
+                    .fill(Color.gray.opacity(0.3))
+                    .frame(width: 150, height: 16)
                     .shimmer()
                 
                 // 藝術家佔位符
                 RoundedRectangle(cornerRadius: 4)
-                    .fill(Color.white.opacity(0.1))
-                    .frame(width: 100, height: 12)
+                    .fill(Color.gray.opacity(0.3))
+                    .frame(width: 100, height: 14)
                     .shimmer()
             }
             
@@ -352,20 +486,22 @@ struct RecentlyPlayedPlaceholder: View {
             
             // 時長佔位符
             RoundedRectangle(cornerRadius: 4)
-                .fill(Color.white.opacity(0.1))
-                .frame(width: 35, height: 12)
+                .fill(Color.gray.opacity(0.3))
+                .frame(width: 35, height: 14)
                 .shimmer()
             
             // 播放按鈕佔位符
             Circle()
-                .fill(Color.white.opacity(0.1))
+                .fill(Color.gray.opacity(0.3))
                 .frame(width: 30, height: 30)
                 .shimmer()
         }
-        .padding(.horizontal)
-        .padding(.vertical, 8)
-        .background(Color.white.opacity(0.05))
+        .frame(height: 45)
+        .padding(8)
+        .padding(.trailing, 12)
+        .background(Color(red: 0.12, green: 0.12, blue: 0.12))
         .cornerRadius(10)
+        .frame(maxWidth: .infinity)
     }
 }
 

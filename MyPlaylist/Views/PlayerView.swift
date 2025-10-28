@@ -32,13 +32,13 @@ struct PlayerView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(currentTrack?.name ?? "Unknown Track")
                         .foregroundColor(.primary)
-                        .font(.custom("SpotifyMix-Medium", size: 12))
+                        .font(.custom("SpotifyMix-Medium", size: 14))
                         .lineLimit(1)
                         .truncationMode(.tail)
 
                     Text(currentTrack?.artists.map(\.name).joined(separator: ", ") ?? "Unknown Artist")
                         .foregroundColor(.white)
-                        .font(.custom("SpotifyMix-Medium", size: 10))
+                        .font(.custom("SpotifyMix-Medium", size: 12))
                         .lineLimit(1)
                         .truncationMode(.tail)
                 }
@@ -184,4 +184,19 @@ extension UIImage {
             }
         }
     }
+}
+
+#Preview {
+    PlayerView(
+        audioPlayer: AudioPlayer(),
+        showPlayer: .constant(true),
+        currentTrack: .constant(Track(
+            id: "preview123",
+            name: "Preview Song",
+            previewUrl: "https://example.com/preview.mp3",
+            artists: [Track.TrackArtist(name: "Preview Artist")],
+            album: Track.TrackAlbum(images: [Track.TrackAlbum.TrackImage(url: "https://i.scdn.co/image/ab67616d0000b273")])
+        ))
+    )
+    .preferredColorScheme(.dark)
 }

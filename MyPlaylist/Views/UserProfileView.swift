@@ -20,7 +20,7 @@ struct UserProfileView: View {
             // 播放清單標題和滾動區域
             VStack(alignment: .leading, spacing: 10) {
                 Text("Your Playlists")
-                    .font(.custom("SpotifyMix-Bold", size: 18))
+                    .font(.custom("SpotifyMix-Bold", size: 20))
                     .fontWeight(.bold)
                     .foregroundColor(.white)
 
@@ -33,7 +33,7 @@ struct UserProfileView: View {
             
             // Made by Kenny 標籤
             Text("Made by Kenny")
-                .font(.custom("SpotifyMix-Medium", size: 12))
+                .font(.custom("SpotifyMix-Medium", size: 14))
                 .foregroundColor(.gray)
                 .opacity(0.7)
                 .frame(maxWidth: .infinity, alignment: .center)
@@ -64,11 +64,11 @@ struct UserProfileView: View {
             userImageView
             VStack(alignment: .leading, spacing: 5) {
                 Text(userProfile.display_name ?? "Unknown User")
-                    .font(.custom("SpotifyMix-Bold", size: 16))
+                    .font(.custom("SpotifyMix-Bold", size: 18))
                     .foregroundColor(.white)
 
                 Text("Followers: \(userProfile.followers?.total ?? 0)")
-                    .font(.custom("SpotifyMix-Medium", size: 14))
+                    .font(.custom("SpotifyMix-Medium", size: 16))
                     .foregroundColor(.white.opacity(0.7))
             }
             Spacer()
@@ -110,12 +110,12 @@ struct UserProfileView: View {
 
                         VStack(alignment: .leading, spacing: 4) {
                             Text(playlist.name)
-                                .font(.custom("SpotifyMix-Medium", size: 14))
+                                .font(.custom("SpotifyMix-Medium", size: 16))
                                 .foregroundColor(.white)
                                 .lineLimit(1)
                             
                             Text(playlist.owner.display_name ?? "Unknown Owner")
-                                .font(.custom("SpotifyMix-Medium", size: 12))
+                                .font(.custom("SpotifyMix-Medium", size: 14))
                                 .foregroundColor(.white.opacity(0.6))
                                 .lineLimit(1)
                         }
@@ -132,7 +132,7 @@ struct UserProfileView: View {
             showingLogoutAlert = true // 顯示 Alert
         }) {
             Text("Log out")
-                .font(.custom("SpotifyMix-Bold", size: 14))
+                .font(.custom("SpotifyMix-Bold", size: 16))
                 .foregroundColor(Color.spotifyText)
                 .padding(.vertical, 8)
                 .padding(.horizontal, 16)

@@ -60,7 +60,7 @@ struct TopView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Text("Made by Kenny")
-                        .font(.custom("SpotifyMix-Medium", size: 12))
+                        .font(.custom("SpotifyMix-Medium", size: 14))
                         .foregroundColor(.gray)
                         .opacity(0.7)
                 }
@@ -84,7 +84,7 @@ struct TopView: View {
                 }) {
                     VStack(spacing: 8) {
                         Text(type.title)
-                            .font(.custom("SpotifyMix-Medium", size: 16))
+                            .font(.custom("SpotifyMix-Medium", size: 18))
                             .foregroundColor(selectedContentType == type ? Color.spotifyGreen : .gray)
                         
                         Rectangle()
@@ -172,7 +172,7 @@ struct TopView: View {
                     loadData()
                 }) {
                     Text(range.title)
-                        .font(.custom("SpotifyMix-Medium", size: 13))
+                        .font(.custom("SpotifyMix-Medium", size: 15))
                         .foregroundColor(selectedTimeRange == range ? Color.spotifyGreen : .white.opacity(0.7))
                         .frame(minWidth: 64)
                         .padding(.vertical, 6)
@@ -292,30 +292,30 @@ struct TopView: View {
                 
                 Text("#\(index)")
                     .foregroundColor(.white)
-                    .font(.custom("SpotifyMix-Bold", size: 20))
+                    .font(.custom("SpotifyMix-Bold", size: 22))
                     .lineLimit(1)
             }
-            .frame(width: 35, alignment: .center)
+            .frame(width: 50, alignment: .center)
             
             // 灰色框框內容
-            HStack(spacing: 12) {
+            HStack(spacing: 6) {
                 // 專輯封面佔位符
                 RoundedRectangle(cornerRadius: 6)
                     .fill(Color.gray.opacity(0.3))
-                    .frame(width: 45, height: 45)
-                    .redacted(reason: .placeholder)
+                    .aspectRatio(1, contentMode: .fit)
+                    .shimmer()
 
                 // 歌曲資訊佔位符
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 4) {
                     RoundedRectangle(cornerRadius: 4)
                         .fill(Color.gray.opacity(0.3))
-                        .frame(height: 15)
-                        .redacted(reason: .placeholder)
+                        .frame(width: 150, height: 17)
+                        .shimmer()
 
                     RoundedRectangle(cornerRadius: 4)
                         .fill(Color.gray.opacity(0.3))
-                        .frame(width: 120, height: 13)
-                        .redacted(reason: .placeholder)
+                        .frame(width: 120, height: 15)
+                        .shimmer()
                 }
 
                 Spacer()
@@ -325,11 +325,13 @@ struct TopView: View {
                     .foregroundColor(.gray)
                     .font(.system(size: 14))
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
-            .background(Color.gray.opacity(0.15))
+            .frame(height: 45)
+            .padding(8)
+            .padding(.trailing, 12)
+            .background(Color(red: 0.12, green: 0.12, blue: 0.12))
             .cornerRadius(10)
         }
+        .frame(maxWidth: .infinity)
         .padding(.horizontal, 12)
         .padding(.bottom, 5)
     }
@@ -339,7 +341,7 @@ struct TopView: View {
         HStack(alignment: .center, spacing: 8) {
             Text("#\(index)")
                 .foregroundColor(.gray)
-                .font(.custom("SpotifyMix-Bold", size: 18))
+                .font(.custom("SpotifyMix-Bold", size: 20))
                 .lineLimit(1)
                 .frame(width: 35, alignment: .center)
             HStack(spacing: 12) {
@@ -348,19 +350,19 @@ struct TopView: View {
                     .frame(width: 45, height: 45)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("")
-                        .font(.custom("SpotifyMix-Bold", size: 15))
+                        .font(.custom("SpotifyMix-Bold", size: 17))
                         .foregroundColor(.clear)
                     Text("")
-                        .font(.custom("SpotifyMix-Medium", size: 13))
+                        .font(.custom("SpotifyMix-Medium", size: 15))
                         .foregroundColor(.clear)
                 }
                 Spacer()
                 VStack(spacing: 2) {
                     Text("")
-                        .font(.custom("SpotifyMix-Medium", size: 12))
+                        .font(.custom("SpotifyMix-Medium", size: 14))
                         .foregroundColor(.clear)
                     Text("")
-                        .font(.custom("SpotifyMix-Medium", size: 14))
+                        .font(.custom("SpotifyMix-Medium", size: 16))
                         .foregroundColor(.clear)
                 }
                 .frame(width: 60, alignment: .trailing)

@@ -8,7 +8,7 @@ struct LoginView: View {
             Spacer()
             Button(action: login) {
                 Text("Login with Spotify")
-                    .font(.custom("SpotifyMix-Medium", size: 20))
+                    .font(.custom("SpotifyMix-Medium", size: 22))
                     .foregroundColor(Color.spotifyText)
                     .frame(maxWidth: .infinity)
                     .padding()
@@ -19,4 +19,9 @@ struct LoginView: View {
         }
         .background(Color.spotifyText.ignoresSafeArea())
     }
+}
+
+#Preview {
+    LoginView(login: {})
+        .preferredColorScheme(.dark)
 }
