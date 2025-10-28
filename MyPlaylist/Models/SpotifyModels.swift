@@ -121,4 +121,67 @@ struct ArtistsResponse: Codable {
 
 struct PlaylistsResponse: Codable {
     let items: [Playlist]
+}
+
+// MARK: - Saved Tracks Models
+struct SavedTracksResponse: Codable {
+    let items: [SavedTrackItem]
+}
+
+struct SavedTrackItem: Codable, Identifiable {
+    let added_at: String
+    let track: Track
+    
+    var id: String {
+        return track.id
+    }
+}
+
+// MARK: - Saved Albums Models
+struct SavedAlbumsResponse: Codable {
+    let items: [SavedAlbumItem]
+}
+
+struct SavedAlbumItem: Codable, Identifiable {
+    let added_at: String
+    let album: Album
+    
+    var id: String {
+        return album.id
+    }
+}
+
+struct Album: Codable, Identifiable {
+    let id: String
+    let name: String
+    let artists: [AlbumArtist]
+    let images: [SpotifyImage]
+    let release_date: String?
+    
+    struct AlbumArtist: Codable {
+        let name: String
+    }
+}
+
+// MARK: - Recommendations Models
+struct RecommendationsResponse: Codable {
+    let tracks: [Track]
+}
+
+// MARK: - New Releases Models
+struct NewReleasesResponse: Codable {
+    let albums: AlbumsContainer
+    
+    struct AlbumsContainer: Codable {
+        let items: [Album]
+    }
+}
+
+// MARK: - Featured Playlists Models
+struct FeaturedPlaylistsResponse: Codable {
+    let playlists: PlaylistsContainer
+    
+    struct PlaylistsContainer: Codable {
+        let items: [Playlist]
+    }
 } 

@@ -10,6 +10,7 @@ struct ContentView: View {
     @State private var isLoggedIn = false  // 控制登入狀態
     @State private var tracks: [Track] = []
     @State private var userProfile: SpotifyUser? = nil
+    @State private var selectedTab = 0  // 控制選中的 tab
     @ObservedObject var audioPlayer = AudioPlayer()
 
     // 確保畫面在狀態變化時強制更新
@@ -20,33 +21,65 @@ struct ContentView: View {
             Color.spotifyText.ignoresSafeArea()
 
             if isLoggedIn {
-                TabView {
-                    HomeView(
-                        audioPlayer: audioPlayer,
-                        accessToken: accessToken ?? "",
-                        userProfile: userProfile,
-                        logout: logout
-                    )
-                    .tabItem {
-                        Label("首頁", systemImage: "house.fill")
+                if #available(iOS 26.0, *) {
+                    TabView(selection: $selectedTab) {
+                        Tab("首頁", systemImage: "house.fill", value: 0) {
+                            HomeView(
+                                audioPlayer: audioPlayer,
+                                accessToken: accessToken ?? "",
+                                userProfile: userProfile,
+                                logout: logout
+                            )
+                        }
+                        
+                        Tab("排行榜", systemImage: "chart.bar.fill", value: 1) {
+                            TopView(
+                                audioPlayer: audioPlayer,
+                                userProfile: userProfile,
+                                logout: logout,
+                                accessToken: accessToken ?? ""
+                            )
+                        }
+                        
+                        Tab("設定", systemImage: "gearshape.fill", value: 2) {
+                            SettingsView()
+                        }
                     }
-                    
-                    TopView(
-                        audioPlayer: audioPlayer,
-                        userProfile: userProfile,
-                        logout: logout,
-                        accessToken: accessToken ?? ""
-                    )
-                    .tabItem {
-                        Label("排行榜", systemImage: "chart.bar.fill")
+                    .tint(Color.spotifyGreen)
+                    .tabViewStyle(.sidebarAdaptable)
+                    .tabBarMinimizeBehavior(.onScrollDown)
+                    .tabViewBottomAccessory{
+                        Text("\(Image(systemName: "swift")) Made with SwiftUI")
+                            .foregroundStyle(.orange)
+                            .padding()
                     }
-                    
-                    SettingsView()
-                    .tabItem {
-                        Label("設定", systemImage: "gearshape.fill")
+                } else {
+                    TabView(selection: $selectedTab) {
+                        Tab("首頁", systemImage: "house.fill", value: 0) {
+                            HomeView(
+                                audioPlayer: audioPlayer,
+                                accessToken: accessToken ?? "",
+                                userProfile: userProfile,
+                                logout: logout
+                            )
+                        }
+                        
+                        Tab("排行榜", systemImage: "chart.bar.fill", value: 1) {
+                            TopView(
+                                audioPlayer: audioPlayer,
+                                userProfile: userProfile,
+                                logout: logout,
+                                accessToken: accessToken ?? ""
+                            )
+                        }
+                        
+                        Tab("設定", systemImage: "gearshape.fill", value: 2) {
+                            SettingsView()
+                        }
                     }
+                    .tint(Color.spotifyGreen)
+                    .tabViewStyle(.sidebarAdaptable)
                 }
-                .accentColor(Color.white)  // 設置 Tab 的主題色
             } else {
                 LoginView(login: login)  // 顯示登入畫面
             }
@@ -161,3 +194,4 @@ enum TimeRange: String, CaseIterable {
 #Preview {
     ContentView()
 }
+

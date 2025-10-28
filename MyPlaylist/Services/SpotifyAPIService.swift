@@ -173,5 +173,151 @@ class SpotifyAPIService {
             }
         }.resume()
     }
+    
+    // 新增：獲取收藏的歌曲
+    static func fetchSavedTracks(accessToken: String, limit: Int = 10, completion: @escaping ([SavedTrackItem]) -> Void) {
+        let url = URL(string: "https://api.spotify.com/v1/me/tracks?limit=\(limit)")!
+        var request = URLRequest(url: url)
+        request.addValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                print("Error fetching saved tracks: \(error.localizedDescription)")
+                completion([])
+                return
+            }
+
+            guard let data = data else {
+                print("No data received from Spotify API")
+                completion([])
+                return
+            }
+
+            do {
+                let savedTracksResponse = try JSONDecoder().decode(SavedTracksResponse.self, from: data)
+                completion(savedTracksResponse.items)
+            } catch {
+                print("Error decoding saved tracks: \(error.localizedDescription)")
+                completion([])
+            }
+        }.resume()
+    }
+    
+    // 新增：獲取收藏的專輯
+    static func fetchSavedAlbums(accessToken: String, limit: Int = 10, completion: @escaping ([SavedAlbumItem]) -> Void) {
+        let url = URL(string: "https://api.spotify.com/v1/me/albums?limit=\(limit)")!
+        var request = URLRequest(url: url)
+        request.addValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                print("Error fetching saved albums: \(error.localizedDescription)")
+                completion([])
+                return
+            }
+
+            guard let data = data else {
+                print("No data received from Spotify API")
+                completion([])
+                return
+            }
+
+            do {
+                let savedAlbumsResponse = try JSONDecoder().decode(SavedAlbumsResponse.self, from: data)
+                completion(savedAlbumsResponse.items)
+            } catch {
+                print("Error decoding saved albums: \(error.localizedDescription)")
+                completion([])
+            }
+        }.resume()
+    }
+    
+    // 新增：獲取推薦歌曲
+    static func fetchRecommendations(accessToken: String, limit: Int = 10, completion: @escaping ([Track]) -> Void) {
+        // 使用一些預設的種子來獲取推薦（實際應用中可以根據用戶的熱門藝術家/曲目來生成）
+        let url = URL(string: "https://api.spotify.com/v1/recommendations?limit=\(limit)&seed_genres=pop,rock")!
+        var request = URLRequest(url: url)
+        request.addValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                print("Error fetching recommendations: \(error.localizedDescription)")
+                completion([])
+                return
+            }
+
+            guard let data = data else {
+                print("No data received from Spotify API")
+                completion([])
+                return
+            }
+
+            do {
+                let recommendationsResponse = try JSONDecoder().decode(RecommendationsResponse.self, from: data)
+                completion(recommendationsResponse.tracks)
+            } catch {
+                print("Error decoding recommendations: \(error.localizedDescription)")
+                completion([])
+            }
+        }.resume()
+    }
+    
+    // 新增：獲取新發行音樂
+    static func fetchNewReleases(accessToken: String, limit: Int = 10, completion: @escaping ([Album]) -> Void) {
+        let url = URL(string: "https://api.spotify.com/v1/browse/new-releases?limit=\(limit)")!
+        var request = URLRequest(url: url)
+        request.addValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                print("Error fetching new releases: \(error.localizedDescription)")
+                completion([])
+                return
+            }
+
+            guard let data = data else {
+                print("No data received from Spotify API")
+                completion([])
+                return
+            }
+
+            do {
+                let newReleasesResponse = try JSONDecoder().decode(NewReleasesResponse.self, from: data)
+                completion(newReleasesResponse.albums.items)
+            } catch {
+                print("Error decoding new releases: \(error.localizedDescription)")
+                completion([])
+            }
+        }.resume()
+    }
+    
+    // 新增：獲取精選播放列表
+    static func fetchFeaturedPlaylists(accessToken: String, limit: Int = 10, completion: @escaping ([Playlist]) -> Void) {
+        let url = URL(string: "https://api.spotify.com/v1/browse/featured-playlists?limit=\(limit)")!
+        var request = URLRequest(url: url)
+        request.addValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                print("Error fetching featured playlists: \(error.localizedDescription)")
+                completion([])
+                return
+            }
+
+            guard let data = data else {
+                print("No data received from Spotify API")
+                completion([])
+                return
+            }
+
+            do {
+                let featuredPlaylistsResponse = try JSONDecoder().decode(FeaturedPlaylistsResponse.self, from: data)
+                completion(featuredPlaylistsResponse.playlists.items)
+            } catch {
+                print("Error decoding featured playlists: \(error.localizedDescription)")
+                completion([])
+            }
+        }.resume()
+    }
 
 }
