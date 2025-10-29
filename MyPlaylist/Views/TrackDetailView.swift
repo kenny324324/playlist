@@ -15,7 +15,7 @@ struct TrackDetailView: View {
         ZStack {
             Color.black.ignoresSafeArea()
             
-            ScrollView {
+            ScrollView(showsIndicators: false) {
                 VStack(spacing: 0) {
                     if isLoading {
                         ProgressView()
@@ -168,34 +168,37 @@ struct TrackDetailView: View {
                     .font(.custom("SpotifyMix-Bold", size: 20))
                     .foregroundColor(.white)
                 
-                HStack(spacing: 16) {
-                    if let imageUrl = track.album.images.first?.url,
-                       let url = URL(string: imageUrl) {
-                        AsyncImage(url: url) { image in
-                            image
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                        } placeholder: {
-                            Rectangle()
-                                .fill(Color.gray.opacity(0.3))
+                NavigationLink(destination: AlbumDetailView(albumId: track.album.id, albumName: track.album.name, accessToken: accessToken, audioPlayer: audioPlayer)) {
+                    HStack(spacing: 16) {
+                        if let imageUrl = track.album.images.first?.url,
+                           let url = URL(string: imageUrl) {
+                            AsyncImage(url: url) { image in
+                                image
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                            } placeholder: {
+                                Rectangle()
+                                    .fill(Color.gray.opacity(0.3))
+                            }
+                            .frame(width: 80, height: 80)
+                            .cornerRadius(8)
                         }
-                        .frame(width: 80, height: 80)
-                        .cornerRadius(8)
-                    }
-                    
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(track.album.name)
-                            .font(.custom("SpotifyMix-Bold", size: 18))
-                            .foregroundColor(.white)
-                            .lineLimit(2)
                         
-                        if let releaseDate = track.album.release_date {
-                            Text(formatReleaseDate(releaseDate))
-                                .font(.custom("SpotifyMix-Medium", size: 14))
-                                .foregroundColor(.gray)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(track.album.name)
+                                .font(.custom("SpotifyMix-Bold", size: 18))
+                                .foregroundColor(.white)
+                                .lineLimit(2)
+                            
+                            if let releaseDate = track.album.release_date {
+                                Text(formatReleaseDate(releaseDate))
+                                    .font(.custom("SpotifyMix-Medium", size: 14))
+                                    .foregroundColor(.gray)
+                            }
                         }
                     }
                 }
+                .buttonStyle(PlainButtonStyle())
             }
             .padding(.horizontal, 20)
         }
@@ -283,33 +286,35 @@ struct TrackDetailView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 16) {
                     ForEach(artistDetails, id: \.id) { artist in
-                        VStack(spacing: 12) {
-                            // 藝人圓形頭像
-                            if let imageUrl = artist.images.first?.url,
-                               let url = URL(string: imageUrl) {
-                                AsyncImage(url: url) { image in
-                                    image
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fill)
-                                } placeholder: {
-                                    Circle()
-                                        .fill(Color.gray.opacity(0.3))
-                                        .overlay(
-                                            Image(systemName: "person.fill")
-                                                .foregroundColor(.gray)
-                                                .font(.system(size: 30))
-                                        )
+                        NavigationLink(destination: ArtistDetailView(artistId: artist.id, artistName: artist.name, accessToken: accessToken, audioPlayer: audioPlayer)) {
+                            VStack(spacing: 12) {
+                                // 藝人圓形頭像
+                                if let imageUrl = artist.images.first?.url,
+                                   let url = URL(string: imageUrl) {
+                                    AsyncImage(url: url) { image in
+                                        image
+                                            .resizable()
+                                            .aspectRatio(contentMode: .fill)
+                                    } placeholder: {
+                                        Circle()
+                                            .fill(Color.gray.opacity(0.3))
+                                            .overlay(
+                                                Image(systemName: "person.fill")
+                                                    .foregroundColor(.gray)
+                                                    .font(.system(size: 30))
+                                            )
+                                    }
+                                    .frame(width: 110, height: 110)
+                                    .clipShape(Circle())
                                 }
-                                .frame(width: 110, height: 110)
-                                .clipShape(Circle())
+                                
+                                Text(artist.name)
+                                    .font(.custom("SpotifyMix-Bold", size: 14))
+                                    .foregroundColor(.white)
+                                    .lineLimit(2)
+                                    .multilineTextAlignment(.center)
+                                    .frame(width: 110)
                             }
-                            
-                            Text(artist.name)
-                                .font(.custom("SpotifyMix-Bold", size: 14))
-                                .foregroundColor(.white)
-                                .lineLimit(2)
-                                .multilineTextAlignment(.center)
-                                .frame(width: 110)
                         }
                     }
                 }

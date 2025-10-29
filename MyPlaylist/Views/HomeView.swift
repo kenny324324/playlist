@@ -434,7 +434,10 @@ struct HomeView: View {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 12) {
                             ForEach(savedAlbums.prefix(10)) { item in
-                                AlbumCard(album: item.album)
+                                NavigationLink(destination: AlbumDetailView(albumId: item.album.id, albumName: item.album.name, accessToken: accessToken, audioPlayer: audioPlayer)) {
+                                    AlbumCard(album: item.album)
+                                }
+                                .buttonStyle(PlainButtonStyle())
                             }
                         }
                         .padding(.horizontal, 20)
@@ -526,7 +529,10 @@ struct HomeView: View {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 12) {
                             ForEach(followedArtists.prefix(20)) { artist in
-                                ArtistCard(artist: artist)
+                                NavigationLink(destination: ArtistDetailView(artistId: artist.id, artistName: artist.name, accessToken: accessToken, audioPlayer: audioPlayer)) {
+                                    ArtistCard(artist: artist)
+                                }
+                                .buttonStyle(PlainButtonStyle())
                             }
                         }
                         .padding(.horizontal, 20)

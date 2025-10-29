@@ -240,9 +240,12 @@ struct TopView: View {
                 EmptyView()
             } else {
                 ForEach(Array(artists.enumerated()), id: \.element.id) { index, artist in
-                    ArtistRow(artist: artist, index: index + 1)
-                        .padding(.horizontal, 12)
-                        .padding(.bottom, 5)
+                    NavigationLink(destination: ArtistDetailView(artistId: artist.id, artistName: artist.name, accessToken: accessToken, audioPlayer: audioPlayer)) {
+                        ArtistRow(artist: artist, index: index + 1)
+                            .padding(.horizontal, 12)
+                            .padding(.bottom, 5)
+                    }
+                    .buttonStyle(PlainButtonStyle())
                 }
                 if artists.count < 8 {
                     ForEach(artists.count..<8, id: \.self) { index in

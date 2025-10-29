@@ -240,8 +240,97 @@ struct ArtistDetail: Codable {
     let images: [SpotifyImage]
     let followers: Followers
     let popularity: Int
+    let uri: String
+    let external_urls: ExternalUrls
     
     struct Followers: Codable {
         let total: Int
+    }
+    
+    struct ExternalUrls: Codable {
+        let spotify: String
+    }
+}
+
+// MARK: - Artist Top Tracks Models
+struct ArtistTopTracksResponse: Codable {
+    let tracks: [ArtistTopTrack]
+}
+
+struct ArtistTopTrack: Codable, Identifiable {
+    let id: String
+    let name: String
+    let album: ArtistTopTrackAlbum
+    let artists: [ArtistTopTrackArtist]
+    let preview_url: String?
+    let duration_ms: Int
+    
+    struct ArtistTopTrackAlbum: Codable {
+        let name: String
+        let images: [SpotifyImage]
+    }
+    
+    struct ArtistTopTrackArtist: Codable {
+        let name: String
+    }
+}
+
+// MARK: - Artist Albums Models
+struct ArtistAlbumsResponse: Codable {
+    let items: [ArtistAlbum]
+}
+
+struct ArtistAlbum: Codable, Identifiable {
+    let id: String
+    let name: String
+    let images: [SpotifyImage]
+    let release_date: String?
+    let total_tracks: Int
+    let artists: [ArtistAlbumArtist]
+    
+    struct ArtistAlbumArtist: Codable {
+        let name: String
+    }
+}
+
+// MARK: - Album Detail Models
+struct AlbumDetail: Codable {
+    let id: String
+    let name: String
+    let images: [SpotifyImage]
+    let artists: [AlbumDetailArtist]
+    let release_date: String?
+    let total_tracks: Int
+    let album_type: String
+    let popularity: Int?
+    let tracks: AlbumTracksResponse
+    let uri: String
+    let external_urls: ExternalUrls
+    
+    struct AlbumDetailArtist: Codable, Identifiable {
+        let id: String
+        let name: String
+    }
+    
+    struct ExternalUrls: Codable {
+        let spotify: String
+    }
+}
+
+struct AlbumTracksResponse: Codable {
+    let items: [AlbumTrack]
+}
+
+struct AlbumTrack: Codable, Identifiable {
+    let id: String
+    let name: String
+    let track_number: Int
+    let duration_ms: Int
+    let artists: [AlbumTrackArtist]
+    let preview_url: String?
+    
+    struct AlbumTrackArtist: Codable {
+        let name: String
+        let id: String
     }
 } 

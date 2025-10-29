@@ -449,5 +449,114 @@ class SpotifyAPIService {
             }
         }.resume()
     }
+    
+    // 獲取藝人熱門歌曲
+    static func fetchArtistTopTracks(artistId: String, accessToken: String, completion: @escaping ([ArtistTopTrack]) -> Void) {
+        let url = URL(string: "https://api.spotify.com/v1/artists/\(artistId)/top-tracks?market=TW")!
+        var request = URLRequest(url: url)
+        request.addValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                print("Error fetching artist top tracks: \(error.localizedDescription)")
+                completion([])
+                return
+            }
+            
+            if handleUnauthorized(response: response) {
+                completion([])
+                return
+            }
+            
+            guard let data = data else {
+                print("No data received from Spotify API")
+                completion([])
+                return
+            }
+            
+            do {
+                let response = try JSONDecoder().decode(ArtistTopTracksResponse.self, from: data)
+                completion(response.tracks)
+            } catch {
+                print("Error decoding artist top tracks: \(error.localizedDescription)")
+                completion([])
+            }
+        }.resume()
+    }
+    
+    // 獲取藝人專輯
+    static func fetchArtistAlbums(artistId: String, accessToken: String, limit: Int = 10, completion: @escaping ([ArtistAlbum]) -> Void) {
+        let url = URL(string: "https://api.spotify.com/v1/artists/\(artistId)/albums?market=TW&limit=\(limit)&include_groups=album,single")!
+        var request = URLRequest(url: url)
+        request.addValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                print("Error fetching artist albums: \(error.localizedDescription)")
+                completion([])
+                return
+            }
+            
+            if handleUnauthorized(response: response) {
+                completion([])
+                return
+            }
+            
+            guard let data = data else {
+                print("No data received from Spotify API")
+                completion([])
+                return
+            }
+            
+            do {
+                let response = try JSONDecoder().decode(ArtistAlbumsResponse.self, from: data)
+                completion(response.items)
+            } catch {
+                print("Error decoding artist albums: \(error.localizedDescription)")
+                completion([])
+            }
+        }.resume()
+    }
+    
+    // 獲取專輯詳細資訊
+    static func fetchAlbumDetail(albumId: String, accessToken: String, completion: @escaping (AlbumDetail?) -> Void) {
+        let url = URL(string: "https://api.spotify.com/v1/albums/\(albumId)?market=TW")!
+        var request = URLRequest(url: url)
+        request.addValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                print("Error fetching album detail: \(error.localizedDescription)")
+                completion(nil)
+                return
+            }
+            
+            if let httpResponse = response as? HTTPURLResponse {
+                print("Album detail API status code: \(httpResponse.statusCode)")
+            }
+            
+            if handleUnauthorized(response: response) {
+                completion(nil)
+                return
+            }
+            
+            guard let data = data else {
+                print("No data received from Spotify API")
+                completion(nil)
+                return
+            }
+            
+            do {
+                let albumDetail = try JSONDecoder().decode(AlbumDetail.self, from: data)
+                completion(albumDetail)
+            } catch {
+                print("Error decoding album detail: \(error.localizedDescription)")
+                if let jsonString = String(data: data, encoding: .utf8) {
+                    print("Response data: \(jsonString)")
+                }
+                completion(nil)
+            }
+        }.resume()
+    }
 
 }
