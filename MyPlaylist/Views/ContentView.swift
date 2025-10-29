@@ -37,7 +37,20 @@ struct ContentView: View {
                         )
                     }
                     
-                    Tab("tab.top", systemImage: "chart.bar.fill", value: 1) {
+                    Tab("tab.search", systemImage: "magnifyingglass", value: 1, role: .search) {
+                        NavigationView {
+                            SearchView(
+                                audioPlayer: audioPlayer,
+                                accessToken: accessToken ?? "",
+                                isLoggedIn: isLoggedIn,
+                                login: login,
+                                logout: logout,
+                                selectedTab: selectedTab
+                            )
+                        }
+                    }
+                    
+                    Tab("tab.top", systemImage: "chart.bar.fill", value: 2) {
                         TopView(
                             audioPlayer: audioPlayer,
                             userProfile: userProfile,
@@ -49,7 +62,7 @@ struct ContentView: View {
                     }
                     .disabled(!isLoggedIn)
                     
-                    Tab("tab.settings", systemImage: "gearshape.fill", value: 2) {
+                    Tab("tab.settings", systemImage: "gearshape.fill", value: 3) {
                         SettingsView()
                     }
                     .disabled(!isLoggedIn)
@@ -80,7 +93,20 @@ struct ContentView: View {
                         )
                     }
                     
-                    Tab("tab.top", systemImage: "chart.bar.fill", value: 1) {
+                    Tab("tab.search", systemImage: "magnifyingglass", value: 1, role: .search) {
+                        NavigationView {
+                            SearchView(
+                                audioPlayer: audioPlayer,
+                                accessToken: accessToken ?? "",
+                                isLoggedIn: isLoggedIn,
+                                login: login,
+                                logout: logout,
+                                selectedTab: selectedTab
+                            )
+                        }
+                    }
+                    
+                    Tab("tab.top", systemImage: "chart.bar.fill", value: 2) {
                         TopView(
                             audioPlayer: audioPlayer,
                             userProfile: userProfile,
@@ -92,7 +118,7 @@ struct ContentView: View {
                     }
                     .disabled(!isLoggedIn)
                     
-                    Tab("tab.settings", systemImage: "gearshape.fill", value: 2) {
+                    Tab("tab.settings", systemImage: "gearshape.fill", value: 3) {
                         SettingsView()
                     }
                     .disabled(!isLoggedIn)

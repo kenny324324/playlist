@@ -558,5 +558,63 @@ class SpotifyAPIService {
             }
         }.resume()
     }
+    
+    // MARK: - Search API
+    
+    // 搜尋歌曲、藝人、專輯
+    static func search(query: String, types: [String], accessToken: String, limit: Int = 20, completion: @escaping (SearchResponse?) -> Void) {
+        // URL 編碼搜尋關鍵字
+        guard let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
+            print("Failed to encode search query")
+            completion(nil)
+            return
+        }
+        
+        let typeString = types.joined(separator: ",")
+        let urlString = "https://api.spotify.com/v1/search?q=\(encodedQuery)&type=\(typeString)&market=TW&limit=\(limit)"
+        
+        guard let url = URL(string: urlString) else {
+            print("Invalid search URL")
+            completion(nil)
+            return
+        }
+        
+        var request = URLRequest(url: url)
+        request.addValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                print("Error searching: \(error.localizedDescription)")
+                completion(nil)
+                return
+            }
+            
+            if let httpResponse = response as? HTTPURLResponse {
+                print("Search API status code: \(httpResponse.statusCode)")
+            }
+            
+            if handleUnauthorized(response: response) {
+                completion(nil)
+                return
+            }
+            
+            guard let data = data else {
+                print("No data received from Spotify API")
+                completion(nil)
+                return
+            }
+            
+            do {
+                let searchResponse = try JSONDecoder().decode(SearchResponse.self, from: data)
+                completion(searchResponse)
+            } catch {
+                print("Error decoding search results: \(error.localizedDescription)")
+                if let jsonString = String(data: data, encoding: .utf8) {
+                    print("Response data: \(jsonString)")
+                }
+                completion(nil)
+            }
+        }.resume()
+    }
 
 }

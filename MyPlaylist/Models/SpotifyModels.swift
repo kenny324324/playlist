@@ -333,4 +333,37 @@ struct AlbumTrack: Codable, Identifiable {
         let name: String
         let id: String
     }
+}
+
+// MARK: - Search Models
+struct SearchResponse: Codable {
+    let tracks: SearchTracksContainer?
+    let artists: SearchArtistsContainer?
+    let albums: SearchAlbumsContainer?
+    
+    struct SearchTracksContainer: Codable {
+        let items: [Track]
+    }
+    
+    struct SearchArtistsContainer: Codable {
+        let items: [SearchArtist]
+    }
+    
+    struct SearchAlbumsContainer: Codable {
+        let items: [Album]
+    }
+}
+
+// 搜尋用的 Artist 模型（簡化版）
+struct SearchArtist: Codable, Identifiable {
+    let id: String
+    let name: String
+    let images: [SpotifyImage]
+    let popularity: Int?
+    let genres: [String]?
+    let followers: Followers?
+    
+    struct Followers: Codable {
+        let total: Int
+    }
 } 
