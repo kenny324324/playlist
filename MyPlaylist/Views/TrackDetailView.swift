@@ -40,7 +40,7 @@ struct TrackDetailView: View {
                         // 在 Spotify 中打開
                         openInSpotifyButton(track: track)
                     } else {
-                        Text("無法載入歌曲資訊")
+                        Text("detail.cannotLoad.track")
                             .foregroundColor(.gray)
                             .padding(.top, 100)
                     }
@@ -108,7 +108,7 @@ struct TrackDetailView: View {
                     Text(String(format: "%.1f", Double(track.popularity) / 10.0))
                         .font(.custom("SpotifyMix-Bold", size: 22))
                         .foregroundColor(.spotifyGreen)
-                    Text("0-10 人氣")
+                    Text("detail.popularity")
                         .font(.custom("SpotifyMix-Medium", size: 12))
                         .foregroundColor(.white)
                 }
@@ -123,7 +123,7 @@ struct TrackDetailView: View {
                     Text(formatDuration(track.duration_ms))
                         .font(.custom("SpotifyMix-Bold", size: 22))
                         .foregroundColor(.spotifyGreen)
-                    Text("歌曲長度")
+                    Text("detail.duration")
                         .font(.custom("SpotifyMix-Medium", size: 12))
                         .foregroundColor(.white)
                 }
@@ -139,7 +139,7 @@ struct TrackDetailView: View {
             if let previewUrl = track.preview_url {
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
-                        Text("Preview")
+                        Text("home.preview")
                             .font(.custom("SpotifyMix-Bold", size: 20))
                             .foregroundColor(.white)
                         Image(systemName: "music.note")
@@ -164,7 +164,7 @@ struct TrackDetailView: View {
             
             // 專輯區塊
             VStack(alignment: .leading, spacing: 12) {
-                Text("Album")
+                Text("detail.album")
                     .font(.custom("SpotifyMix-Bold", size: 20))
                     .foregroundColor(.white)
                 
@@ -209,7 +209,7 @@ struct TrackDetailView: View {
     private func audioFeaturesSection(features: AudioFeatures) -> some View {
         VStack(alignment: .leading, spacing: 24) {
             // Audio features 標題
-            Text("Audio features")
+            Text("detail.audioFeatures")
                 .font(.custom("SpotifyMix-Bold", size: 20))
                 .foregroundColor(.white)
                 .padding(.horizontal, 20)
@@ -278,7 +278,7 @@ struct TrackDetailView: View {
     // MARK: - Artist Info Section
     private func artistInfoSection() -> some View {
         VStack(alignment: .leading, spacing: 20) {
-            Text("Artists")
+            Text("detail.artists")
                 .font(.custom("SpotifyMix-Bold", size: 20))
                 .foregroundColor(.white)
                 .padding(.horizontal, 20)
@@ -327,7 +327,7 @@ struct TrackDetailView: View {
     // MARK: - Open in Spotify Button
     private func openInSpotifyButton(track: TrackDetail) -> some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("External links")
+            Text("detail.externalLinks")
                 .font(.custom("SpotifyMix-Bold", size: 20))
                 .foregroundColor(.white)
                 .padding(.horizontal, 20)
@@ -344,7 +344,7 @@ struct TrackDetailView: View {
                         .scaledToFit()
                         .frame(width: 28, height: 28)
                     
-                    Text("Open in Spotify")
+                    Text("detail.openInSpotify")
                         .font(.custom("SpotifyMix-Bold", size: 15))
                         .foregroundColor(.spotifyGreen)
                     
@@ -437,6 +437,7 @@ struct TrackDetailView: View {
     
     private func formatReleaseDate(_ dateString: String) -> String {
         let formatter = DateFormatter()
+        formatter.locale = Locale.current
         
         // 嘗試不同的日期格式
         if dateString.count == 4 {
@@ -446,14 +447,18 @@ struct TrackDetailView: View {
             // YYYY-MM 格式
             formatter.dateFormat = "yyyy-MM"
             if let date = formatter.date(from: dateString) {
-                formatter.dateFormat = "yyyy 年 M 月"
+                // 根據語系決定格式
+                let isChineseLocale = Locale.current.language.languageCode?.identifier == "zh"
+                formatter.dateFormat = isChineseLocale ? "yyyy 年 M 月" : "MMM yyyy"
                 return formatter.string(from: date)
             }
         } else {
             // 完整日期
             formatter.dateFormat = "yyyy-MM-dd"
             if let date = formatter.date(from: dateString) {
-                formatter.dateFormat = "yyyy 年 M 月 d 日"
+                // 根據語系決定格式
+                let isChineseLocale = Locale.current.language.languageCode?.identifier == "zh"
+                formatter.dateFormat = isChineseLocale ? "yyyy 年 M 月 d 日" : "d MMM yyyy"
                 return formatter.string(from: date)
             }
         }

@@ -138,7 +138,7 @@ struct ArtistRow: View {
 
                 // 受歡迎程度
                 VStack(spacing: 2) {
-                    Text("Popularity")
+                    Text("component.popularity")
                         .foregroundColor(.gray)
                         .font(.custom("SpotifyMix-Medium", size: 14))
                         .lineLimit(1)

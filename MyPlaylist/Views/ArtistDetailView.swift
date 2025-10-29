@@ -39,7 +39,7 @@ struct ArtistDetailView: View {
                     // 在 Spotify 中打開
                     openInSpotifyButton(artist: artist)
                 } else {
-                    Text("無法載入藝人資訊")
+                    Text("detail.cannotLoad.artist")
                         .foregroundColor(.gray)
                         .padding(.top, 100)
                 }
@@ -96,7 +96,7 @@ struct ArtistDetailView: View {
                     Text(String(format: "%.1f", Double(artist.popularity) / 10.0))
                         .font(.custom("SpotifyMix-Bold", size: 22))
                         .foregroundColor(.spotifyGreen)
-                    Text("0-10 人氣")
+                    Text("detail.popularity")
                         .font(.custom("SpotifyMix-Medium", size: 12))
                         .foregroundColor(.white)
                 }
@@ -111,7 +111,7 @@ struct ArtistDetailView: View {
                     Text(formatFollowers(artist.followers.total))
                         .font(.custom("SpotifyMix-Bold", size: 22))
                         .foregroundColor(.spotifyGreen)
-                    Text("粉絲數")
+                    Text("detail.followers")
                         .font(.custom("SpotifyMix-Medium", size: 12))
                         .foregroundColor(.white)
                 }
@@ -126,7 +126,7 @@ struct ArtistDetailView: View {
             // 流派
             if !artist.genres.isEmpty {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Genres")
+                    Text("detail.genres")
                         .font(.custom("SpotifyMix-Bold", size: 20))
                         .foregroundColor(.white)
                     
@@ -151,7 +151,7 @@ struct ArtistDetailView: View {
     // MARK: - Top Tracks Section
     private func topTracksSection() -> some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Top tracks")
+            Text("detail.topTracks")
                 .font(.custom("SpotifyMix-Bold", size: 20))
                 .foregroundColor(.white)
                 .padding(.horizontal, 20)
@@ -325,7 +325,7 @@ struct ArtistDetailView: View {
     // MARK: - Open in Spotify Button
     private func openInSpotifyButton(artist: ArtistDetail) -> some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("External links")
+            Text("detail.externalLinks")
                 .font(.custom("SpotifyMix-Bold", size: 20))
                 .foregroundColor(.white)
                 .padding(.horizontal, 20)
@@ -342,7 +342,7 @@ struct ArtistDetailView: View {
                         .scaledToFit()
                         .frame(width: 28, height: 28)
                     
-                    Text("Open in Spotify")
+                    Text("detail.openInSpotify")
                         .font(.custom("SpotifyMix-Bold", size: 15))
                         .foregroundColor(.spotifyGreen)
                     

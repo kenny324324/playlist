@@ -28,7 +28,7 @@ struct RecentlyPlayedView: View {
                         Image(systemName: "clock")
                             .font(.system(size: 60))
                             .foregroundColor(.gray)
-                        Text("暫無播放紀錄")
+                        Text("home.empty.noHistory")
                             .font(.custom("SpotifyMix-Medium", size: 20))
                             .foregroundColor(.gray)
                     }
@@ -50,11 +50,11 @@ struct RecentlyPlayedView: View {
                     }
                 }
             }
-            .navigationTitle("最近播放")
+            .navigationTitle("home.recentlyPlayed")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("關閉") {
+                    Button("common.close") {
                         dismiss()
                     }
                     .font(.custom("SpotifyMix-Medium", size: 18))

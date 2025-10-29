@@ -18,7 +18,7 @@ struct TopTracksView: View {
         NavigationView {
             VStack(spacing: 0) {
                 // Picker for time range selection
-                Picker("Time Range", selection: $selectedTimeRange) {
+                Picker("picker.timeRange", selection: $selectedTimeRange) {
                     ForEach(TrackTimeRange.allCases, id: \.self) { range in
                         Text(range.title).tag(range)
                     }
@@ -43,10 +43,10 @@ struct TopTracksView: View {
                     }
                     .padding(.top, 20)
                 }
-                .navigationTitle("Top Tracks")
+                .navigationTitle("nav.topTracks")
                 .toolbar {
                     ToolbarItem(placement: .navigationBarLeading) {
-                        Text("Made by Kenny")
+                        Text("settings.madeBy")
                             .font(.custom("SpotifyMix-Medium", size: 14))
                             .foregroundColor(.gray)
                             .opacity(0.7)
@@ -130,9 +130,9 @@ enum TrackTimeRange: String, CaseIterable {
 
     var title: String {
         switch self {
-        case .shortTerm: return "1 Month"
-        case .mediumTerm: return "6 Months"
-        case .longTerm: return "1 Year"
+        case .shortTerm: return String(localized: "timeRange.1month")
+        case .mediumTerm: return String(localized: "timeRange.6months")
+        case .longTerm: return String(localized: "timeRange.1year")
         }
     }
 }

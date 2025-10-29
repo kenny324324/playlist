@@ -11,9 +11,9 @@ struct TopGenresView: View {
     var body: some View {
         NavigationView {
             VStack {
-                if genres.isEmpty {
-                    ProgressView("Loading genres...")  // 顯示載入狀態
-                } else {
+            if genres.isEmpty {
+                ProgressView("loading.genres")  // 顯示載入狀態
+            } else {
                     ScrollView {
                         LazyVStack(alignment: .leading, spacing: 15) {
                             ForEach(Array(sortedGenres().enumerated()), id: \.element.key) { index, genreData in
@@ -25,11 +25,11 @@ struct TopGenresView: View {
                     }
                 }
             }
-            .navigationTitle("Top Genres")
+            .navigationTitle("nav.topGenres")
             .toolbar {
                 // 左側 ToolbarItem
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Text("Made by Kenny")
+                    Text("settings.madeBy")
                         .font(.custom("SpotifyMix-Medium", size: 14))
                         .foregroundColor(.gray)
                         .opacity(0.7)

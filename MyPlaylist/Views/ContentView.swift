@@ -26,7 +26,7 @@ struct ContentView: View {
 
             if #available(iOS 26.0, *) {
                 TabView(selection: $selectedTab) {
-                    Tab("首頁", systemImage: "house.fill", value: 0) {
+                    Tab("tab.home", systemImage: "house.fill", value: 0) {
                         HomeView(
                             audioPlayer: audioPlayer,
                             accessToken: accessToken ?? "",
@@ -37,7 +37,7 @@ struct ContentView: View {
                         )
                     }
                     
-                    Tab("排行榜", systemImage: "chart.bar.fill", value: 1) {
+                    Tab("tab.top", systemImage: "chart.bar.fill", value: 1) {
                         TopView(
                             audioPlayer: audioPlayer,
                             userProfile: userProfile,
@@ -49,7 +49,7 @@ struct ContentView: View {
                     }
                     .disabled(!isLoggedIn)
                     
-                    Tab("設定", systemImage: "gearshape.fill", value: 2) {
+                    Tab("tab.settings", systemImage: "gearshape.fill", value: 2) {
                         SettingsView()
                     }
                     .disabled(!isLoggedIn)
@@ -69,7 +69,7 @@ struct ContentView: View {
                 }*/
             } else {
                 TabView(selection: $selectedTab) {
-                    Tab("首頁", systemImage: "house.fill", value: 0) {
+                    Tab("tab.home", systemImage: "house.fill", value: 0) {
                         HomeView(
                             audioPlayer: audioPlayer,
                             accessToken: accessToken ?? "",
@@ -80,7 +80,7 @@ struct ContentView: View {
                         )
                     }
                     
-                    Tab("排行榜", systemImage: "chart.bar.fill", value: 1) {
+                    Tab("tab.top", systemImage: "chart.bar.fill", value: 1) {
                         TopView(
                             audioPlayer: audioPlayer,
                             userProfile: userProfile,
@@ -92,7 +92,7 @@ struct ContentView: View {
                     }
                     .disabled(!isLoggedIn)
                     
-                    Tab("設定", systemImage: "gearshape.fill", value: 2) {
+                    Tab("tab.settings", systemImage: "gearshape.fill", value: 2) {
                         SettingsView()
                     }
                     .disabled(!isLoggedIn)
@@ -227,9 +227,9 @@ enum TimeRange: String, CaseIterable {
 
     var title: String {
         switch self {
-        case .shortTerm: return "1 Month"
-        case .mediumTerm: return "6 Months"
-        case .longTerm: return "1 Year"
+        case .shortTerm: return String(localized: "timeRange.1month")
+        case .mediumTerm: return String(localized: "timeRange.6months")
+        case .longTerm: return String(localized: "timeRange.1year")
         }
     }
 }

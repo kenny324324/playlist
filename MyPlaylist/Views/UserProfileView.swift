@@ -19,7 +19,7 @@ struct UserProfileView: View {
 
             // 播放清單標題和滾動區域
             VStack(alignment: .leading, spacing: 10) {
-                Text("Your Playlists")
+                Text("profile.playlists")
                     .font(.custom("SpotifyMix-Bold", size: 20))
                     .fontWeight(.bold)
                     .foregroundColor(.white)
@@ -32,7 +32,7 @@ struct UserProfileView: View {
             Spacer()  // 使登出按鈕靠近底部
             
             // Made by Kenny 標籤
-            Text("Made by Kenny")
+            Text("settings.madeBy")
                 .font(.custom("SpotifyMix-Medium", size: 14))
                 .foregroundColor(.gray)
                 .opacity(0.7)
@@ -45,16 +45,16 @@ struct UserProfileView: View {
             fetchPlaylists()
         }
         .edgesIgnoringSafeArea(.bottom)
-        .navigationTitle("Profile")
+        .navigationTitle("profile.title")
         .alert(isPresented: $showingLogoutAlert) {
             Alert(
-                title: Text("Confirm Logout"),
-                message: Text("Are you sure you want to log out?"),
-                primaryButton: .destructive(Text("Logout")) {
+                title: Text("profile.logout.confirm.title"),
+                message: Text("profile.logout.confirm.message"),
+                primaryButton: .destructive(Text("profile.logout.confirm.button")) {
                     logout()
                     dismiss()
                 },
-                secondaryButton: .cancel()
+                secondaryButton: .cancel(Text("common.cancel"))
             )
         }
     }
@@ -63,11 +63,11 @@ struct UserProfileView: View {
         HStack(spacing: 20) {
             userImageView
             VStack(alignment: .leading, spacing: 5) {
-                Text(userProfile.display_name ?? "Unknown User")
+                Text(userProfile.display_name ?? String(localized: "profile.unknownUser"))
                     .font(.custom("SpotifyMix-Bold", size: 18))
                     .foregroundColor(.white)
 
-                Text("Followers: \(userProfile.followers?.total ?? 0)")
+                Text(String(localized: "profile.followers", defaultValue: "Followers: \(userProfile.followers?.total ?? 0)"))
                     .font(.custom("SpotifyMix-Medium", size: 16))
                     .foregroundColor(.white.opacity(0.7))
             }
@@ -110,17 +110,17 @@ struct UserProfileView: View {
                                     .frame(width: 50, height: 50)
                                     .clipShape(RoundedRectangle(cornerRadius: 5))
 
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(playlist.name)
-                                        .font(.custom("SpotifyMix-Medium", size: 16))
-                                        .foregroundColor(.white)
-                                        .lineLimit(1)
-                                    
-                                    Text(playlist.owner.display_name ?? "Unknown Owner")
-                                        .font(.custom("SpotifyMix-Medium", size: 14))
-                                        .foregroundColor(.white.opacity(0.6))
-                                        .lineLimit(1)
-                                }
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(playlist.name)
+                                            .font(.custom("SpotifyMix-Medium", size: 16))
+                                            .foregroundColor(.white)
+                                            .lineLimit(1)
+                                        
+                                        Text(playlist.owner.display_name ?? String(localized: "profile.unknownOwner"))
+                                            .font(.custom("SpotifyMix-Medium", size: 14))
+                                            .foregroundColor(.white.opacity(0.6))
+                                            .lineLimit(1)
+                                    }
                                 Spacer()
                             }
                             .frame(width: 300, height: 60)
@@ -145,7 +145,7 @@ struct UserProfileView: View {
         Button(action: {
             showingLogoutAlert = true // 顯示 Alert
         }) {
-            Text("Log out")
+            Text("profile.logout")
                 .font(.custom("SpotifyMix-Bold", size: 16))
                 .foregroundColor(Color.spotifyText)
                 .padding(.vertical, 8)

@@ -36,7 +36,7 @@ struct AlbumDetailView: View {
                     // 在 Spotify 中打開
                     openInSpotifyButton(album: album)
                 } else {
-                    Text("無法載入專輯資訊")
+                    Text("detail.cannotLoad.album")
                         .foregroundColor(.gray)
                         .padding(.top, 100)
                 }
@@ -94,7 +94,7 @@ struct AlbumDetailView: View {
                         Text("\(album.tracks.items.first?.track_number ?? 1)")
                             .font(.custom("SpotifyMix-Bold", size: 22))
                             .foregroundColor(.spotifyGreen)
-                        Text("Track")
+                        Text("detail.track")
                             .font(.custom("SpotifyMix-Medium", size: 12))
                             .foregroundColor(.white)
                     }
@@ -110,7 +110,7 @@ struct AlbumDetailView: View {
                             Text(String(format: "%.1f", Double(popularity) / 10.0))
                                 .font(.custom("SpotifyMix-Bold", size: 22))
                                 .foregroundColor(.spotifyGreen)
-                            Text("0-10 人氣")
+                            Text("detail.popularity")
                                 .font(.custom("SpotifyMix-Medium", size: 12))
                                 .foregroundColor(.white)
                         }
@@ -128,7 +128,7 @@ struct AlbumDetailView: View {
                         Text(album.album_type.capitalized)
                             .font(.custom("SpotifyMix-Bold", size: 22))
                             .foregroundColor(.spotifyGreen)
-                        Text("type of album")
+                        Text("detail.typeOfAlbum")
                             .font(.custom("SpotifyMix-Medium", size: 12))
                             .foregroundColor(.white)
                     }
@@ -143,7 +143,7 @@ struct AlbumDetailView: View {
                         Text(formatReleaseDate(album.release_date ?? ""))
                             .font(.custom("SpotifyMix-Bold", size: 22))
                             .foregroundColor(.spotifyGreen)
-                        Text("release date")
+                        Text("detail.releaseDate")
                             .font(.custom("SpotifyMix-Medium", size: 12))
                             .foregroundColor(.white)
                     }
@@ -162,7 +162,7 @@ struct AlbumDetailView: View {
     // MARK: - Album Tracks Section
     private func albumTracksSection(album: AlbumDetail) -> some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Album content")
+            Text("detail.albumContent")
                 .font(.custom("SpotifyMix-Bold", size: 20))
                 .foregroundColor(.white)
                 .padding(.horizontal, 20)
@@ -227,7 +227,7 @@ struct AlbumDetailView: View {
     // MARK: - Artist Info Section
     private func artistInfoSection() -> some View {
         VStack(alignment: .leading, spacing: 20) {
-            Text("Artist")
+            Text("detail.artist")
                 .font(.custom("SpotifyMix-Bold", size: 20))
                 .foregroundColor(.white)
                 .padding(.horizontal, 20)
@@ -276,7 +276,7 @@ struct AlbumDetailView: View {
     // MARK: - Open in Spotify Button
     private func openInSpotifyButton(album: AlbumDetail) -> some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("External links")
+            Text("detail.externalLinks")
                 .font(.custom("SpotifyMix-Bold", size: 20))
                 .foregroundColor(.white)
                 .padding(.horizontal, 20)
@@ -293,7 +293,7 @@ struct AlbumDetailView: View {
                         .scaledToFit()
                         .frame(width: 28, height: 28)
                     
-                    Text("Open in Spotify")
+                    Text("detail.openInSpotify")
                         .font(.custom("SpotifyMix-Bold", size: 15))
                         .foregroundColor(.spotifyGreen)
                     
@@ -363,6 +363,7 @@ struct AlbumDetailView: View {
     
     private func formatReleaseDate(_ dateString: String) -> String {
         let formatter = DateFormatter()
+        formatter.locale = Locale.current
         
         // 嘗試不同的日期格式
         if dateString.count == 4 {
@@ -372,14 +373,18 @@ struct AlbumDetailView: View {
             // YYYY-MM 格式
             formatter.dateFormat = "yyyy-MM"
             if let date = formatter.date(from: dateString) {
-                formatter.dateFormat = "MMM yyyy"
+                // 根據語系決定格式
+                let isChineseLocale = Locale.current.language.languageCode?.identifier == "zh"
+                formatter.dateFormat = isChineseLocale ? "yyyy.M" : "MMM yyyy"
                 return formatter.string(from: date)
             }
         } else if dateString.count == 10 {
             // YYYY-MM-DD 格式
             formatter.dateFormat = "yyyy-MM-dd"
             if let date = formatter.date(from: dateString) {
-                formatter.dateFormat = "dd MMM yyyy"
+                // 根據語系決定格式
+                let isChineseLocale = Locale.current.language.languageCode?.identifier == "zh"
+                formatter.dateFormat = isChineseLocale ? "yyyy.M.d" : "d MMM yyyy"
                 return formatter.string(from: date)
             }
         }

@@ -64,7 +64,7 @@ struct GenreRow: View {
                 Spacer()
 
                 // 類型的聆聽次數
-                Text("\(count) times")
+                Text(String(localized: "component.times", defaultValue: "\(count) times"))
                     .foregroundColor(.gray)
                     .font(.custom("SpotifyMix-Medium", size: 15))
             }

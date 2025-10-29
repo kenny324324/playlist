@@ -153,17 +153,17 @@ struct HomeView: View {
                         Image(systemName: "music.note.list")
                             .font(.system(size: 60))
                             .foregroundColor(.gray)
-                        Text("請登入 Spotify")
+                        Text("login.prompt.title")
                             .font(.custom("SpotifyMix-Bold", size: 24))
                             .foregroundColor(.white)
-                        Text("登入後即可查看您的音樂資料")
+                        Text("login.prompt.message")
                             .font(.custom("SpotifyMix-Medium", size: 16))
                             .foregroundColor(.gray)
                         Spacer()
                     }
                 }
             }
-            .navigationTitle("首頁")
+            .navigationTitle("tab.home")
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     if isLoggedIn {
@@ -193,7 +193,7 @@ struct HomeView: View {
                         // 未登入：顯示登入按鈕
                         if #available(iOS 26.0, *) {
                             Button(action: login) {
-                                Text("登入")
+                                Text("login.title")
                                     .font(.custom("SpotifyMix-Bold", size: 18))
                                     .foregroundColor(.white)
                                     .padding(.horizontal, 12)
@@ -203,7 +203,7 @@ struct HomeView: View {
                             .tint(Color.spotifyGreen)
                         } else if #available(iOS 17.0, *) {
                             Button(action: login) {
-                                Text("登入")
+                                Text("login.title")
                                     .font(.custom("SpotifyMix-Bold", size: 18))
                                     .foregroundColor(.white)
                                     .padding(.horizontal, 12)
@@ -214,7 +214,7 @@ struct HomeView: View {
                             .tint(Color.spotifyGreen)
                         } else {
                             Button(action: login) {
-                                Text("登入")
+                                Text("login.title")
                                     .font(.custom("SpotifyMix-Bold", size: 18))
                                     .foregroundColor(.white)
                                     .padding(.horizontal, 12)
@@ -275,7 +275,7 @@ struct HomeView: View {
     
     private var currentlyPlayingSection: some View {
         VStack(alignment: .leading, spacing: 15) {
-            Text("正在播放")
+            Text("home.nowPlaying")
                 .font(.custom("SpotifyMix-Bold", size: 22))
                 .foregroundColor(.white)
             
@@ -289,7 +289,7 @@ struct HomeView: View {
                     Image(systemName: "music.note.list")
                         .font(.system(size: 40))
                         .foregroundColor(.gray)
-                    Text("目前沒有播放音樂")
+                    Text("home.empty.noMusic")
                         .font(.custom("SpotifyMix-Medium", size: 18))
                         .foregroundColor(.gray)
                 }
@@ -303,7 +303,7 @@ struct HomeView: View {
     
     private var recentlyPlayedSection: some View {
         VStack(alignment: .leading, spacing: 15) {
-            Text("最近播放")
+            Text("home.recentlyPlayed")
                 .font(.custom("SpotifyMix-Bold", size: 22))
                 .foregroundColor(.white)
             
@@ -319,7 +319,7 @@ struct HomeView: View {
                     Image(systemName: "clock")
                         .font(.system(size: 40))
                         .foregroundColor(.gray)
-                    Text("暫無播放紀錄")
+                    Text("home.empty.noHistory")
                         .font(.custom("SpotifyMix-Medium", size: 18))
                         .foregroundColor(.gray)
                 }
@@ -343,7 +343,7 @@ struct HomeView: View {
                         showAllRecentlyPlayed = true
                     }) {
                         HStack {
-                            Text("查看最近 \(recentlyPlayed.count) 首播放")
+                            Text(String(localized: "home.viewRecent", defaultValue: "View recent \(recentlyPlayed.count) plays"))
                                 .font(.custom("SpotifyMix-Medium", size: 16))
                                 .foregroundColor(.white)
                             Image(systemName: "chevron.right")
@@ -364,7 +364,7 @@ struct HomeView: View {
     
     private var savedTracksSection: some View {
         VStack(alignment: .leading, spacing: 15) {
-            Text("最近收藏的歌曲")
+            Text("home.savedTracks")
                 .font(.custom("SpotifyMix-Bold", size: 22))
                 .foregroundColor(.white)
             
@@ -379,7 +379,7 @@ struct HomeView: View {
                     Image(systemName: "heart")
                         .font(.system(size: 40))
                         .foregroundColor(.gray)
-                    Text("暫無收藏歌曲")
+                    Text("home.empty.noSavedTracks")
                         .font(.custom("SpotifyMix-Medium", size: 18))
                         .foregroundColor(.gray)
                 }
@@ -402,7 +402,7 @@ struct HomeView: View {
     
     private var savedAlbumsSection: some View {
         VStack(alignment: .leading, spacing: 15) {
-            Text("最近收藏的專輯")
+            Text("home.savedAlbums")
                 .font(.custom("SpotifyMix-Bold", size: 22))
                 .foregroundColor(.white)
             
@@ -421,7 +421,7 @@ struct HomeView: View {
                     Image(systemName: "square.stack")
                         .font(.system(size: 40))
                         .foregroundColor(.gray)
-                    Text("暫無收藏專輯")
+                    Text("home.empty.noSavedAlbums")
                         .font(.custom("SpotifyMix-Medium", size: 18))
                         .foregroundColor(.gray)
                 }
@@ -451,7 +451,7 @@ struct HomeView: View {
     
     private var userPlaylistsSection: some View {
         VStack(alignment: .leading, spacing: 15) {
-            Text("我的播放列表")
+            Text("home.myPlaylists")
                 .font(.custom("SpotifyMix-Bold", size: 22))
                 .foregroundColor(.white)
             
@@ -470,7 +470,7 @@ struct HomeView: View {
                     Image(systemName: "music.note.list")
                         .font(.system(size: 40))
                         .foregroundColor(.gray)
-                    Text("暫無播放列表")
+                    Text("home.empty.noPlaylists")
                         .font(.custom("SpotifyMix-Medium", size: 18))
                         .foregroundColor(.gray)
                 }
@@ -497,7 +497,7 @@ struct HomeView: View {
     
     private var followedArtistsSection: some View {
         VStack(alignment: .leading, spacing: 15) {
-            Text("追蹤的藝術家")
+            Text("home.followedArtists")
                 .font(.custom("SpotifyMix-Bold", size: 22))
                 .foregroundColor(.white)
             
@@ -516,7 +516,7 @@ struct HomeView: View {
                     Image(systemName: "person.2")
                         .font(.system(size: 40))
                         .foregroundColor(.gray)
-                    Text("暫無追蹤藝術家")
+                    Text("home.empty.noFollowedArtists")
                         .font(.custom("SpotifyMix-Medium", size: 18))
                         .foregroundColor(.gray)
                 }
@@ -701,7 +701,7 @@ struct CurrentlyPlayingCard: View {
                     }) {
                         HStack {
                             Image(systemName: audioPlayer.isPlaying && audioPlayer.currentPreviewUrl == previewUrl ? "pause.fill" : "play.fill")
-                            Text("試聽")
+                            Text("home.preview")
                         }
                         .font(.custom("SpotifyMix-Medium", size: 14))
                         .foregroundColor(.white)
@@ -1152,7 +1152,7 @@ struct ArtistCard: View {
             
             ZStack {
                 HomeFadingText(
-                    text: "\(artist.followers.total.formatted()) 位追蹤者",
+                    text: "\(artist.followers.total.formatted()) \(String(localized: "component.followers"))",
                     font: .custom("SpotifyMix-Medium", size: 12),
                     foregroundColor: .gray,
                     backgroundColor: .black,

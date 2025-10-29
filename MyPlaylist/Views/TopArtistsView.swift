@@ -18,10 +18,10 @@ struct TopArtistsView: View {
                         }
                     }
                 }
-                .navigationTitle("Top Artists")
+                .navigationTitle("nav.topArtists")
                 .toolbar {
                     ToolbarItem(placement: .navigationBarLeading) {
-                        Text("Made by Kenny")
+                        Text("settings.madeBy")
                             .font(.custom("SpotifyMix-Medium", size: 14))
                             .foregroundColor(.gray)
                             .opacity(0.7)

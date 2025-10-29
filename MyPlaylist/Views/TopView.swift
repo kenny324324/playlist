@@ -26,7 +26,11 @@ struct TopView: View {
         case genres = "Genres"
         
         var title: String {
-            return self.rawValue
+            switch self {
+            case .tracks: return String(localized: "top.tracks")
+            case .artists: return String(localized: "top.artists")
+            case .genres: return String(localized: "top.genres")
+            }
         }
     }
     
@@ -37,9 +41,9 @@ struct TopView: View {
         
         var title: String {
             switch self {
-            case .shortTerm: return "1 Month"
-            case .mediumTerm: return "6 Months"
-            case .longTerm: return "All Time"
+            case .shortTerm: return String(localized: "timeRange.1month")
+            case .mediumTerm: return String(localized: "timeRange.6months")
+            case .longTerm: return String(localized: "timeRange.allTime")
             }
         }
     }
@@ -90,10 +94,10 @@ struct TopView: View {
                     Image(systemName: "chart.bar.fill")
                         .font(.system(size: 60))
                         .foregroundColor(.gray)
-                    Text("請登入 Spotify")
+                    Text("login.prompt.title")
                         .font(.custom("SpotifyMix-Bold", size: 24))
                         .foregroundColor(.white)
-                    Text("登入後即可查看您的排行榜")
+                    Text("login.prompt.topChart")
                         .font(.custom("SpotifyMix-Medium", size: 16))
                         .foregroundColor(.gray)
                     Spacer()
@@ -296,7 +300,7 @@ struct TopView: View {
             } else {
                 // 未登入：顯示登入按鈕
                 Button(action: login) {
-                    Text("登入")
+                    Text("login.title")
                         .font(.custom("SpotifyMix-Medium", size: 14))
                         .foregroundColor(Color.spotifyText)
                         .padding(.horizontal, 16)

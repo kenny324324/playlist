@@ -7,7 +7,7 @@ struct LoginView: View {
         VStack {
             Spacer()
             Button(action: login) {
-                Text("Login with Spotify")
+                Text("login.button")
                     .font(.custom("SpotifyMix-Medium", size: 22))
                     .foregroundColor(Color.spotifyText)
                     .frame(maxWidth: .infinity)

@@ -18,12 +18,12 @@ struct SettingsView: View {
                         .foregroundColor(.white)
                     
                     // 版本資訊
-                    Text("Version 1.0.0")
+                    Text("settings.version")
                         .font(.custom("SpotifyMix-Medium", size: 18))
                         .foregroundColor(.gray)
                     
                     // 開發者資訊
-                    Text("Made by Kenny")
+                    Text("settings.madeBy")
                         .font(.custom("SpotifyMix-Medium", size: 16))
                         .foregroundColor(.gray)
                 }
@@ -32,14 +32,14 @@ struct SettingsView: View {
                 
                 // 功能說明
                 VStack(alignment: .leading, spacing: 15) {
-                    Text("功能特色")
+                    Text("settings.features")
                         .font(.custom("SpotifyMix-Bold", size: 22))
                         .foregroundColor(.white)
                     
-                    FeatureRow(icon: "house.fill", title: "首頁", description: "查看正在播放和最近播放")
-                    FeatureRow(icon: "chart.bar.fill", title: "排行榜", description: "熱門歌曲、藝術家和音樂類型")
-                    FeatureRow(icon: "play.fill", title: "音樂預覽", description: "試聽 30 秒歌曲片段")
-                    FeatureRow(icon: "person.circle.fill", title: "個人檔案", description: "查看個人資訊和播放清單")
+                    FeatureRow(icon: "house.fill", titleKey: "settings.feature.home", descriptionKey: "settings.feature.home.description")
+                    FeatureRow(icon: "chart.bar.fill", titleKey: "settings.feature.topCharts", descriptionKey: "settings.feature.topCharts.description")
+                    FeatureRow(icon: "play.fill", titleKey: "settings.feature.preview", descriptionKey: "settings.feature.preview.description")
+                    FeatureRow(icon: "person.circle.fill", titleKey: "settings.feature.profile", descriptionKey: "settings.feature.profile.description")
                 }
                 .padding()
                 .background(Color.white.opacity(0.1))
@@ -48,7 +48,7 @@ struct SettingsView: View {
                 Spacer()
             }
             .padding()
-            .navigationTitle("設定")
+            .navigationTitle("settings.title")
             .background(Color.spotifyText.ignoresSafeArea())
         }
     }
@@ -56,8 +56,8 @@ struct SettingsView: View {
 
 struct FeatureRow: View {
     let icon: String
-    let title: String
-    let description: String
+    let titleKey: String
+    let descriptionKey: String
     
     var body: some View {
         HStack(spacing: 15) {
@@ -67,11 +67,11 @@ struct FeatureRow: View {
                 .frame(width: 30)
             
             VStack(alignment: .leading, spacing: 2) {
-                Text(title)
+                Text(LocalizedStringKey(titleKey))
                     .font(.custom("SpotifyMix-Medium", size: 18))
                     .foregroundColor(.white)
                 
-                Text(description)
+                Text(LocalizedStringKey(descriptionKey))
                     .font(.custom("SpotifyMix-Medium", size: 14))
                     .foregroundColor(.gray)
             }
