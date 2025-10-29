@@ -12,37 +12,46 @@ struct TrackDetailView: View {
     @State private var isLoading = true
     
     var body: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                if isLoading {
-                    ProgressView()
-                        .padding(.top, 100)
-                } else if let track = trackDetail {
-                    // 專輯封面
-                    albumArtSection(track: track)
-                    
-                    // 基本資訊
-                    trackInfoSection(track: track)
-                    
-                    // 音訊特徵
-                    if let features = audioFeatures {
-                        audioFeaturesSection(features: features)
+        ZStack {
+            Color.black.ignoresSafeArea()
+            
+            ScrollView {
+                VStack(spacing: 0) {
+                    if isLoading {
+                        ProgressView()
+                            .padding(.top, 100)
+                    } else if let track = trackDetail {
+                        // 專輯封面
+                        albumArtSection(track: track)
+                        
+                        // 基本資訊
+                        trackInfoSection(track: track)
+                        
+                        // 藝人資訊
+                        if !artistDetails.isEmpty {
+                            artistInfoSection()
+                        }
+                        
+                        // 音訊特徵
+                        if let features = audioFeatures {
+                            audioFeaturesSection(features: features)
+                        }
+                        
+                        // 在 Spotify 中打開
+                        openInSpotifyButton(track: track)
+                    } else {
+                        Text("無法載入歌曲資訊")
+                            .foregroundColor(.gray)
+                            .padding(.top, 100)
                     }
-                    
-                    // 藝人資訊
-                    if !artistDetails.isEmpty {
-                        artistInfoSection()
-                    }
-                } else {
-                    Text("無法載入歌曲資訊")
-                        .foregroundColor(.gray)
-                        .padding(.top, 100)
                 }
             }
+            .ignoresSafeArea(edges: .top)
         }
-        .background(Color.black.edgesIgnoringSafeArea(.all))
-        .navigationTitle("歌曲資訊")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.visible, for: .navigationBar)
+        .toolbarBackground(Color.clear, for: .navigationBar)
+        .toolbarColorScheme(.light, for: .navigationBar)
         .onAppear {
             refreshAccessTokenAndLoad()
         }
@@ -50,159 +59,117 @@ struct TrackDetailView: View {
     
     // MARK: - Album Art Section
     private func albumArtSection(track: TrackDetail) -> some View {
-        VStack(spacing: 16) {
+        GeometryReader { geometry in
             if let imageUrl = track.album.images.first?.url,
                let url = URL(string: imageUrl) {
-                AsyncImage(url: url) { image in
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                } placeholder: {
-                    Rectangle()
-                        .fill(Color.gray.opacity(0.3))
-                        .overlay(
-                            ProgressView()
-                        )
+                ZStack(alignment: .top) {
+                    AsyncImage(url: url) { image in
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    } placeholder: {
+                        Rectangle()
+                            .fill(Color.gray.opacity(0.3))
+                            .overlay(ProgressView())
+                    }
+                    .frame(width: geometry.size.width, height: geometry.size.width)
+                    .clipped()
+
+                    LinearGradient(
+                        colors: [
+                            Color.black.opacity(0.45),
+                            Color.black.opacity(0.01)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(height: geometry.safeAreaInsets.top + 120)
                 }
-                .frame(width: 280, height: 280)
-                .cornerRadius(12)
-                .shadow(color: .black.opacity(0.5), radius: 20, x: 0, y: 10)
             }
         }
-        .padding(.top, 30)
-        .padding(.bottom, 20)
+        .frame(height: UIScreen.main.bounds.width)
     }
     
     // MARK: - Track Info Section
     private func trackInfoSection(track: TrackDetail) -> some View {
-        VStack(spacing: 20) {
+        VStack(alignment: .leading, spacing: 24) {
             // 歌曲名稱
             Text(track.name)
-                .font(.custom("SpotifyMix-Bold", size: 26))
+                .font(.custom("SpotifyMix-Bold", size: 32))
                 .foregroundColor(.white)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 20)
+                .padding(.top, 20)
             
-            // 藝人名稱
-            Text(track.artists.map(\.name).joined(separator: ", "))
-                .font(.custom("SpotifyMix-Medium", size: 18))
-                .foregroundColor(.gray)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
+            // 人氣和時長卡片
+            HStack(spacing: 12) {
+                // 人氣卡片
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(String(format: "%.1f", Double(track.popularity) / 10.0))
+                        .font(.custom("SpotifyMix-Bold", size: 22))
+                        .foregroundColor(.spotifyGreen)
+                    Text("0-10 人氣")
+                        .font(.custom("SpotifyMix-Medium", size: 12))
+                        .foregroundColor(.white)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
+                .background(Color(red: 0.15, green: 0.15, blue: 0.15))
+                .cornerRadius(12)
+                
+                // 時長卡片
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(formatDuration(track.duration_ms))
+                        .font(.custom("SpotifyMix-Bold", size: 22))
+                        .foregroundColor(.spotifyGreen)
+                    Text("歌曲長度")
+                        .font(.custom("SpotifyMix-Medium", size: 12))
+                        .foregroundColor(.white)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
+                .background(Color(red: 0.15, green: 0.15, blue: 0.15))
+                .cornerRadius(12)
+            }
+            .padding(.horizontal, 20)
             
-            // 試聽按鈕
+            // 試聽區塊
             if let previewUrl = track.preview_url {
-                Button(action: {
-                    audioPlayer.playPreview(from: previewUrl)
-                }) {
+                VStack(alignment: .leading, spacing: 12) {
                     HStack {
-                        Image(systemName: audioPlayer.isPlaying && audioPlayer.currentPreviewUrl == previewUrl ? "pause.fill" : "play.fill")
-                            .font(.system(size: 18))
-                        Text(audioPlayer.isPlaying && audioPlayer.currentPreviewUrl == previewUrl ? "暫停" : "試聽")
-                            .font(.custom("SpotifyMix-Bold", size: 16))
+                        Text("Preview")
+                            .font(.custom("SpotifyMix-Bold", size: 20))
+                            .foregroundColor(.white)
+                        Image(systemName: "music.note")
+                            .foregroundColor(.spotifyGreen)
+                            .font(.system(size: 20))
                     }
+                    
+                    Button(action: {
+                        audioPlayer.playPreview(from: previewUrl)
+                    }) {
+                        HStack {
+                            Spacer()
+                            Image(systemName: audioPlayer.isPlaying && audioPlayer.currentPreviewUrl == previewUrl ? "pause.circle.fill" : "play.circle.fill")
+                                .font(.system(size: 50))
+                                .foregroundColor(.white)
+                            Spacer()
+                        }
+                    }
+                }
+                .padding(.horizontal, 20)
+            }
+            
+            // 專輯區塊
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Album")
+                    .font(.custom("SpotifyMix-Bold", size: 20))
                     .foregroundColor(.white)
-                    .padding(.horizontal, 32)
-                    .padding(.vertical, 12)
-                    .background(Color.spotifyGreen)
-                    .cornerRadius(25)
-                }
-                .padding(.vertical, 10)
-            }
-            
-            // 基本資訊卡片
-            VStack(spacing: 0) {
-                InfoRow(label: "專輯", value: track.album.name)
-                Divider().background(Color.gray.opacity(0.3))
                 
-                if let releaseDate = track.album.release_date {
-                    InfoRow(label: "發行日期", value: formatReleaseDate(releaseDate))
-                    Divider().background(Color.gray.opacity(0.3))
-                }
-                
-                InfoRow(label: "曲目編號", value: "\(track.track_number) / \(track.album.total_tracks)")
-                Divider().background(Color.gray.opacity(0.3))
-                
-                InfoRow(label: "時長", value: formatDuration(track.duration_ms))
-                Divider().background(Color.gray.opacity(0.3))
-                
-                InfoRow(label: "人氣", value: "\(track.popularity) / 100")
-                Divider().background(Color.gray.opacity(0.3))
-                
-                InfoRow(label: "露骨內容", value: track.explicit ? "是" : "否")
-            }
-            .background(Color(red: 0.12, green: 0.12, blue: 0.12))
-            .cornerRadius(12)
-            .padding(.horizontal)
-        }
-        .padding(.bottom, 30)
-    }
-    
-    // MARK: - Audio Features Section
-    private func audioFeaturesSection(features: AudioFeatures) -> some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("音訊特徵")
-                .font(.custom("SpotifyMix-Bold", size: 22))
-                .foregroundColor(.white)
-                .padding(.horizontal)
-            
-            VStack(spacing: 0) {
-                AudioFeatureBar(label: "舞動性", value: features.danceability, color: .green)
-                Divider().background(Color.gray.opacity(0.3))
-                
-                AudioFeatureBar(label: "能量", value: features.energy, color: .red)
-                Divider().background(Color.gray.opacity(0.3))
-                
-                AudioFeatureBar(label: "愉悅度", value: features.valence, color: .yellow)
-                Divider().background(Color.gray.opacity(0.3))
-                
-                AudioFeatureBar(label: "聲樂", value: features.speechiness, color: .blue)
-                Divider().background(Color.gray.opacity(0.3))
-                
-                AudioFeatureBar(label: "原聲", value: features.acousticness, color: .orange)
-                Divider().background(Color.gray.opacity(0.3))
-                
-                AudioFeatureBar(label: "器樂", value: features.instrumentalness, color: .purple)
-                Divider().background(Color.gray.opacity(0.3))
-                
-                AudioFeatureBar(label: "現場", value: features.liveness, color: .pink)
-            }
-            .background(Color(red: 0.12, green: 0.12, blue: 0.12))
-            .cornerRadius(12)
-            .padding(.horizontal)
-            
-            // 音樂理論資訊
-            VStack(spacing: 0) {
-                InfoRow(label: "節奏 (BPM)", value: String(format: "%.0f", features.tempo))
-                Divider().background(Color.gray.opacity(0.3))
-                
-                InfoRow(label: "調性", value: "\(features.keyString) \(features.modeString)")
-                Divider().background(Color.gray.opacity(0.3))
-                
-                InfoRow(label: "拍號", value: "\(features.time_signature)/4")
-                Divider().background(Color.gray.opacity(0.3))
-                
-                InfoRow(label: "響度", value: String(format: "%.1f dB", features.loudness))
-            }
-            .background(Color(red: 0.12, green: 0.12, blue: 0.12))
-            .cornerRadius(12)
-            .padding(.horizontal)
-        }
-        .padding(.bottom, 30)
-    }
-    
-    // MARK: - Artist Info Section
-    private func artistInfoSection() -> some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("藝人資訊")
-                .font(.custom("SpotifyMix-Bold", size: 22))
-                .foregroundColor(.white)
-                .padding(.horizontal)
-            
-            ForEach(artistDetails, id: \.id) { artist in
-                VStack(spacing: 12) {
-                    // 藝人圖片
-                    if let imageUrl = artist.images.first?.url,
+                HStack(spacing: 16) {
+                    if let imageUrl = track.album.images.first?.url,
                        let url = URL(string: imageUrl) {
                         AsyncImage(url: url) { image in
                             image
@@ -211,49 +178,184 @@ struct TrackDetailView: View {
                         } placeholder: {
                             Rectangle()
                                 .fill(Color.gray.opacity(0.3))
-                                .overlay(
-                                    Image(systemName: "person.fill")
-                                        .foregroundColor(.gray)
-                                        .font(.system(size: 40))
-                                )
                         }
-                        .frame(width: 120, height: 120)
-                        .clipShape(Circle())
+                        .frame(width: 80, height: 80)
+                        .cornerRadius(8)
                     }
                     
-                    // 藝人名稱
-                    Text(artist.name)
-                        .font(.custom("SpotifyMix-Bold", size: 20))
-                        .foregroundColor(.white)
-                    
-                    // 藝人資訊
-                    VStack(spacing: 0) {
-                        InfoRow(label: "追蹤數", value: "\(artist.followers.total.formatted())")
-                        Divider().background(Color.gray.opacity(0.3))
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(track.album.name)
+                            .font(.custom("SpotifyMix-Bold", size: 18))
+                            .foregroundColor(.white)
+                            .lineLimit(2)
                         
-                        InfoRow(label: "人氣", value: "\(artist.popularity) / 100")
-                        
-                        if !artist.genres.isEmpty {
-                            Divider().background(Color.gray.opacity(0.3))
-                            HStack {
-                                Text("流派")
-                                    .font(.custom("SpotifyMix-Medium", size: 16))
-                                    .foregroundColor(.gray)
-                                Spacer()
-                                Text(artist.genres.prefix(3).joined(separator: ", "))
-                                    .font(.custom("SpotifyMix-Medium", size: 16))
-                                    .foregroundColor(.white)
-                                    .multilineTextAlignment(.trailing)
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 12)
+                        if let releaseDate = track.album.release_date {
+                            Text(formatReleaseDate(releaseDate))
+                                .font(.custom("SpotifyMix-Medium", size: 14))
+                                .foregroundColor(.gray)
                         }
                     }
-                    .background(Color(red: 0.12, green: 0.12, blue: 0.12))
-                    .cornerRadius(12)
                 }
-                .padding(.horizontal)
             }
+            .padding(.horizontal, 20)
+        }
+        .padding(.bottom, 30)
+    }
+    
+    // MARK: - Audio Features Section
+    private func audioFeaturesSection(features: AudioFeatures) -> some View {
+        VStack(alignment: .leading, spacing: 24) {
+            // Audio features 標題
+            Text("Audio features")
+                .font(.custom("SpotifyMix-Bold", size: 20))
+                .foregroundColor(.white)
+                .padding(.horizontal, 20)
+            
+            // 音訊特徵進度條
+            VStack(alignment: .leading, spacing: 16) {
+                AudioFeatureProgressBar(label: "Acoustic", value: features.acousticness)
+                AudioFeatureProgressBar(label: "Danceable", value: features.danceability)
+                AudioFeatureProgressBar(label: "Energetic", value: features.energy)
+                AudioFeatureProgressBar(label: "Instrumental", value: features.instrumentalness)
+                AudioFeatureProgressBar(label: "Lively", value: features.liveness)
+                AudioFeatureProgressBar(label: "Popularity", value: Double(trackDetail?.popularity ?? 0) / 100.0)
+                AudioFeatureProgressBar(label: "Speechful", value: features.speechiness)
+                AudioFeatureProgressBar(label: "Valence", value: features.valence)
+            }
+            .padding(.horizontal, 20)
+            
+            // Audio analysis 標題
+            Text("Audio analysis")
+                .font(.custom("SpotifyMix-Bold", size: 20))
+                .foregroundColor(.white)
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+            
+            // 音訊分析卡片網格
+            VStack(spacing: 12) {
+                HStack(spacing: 12) {
+                    AudioAnalysisCard(
+                        value: features.keyString,
+                        label: "Key"
+                    )
+                    
+                    AudioAnalysisCard(
+                        value: String(format: "%.3f", features.tempo),
+                        label: "BPM"
+                    )
+                }
+                
+                HStack(spacing: 12) {
+                    AudioAnalysisCard(
+                        value: String(format: "%.3f", features.loudness),
+                        label: "Overall Loudness"
+                    )
+                    
+                    AudioAnalysisCard(
+                        value: features.modeString,
+                        label: "Mode"
+                    )
+                }
+                
+                HStack(spacing: 12) {
+                    AudioAnalysisCard(
+                        value: "\(features.time_signature)/4",
+                        label: "Time Signature"
+                    )
+                    
+                    Spacer()
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            .padding(.horizontal, 20)
+        }
+        .padding(.bottom, 30)
+    }
+    
+    // MARK: - Artist Info Section
+    private func artistInfoSection() -> some View {
+        VStack(alignment: .leading, spacing: 20) {
+            Text("Artists")
+                .font(.custom("SpotifyMix-Bold", size: 20))
+                .foregroundColor(.white)
+                .padding(.horizontal, 20)
+            
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 16) {
+                    ForEach(artistDetails, id: \.id) { artist in
+                        VStack(spacing: 12) {
+                            // 藝人圓形頭像
+                            if let imageUrl = artist.images.first?.url,
+                               let url = URL(string: imageUrl) {
+                                AsyncImage(url: url) { image in
+                                    image
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fill)
+                                } placeholder: {
+                                    Circle()
+                                        .fill(Color.gray.opacity(0.3))
+                                        .overlay(
+                                            Image(systemName: "person.fill")
+                                                .foregroundColor(.gray)
+                                                .font(.system(size: 30))
+                                        )
+                                }
+                                .frame(width: 110, height: 110)
+                                .clipShape(Circle())
+                            }
+                            
+                            Text(artist.name)
+                                .font(.custom("SpotifyMix-Bold", size: 14))
+                                .foregroundColor(.white)
+                                .lineLimit(2)
+                                .multilineTextAlignment(.center)
+                                .frame(width: 110)
+                        }
+                    }
+                }
+                .padding(.horizontal, 20)
+            }
+        }
+        .padding(.bottom, 30)
+    }
+    
+    // MARK: - Open in Spotify Button
+    private func openInSpotifyButton(track: TrackDetail) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("External links")
+                .font(.custom("SpotifyMix-Bold", size: 20))
+                .foregroundColor(.white)
+                .padding(.horizontal, 20)
+            
+            Button(action: {
+                if let url = URL(string: track.uri) {
+                    UIApplication.shared.open(url)
+                }
+            }) {
+                HStack(spacing: 12) {
+                    // Spotify logo
+                    Image("spotify-logo")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 28, height: 28)
+                    
+                    Text("Open in Spotify")
+                        .font(.custom("SpotifyMix-Bold", size: 15))
+                        .foregroundColor(.spotifyGreen)
+                    
+                    Spacer()
+                    
+                    Image(systemName: "arrow.up.forward")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.spotifyGreen)
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.spotifyGreen.opacity(0.1))
+                .cornerRadius(10)
+            }
+            .padding(.horizontal, 20)
         }
         .padding(.bottom, 30)
     }
@@ -413,5 +515,55 @@ struct AudioFeatureBar: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
+    }
+}
+
+// MARK: - New Audio Components
+
+struct AudioFeatureProgressBar: View {
+    let label: String
+    let value: Double
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(label)
+                .font(.custom("SpotifyMix-Medium", size: 14))
+                .foregroundColor(.white)
+            
+            GeometryReader { geometry in
+                ZStack(alignment: .leading) {
+                    // 背景
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(Color.gray.opacity(0.3))
+                        .frame(height: 4)
+                    
+                    // 進度條 - 使用白色
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(Color.white)
+                        .frame(width: geometry.size.width * CGFloat(value), height: 4)
+                }
+            }
+            .frame(height: 4)
+        }
+    }
+}
+
+struct AudioAnalysisCard: View {
+    let value: String
+    let label: String
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(value)
+                .font(.custom("SpotifyMix-Bold", size: 32))
+                .foregroundColor(.white)
+            Text(label)
+                .font(.custom("SpotifyMix-Medium", size: 14))
+                .foregroundColor(.white)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(20)
+        .background(Color(red: 0.15, green: 0.15, blue: 0.15))
+        .cornerRadius(12)
     }
 }

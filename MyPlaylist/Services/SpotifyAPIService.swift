@@ -333,6 +333,10 @@ class SpotifyAPIService {
                 return
             }
             
+            if let httpResponse = response as? HTTPURLResponse {
+                print("Track detail API status code: \(httpResponse.statusCode)")
+            }
+            
             if handleUnauthorized(response: response) {
                 completion(nil)
                 return
@@ -349,6 +353,9 @@ class SpotifyAPIService {
                 completion(trackDetail)
             } catch {
                 print("Error decoding track detail: \(error.localizedDescription)")
+                if let jsonString = String(data: data, encoding: .utf8) {
+                    print("Response data: \(jsonString)")
+                }
                 completion(nil)
             }
         }.resume()
@@ -367,6 +374,17 @@ class SpotifyAPIService {
                 return
             }
             
+            if let httpResponse = response as? HTTPURLResponse {
+                print("Audio features API status code: \(httpResponse.statusCode)")
+                
+                // 403 表示此功能不可用，但不應該登出用戶
+                if httpResponse.statusCode == 403 {
+                    print("Audio features not available for this track/account (403 Forbidden)")
+                    completion(nil)
+                    return
+                }
+            }
+            
             if handleUnauthorized(response: response) {
                 completion(nil)
                 return
@@ -383,6 +401,9 @@ class SpotifyAPIService {
                 completion(audioFeatures)
             } catch {
                 print("Error decoding audio features: \(error.localizedDescription)")
+                if let jsonString = String(data: data, encoding: .utf8) {
+                    print("Response data: \(jsonString)")
+                }
                 completion(nil)
             }
         }.resume()
@@ -401,6 +422,10 @@ class SpotifyAPIService {
                 return
             }
             
+            if let httpResponse = response as? HTTPURLResponse {
+                print("Artist detail API status code: \(httpResponse.statusCode)")
+            }
+            
             if handleUnauthorized(response: response) {
                 completion(nil)
                 return
@@ -417,6 +442,9 @@ class SpotifyAPIService {
                 completion(artistDetail)
             } catch {
                 print("Error decoding artist detail: \(error.localizedDescription)")
+                if let jsonString = String(data: data, encoding: .utf8) {
+                    print("Response data: \(jsonString)")
+                }
                 completion(nil)
             }
         }.resume()

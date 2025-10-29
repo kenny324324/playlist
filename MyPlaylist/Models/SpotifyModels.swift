@@ -184,6 +184,7 @@ struct TrackDetail: Codable {
     let preview_url: String?
     let external_urls: ExternalUrls
     let track_number: Int
+    let uri: String
     
     struct TrackDetailArtist: Codable, Identifiable {
         let id: String

@@ -35,6 +35,169 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		31B2F0002EB1B38D0091004A /* Exceptions for "2024-spotify-full-logo" folder in "MyPlaylist" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Full_Logo_Black_CMYK.eps,
+				Full_Logo_Black_CMYK.pdf,
+				Full_Logo_Black_CMYK.svg,
+				Full_Logo_Black_PMS_C.eps,
+				Full_Logo_Black_PMS_C.pdf,
+				Full_Logo_Black_PMS_C.svg,
+				Full_Logo_Black_PMS_U.svg,
+				Full_Logo_Black_RGB.eps,
+				Full_Logo_Black_RGB.pdf,
+				Full_Logo_Black_RGB.svg,
+				Full_Logo_Green_CMYK.svg,
+				Full_Logo_Green_PMS_C.svg,
+				Full_Logo_Green_PMS_U.svg,
+				Full_Logo_Green_RGB.pdf,
+				Full_Logo_Green_RGB.svg,
+				Full_Logo_White_CMYK.eps,
+				Full_Logo_White_CMYK.pdf,
+				Full_Logo_White_CMYK.svg,
+				Full_Logo_White_RGB.eps,
+				Full_Logo_White_RGB.pdf,
+				Full_Logo_White_RGB.svg,
+				Spotify_Full_Logo_RGB_Black.ai,
+				Spotify_Full_Logo_RGB_Black.png,
+				Spotify_Full_Logo_RGB_Green.ai,
+				Spotify_Full_Logo_RGB_Green.png,
+				Spotify_Full_Logo_RGB_White.ai,
+				Spotify_Full_Logo_RGB_White.png,
+			);
+			target = 31F0D34C2CCA412100104662 /* MyPlaylist */;
+		};
+		31B2F0012EB1B38D0091004A /* Exceptions for "2024-spotify-full-logo" folder in "MyPlaylistTests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Full_Logo_Black_CMYK.eps,
+				Full_Logo_Black_CMYK.pdf,
+				Full_Logo_Black_CMYK.svg,
+				Full_Logo_Black_PMS_C.eps,
+				Full_Logo_Black_PMS_C.pdf,
+				Full_Logo_Black_PMS_C.svg,
+				Full_Logo_Black_PMS_U.svg,
+				Full_Logo_Black_RGB.eps,
+				Full_Logo_Black_RGB.pdf,
+				Full_Logo_Black_RGB.svg,
+				Full_Logo_Green_CMYK.svg,
+				Full_Logo_Green_PMS_C.svg,
+				Full_Logo_Green_PMS_U.svg,
+				Full_Logo_Green_RGB.pdf,
+				Full_Logo_Green_RGB.svg,
+				Full_Logo_White_CMYK.eps,
+				Full_Logo_White_CMYK.pdf,
+				Full_Logo_White_CMYK.svg,
+				Full_Logo_White_RGB.eps,
+				Full_Logo_White_RGB.pdf,
+				Full_Logo_White_RGB.svg,
+				Spotify_Full_Logo_RGB_Black.ai,
+				Spotify_Full_Logo_RGB_Black.png,
+				Spotify_Full_Logo_RGB_Green.ai,
+				Spotify_Full_Logo_RGB_Green.png,
+				Spotify_Full_Logo_RGB_White.ai,
+				Spotify_Full_Logo_RGB_White.png,
+			);
+			target = 31F0D35C2CCA412300104662 /* MyPlaylistTests */;
+		};
+		31B2F0022EB1B38D0091004A /* Exceptions for "2024-spotify-full-logo" folder in "MyPlaylistUITests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Full_Logo_Black_CMYK.eps,
+				Full_Logo_Black_CMYK.pdf,
+				Full_Logo_Black_CMYK.svg,
+				Full_Logo_Black_PMS_C.eps,
+				Full_Logo_Black_PMS_C.pdf,
+				Full_Logo_Black_PMS_C.svg,
+				Full_Logo_Black_PMS_U.svg,
+				Full_Logo_Black_RGB.eps,
+				Full_Logo_Black_RGB.pdf,
+				Full_Logo_Black_RGB.svg,
+				Full_Logo_Green_CMYK.svg,
+				Full_Logo_Green_PMS_C.svg,
+				Full_Logo_Green_PMS_U.svg,
+				Full_Logo_Green_RGB.pdf,
+				Full_Logo_Green_RGB.svg,
+				Full_Logo_White_CMYK.eps,
+				Full_Logo_White_CMYK.pdf,
+				Full_Logo_White_CMYK.svg,
+				Full_Logo_White_RGB.eps,
+				Full_Logo_White_RGB.pdf,
+				Full_Logo_White_RGB.svg,
+				Spotify_Full_Logo_RGB_Black.ai,
+				Spotify_Full_Logo_RGB_Black.png,
+				Spotify_Full_Logo_RGB_Green.ai,
+				Spotify_Full_Logo_RGB_Green.png,
+				Spotify_Full_Logo_RGB_White.ai,
+				Spotify_Full_Logo_RGB_White.png,
+			);
+			target = 31F0D3662CCA412300104662 /* MyPlaylistUITests */;
+		};
+		31B2F0032EB1B38D0091004A /* Exceptions for "2024-spotify-logo-icon" folder in "MyPlaylist" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"Primary_Logo_Black_CMYK (1).pdf",
+				Primary_Logo_Black_CMYK.eps,
+				Primary_Logo_Black_CMYK.svg,
+				Primary_Logo_Black_PMS_C.eps,
+				Primary_Logo_Black_PMS_C.pdf,
+				Primary_Logo_Black_PMS_C.svg,
+				Primary_Logo_Black_PMS_U.svg,
+				Primary_Logo_Black_RGB.eps,
+				Primary_Logo_Black_RGB.pdf,
+				Primary_Logo_Black_RGB.svg,
+				Primary_Logo_Green_CMYK.svg,
+				Primary_Logo_Green_PMS_C.svg,
+				Primary_Logo_Green_PMS_U.svg,
+				Primary_Logo_Green_RGB.pdf,
+				Primary_Logo_Green_RGB.svg,
+				"Primary_Logo_White_CMYK (1).pdf",
+				Primary_Logo_White_CMYK.eps,
+				Primary_Logo_White_CMYK.svg,
+				Primary_Logo_White_RGB.eps,
+				Primary_Logo_White_RGB.svg,
+				Spotify_Primary_Logo_RGB_Black.ai,
+				Spotify_Primary_Logo_RGB_Black.png,
+				Spotify_Primary_Logo_RGB_Green.ai,
+				Spotify_Primary_Logo_RGB_Green.png,
+				Spotify_Primary_Logo_RGB_White.ai,
+				Spotify_Primary_Logo_RGB_White.png,
+			);
+			target = 31F0D34C2CCA412100104662 /* MyPlaylist */;
+		};
+		31B2F0042EB1B38D0091004A /* Exceptions for "2024-spotify-logo-icon" folder in "MyPlaylistTests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"Primary_Logo_Black_CMYK (1).pdf",
+				Primary_Logo_Black_CMYK.eps,
+				Primary_Logo_Black_CMYK.svg,
+				Primary_Logo_Black_PMS_C.eps,
+				Primary_Logo_Black_PMS_C.pdf,
+				Primary_Logo_Black_PMS_C.svg,
+				Primary_Logo_Black_PMS_U.svg,
+				Primary_Logo_Black_RGB.eps,
+				Primary_Logo_Black_RGB.pdf,
+				Primary_Logo_Black_RGB.svg,
+				Primary_Logo_Green_CMYK.svg,
+				Primary_Logo_Green_PMS_C.svg,
+				Primary_Logo_Green_PMS_U.svg,
+				Primary_Logo_Green_RGB.pdf,
+				Primary_Logo_Green_RGB.svg,
+				"Primary_Logo_White_CMYK (1).pdf",
+				Primary_Logo_White_CMYK.eps,
+				Primary_Logo_White_CMYK.svg,
+				Primary_Logo_White_RGB.eps,
+				Primary_Logo_White_RGB.svg,
+				Spotify_Primary_Logo_RGB_Black.ai,
+				Spotify_Primary_Logo_RGB_Black.png,
+				Spotify_Primary_Logo_RGB_Green.ai,
+				Spotify_Primary_Logo_RGB_Green.png,
+				Spotify_Primary_Logo_RGB_White.ai,
+				Spotify_Primary_Logo_RGB_White.png,
+			);
+			target = 31F0D35C2CCA412300104662 /* MyPlaylistTests */;
+		};
 		31F0D3862CCA43B700104662 /* Exceptions for "MyPlaylist" folder in "MyPlaylist" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -45,6 +208,25 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		31B2EF452EB1B38C0091004A /* 2024-spotify-full-logo */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				31B2F0002EB1B38D0091004A /* Exceptions for "2024-spotify-full-logo" folder in "MyPlaylist" target */,
+				31B2F0012EB1B38D0091004A /* Exceptions for "2024-spotify-full-logo" folder in "MyPlaylistTests" target */,
+				31B2F0022EB1B38D0091004A /* Exceptions for "2024-spotify-full-logo" folder in "MyPlaylistUITests" target */,
+			);
+			path = "2024-spotify-full-logo";
+			sourceTree = "<group>";
+		};
+		31B2EF602EB1B38C0091004A /* 2024-spotify-logo-icon */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				31B2F0032EB1B38D0091004A /* Exceptions for "2024-spotify-logo-icon" folder in "MyPlaylist" target */,
+				31B2F0042EB1B38D0091004A /* Exceptions for "2024-spotify-logo-icon" folder in "MyPlaylistTests" target */,
+			);
+			path = "2024-spotify-logo-icon";
+			sourceTree = "<group>";
+		};
 		31F0D34F2CCA412100104662 /* MyPlaylist */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -97,6 +279,8 @@
 				31F0D34F2CCA412100104662 /* MyPlaylist */,
 				31F0D3602CCA412300104662 /* MyPlaylistTests */,
 				31F0D36A2CCA412300104662 /* MyPlaylistUITests */,
+				31B2EF452EB1B38C0091004A /* 2024-spotify-full-logo */,
+				31B2EF602EB1B38C0091004A /* 2024-spotify-logo-icon */,
 				31F0D34E2CCA412100104662 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -173,6 +357,7 @@
 				31F0D3692CCA412300104662 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
+				31B2EF602EB1B38C0091004A /* 2024-spotify-logo-icon */,
 				31F0D36A2CCA412300104662 /* MyPlaylistUITests */,
 			);
 			name = MyPlaylistUITests;
