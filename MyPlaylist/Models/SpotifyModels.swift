@@ -366,4 +366,50 @@ struct SearchArtist: Codable, Identifiable {
     struct Followers: Codable {
         let total: Int
     }
+}
+
+// MARK: - Featured Playlists Models
+struct FeaturedPlaylistsResponse: Codable {
+    let message: String?
+    let playlists: FeaturedPlaylistsContainer
+    
+    struct FeaturedPlaylistsContainer: Codable {
+        let href: String?
+        let limit: Int?
+        let next: String?
+        let offset: Int?
+        let previous: String?
+        let total: Int?
+        let items: [Playlist]
+    }
+}
+
+// MARK: - New Releases Models
+struct NewReleasesResponse: Codable {
+    let albums: NewReleasesContainer
+    
+    struct NewReleasesContainer: Codable {
+        let items: [NewReleaseAlbum]
+    }
+}
+
+struct NewReleaseAlbum: Codable, Identifiable {
+    let id: String
+    let name: String
+    let images: [SpotifyImage]
+    let artists: [NewReleaseArtist]
+    let release_date: String?
+    
+    struct NewReleaseArtist: Codable {
+        let name: String
+        let id: String
+    }
+    
+    var imageUrl: String? {
+        return images.first?.url
+    }
+    
+    var artistNames: String {
+        return artists.map { $0.name }.joined(separator: ", ")
+    }
 } 

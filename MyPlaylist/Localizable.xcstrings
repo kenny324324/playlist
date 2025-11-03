@@ -4,6 +4,9 @@
     "" : {
 
     },
+    " · " : {
+
+    },
     "#%lld" : {
 
     },
@@ -162,6 +165,287 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld 次"
+          }
+        }
+      }
+    },
+    "dashboard.empty.message" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start listening to music on Spotify to see your personalized dashboard!"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開始在 Spotify 上聽音樂，就能看到專屬於你的儀表板！"
+          }
+        }
+      }
+    },
+    "dashboard.empty.noData" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No data available"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暫無資料"
+          }
+        }
+      }
+    },
+    "dashboard.empty.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Listening Data Yet"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尚無聆聽資料"
+          }
+        }
+      }
+    },
+    "dashboard.hours" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "hrs"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "小時"
+          }
+        }
+      }
+    },
+    "dashboard.justNow" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Just now"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "剛剛"
+          }
+        }
+      }
+    },
+    "dashboard.minutes" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "min"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "分鐘"
+          }
+        }
+      }
+    },
+    "dashboard.monthlyTopArtists" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Top Artists This Month"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本月熱門藝人"
+          }
+        }
+      }
+    },
+    "dashboard.monthlyTopTracks" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Top Tracks This Month"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本月熱門歌曲"
+          }
+        }
+      }
+    },
+    "dashboard.quickShortcuts" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quick Shortcuts"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "快速捷徑"
+          }
+        }
+      }
+    },
+    "dashboard.shortcut.playlists" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "My\nPlaylists"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "我的\n播放清單"
+          }
+        }
+      }
+    },
+    "dashboard.shortcut.savedTracks" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saved\nTracks"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "收藏\n歌曲"
+          }
+        }
+      }
+    },
+    "dashboard.shortcut.topCharts" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Top\nCharts"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "排行\n榜"
+          }
+        }
+      }
+    },
+    "dashboard.todayListening" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today's Listening"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今日聆聽"
+          }
+        }
+      }
+    },
+    "dashboard.todayListening.subtitle" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep up the groove!"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "繼續享受音樂吧！"
+          }
+        }
+      }
+    },
+    "dashboard.viewAll" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View All"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "查看全部"
+          }
+        }
+      }
+    },
+    "dashboard.weeklyTopArtists" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Top Artists This Week"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本週熱門藝人"
+          }
+        }
+      }
+    },
+    "dashboard.weeklyTopTracks" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Top Tracks This Week"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本週熱門歌曲"
           }
         }
       }
@@ -1722,6 +2006,56 @@
         }
       }
     },
+    "player.noCurrentlyPlaying" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No music playing"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "沒有播放中的歌曲"
+          }
+        }
+      }
+    },
+    "player.pause" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pause"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暫停"
+          }
+        }
+      }
+    },
+    "player.playPreview" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play Preview"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "播放預覽"
+          }
+        }
+      }
+    },
     "profile.followers" : {
       "localizations" : {
         "en" : {
@@ -2142,6 +2476,35 @@
         }
       }
     },
+    "search.featured.playlists" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Featured Playlists"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "注目のプレイリスト"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "추천 플레이리스트"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "精選播放清單"
+          }
+        }
+      }
+    },
     "search.initial.subtitle" : {
       "localizations" : {
         "en" : {
@@ -2194,6 +2557,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "搜尋你喜愛的音樂"
+          }
+        }
+      }
+    },
+    "search.loading" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading..."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読み込み中..."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "로딩 중..."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "載入中..."
           }
         }
       }
@@ -2282,6 +2673,34 @@
         }
       }
     },
+    "search.new.releases" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New Releases"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新着リリース"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "새로운 앨범"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新發行專輯"
+          }
+        }
+      }
+    },
     "search.row.album" : {
       "localizations" : {
         "en" : {
@@ -2362,6 +2781,35 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "追蹤者"
+          }
+        }
+      }
+    },
+    "search.your.playlists" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your Playlists"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "あなたのプレイリスト"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "내 플레이리스트"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的播放清單"
           }
         }
       }
@@ -3025,6 +3473,18 @@
     "View more" : {
 
     },
+    "今天播放歌曲" : {
+
+    },
+    "今天還沒有播放記錄" : {
+
+    },
+    "分鐘" : {
+
+    },
+    "取消" : {
+
+    },
     "完成" : {
       "localizations" : {
         "en" : {
@@ -3138,6 +3598,21 @@
         }
       }
     },
+    "播放記錄" : {
+
+    },
+    "歌曲數量" : {
+
+    },
+    "清除" : {
+
+    },
+    "清除 Dashboard 快取" : {
+
+    },
+    "總時長" : {
+
+    },
     "輸入關鍵字以顯示搜尋結果" : {
       "localizations" : {
         "en" : {
@@ -3165,6 +3640,15 @@
           }
         }
       }
+    },
+    "這將清除今日聆聽時間和本月熱門資料的快取，並重新從 Spotify 載入資料。" : {
+
+    },
+    "首" : {
+
+    },
+    "首歌曲" : {
+
     }
   },
   "version" : "1.1"

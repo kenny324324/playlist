@@ -415,7 +415,7 @@ struct TrackDetailView: View {
     
     private func refreshAccessTokenAndLoad() {
         isLoading = true
-        SpotifyAuthService.ensureValidAccessToken { token in
+        SpotifyAuthServiceV2.ensureValidAccessToken { token in
             DispatchQueue.main.async {
                 let effectiveToken = token ?? (accessToken.isEmpty ? nil : accessToken)
                 guard let token = effectiveToken else {

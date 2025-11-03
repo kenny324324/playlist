@@ -52,9 +52,7 @@ class SpotifyAuthServiceV2: NSObject, ObservableObject {
         authSession = ASWebAuthenticationSession(
             url: authURL,
             callbackURLScheme: "myplaylist"
-        ) { [weak self] callbackURL, error in
-            guard let self = self else { return }
-            
+        ) { callbackURL, error in
             if let error = error {
                 // 如果用戶取消，不視為錯誤
                 if (error as NSError).code == ASWebAuthenticationSessionError.canceledLogin.rawValue {
@@ -65,13 +63,13 @@ class SpotifyAuthServiceV2: NSObject, ObservableObject {
             }
             
             guard let callbackURL = callbackURL,
-                  let code = self.extractCode(from: callbackURL) else {
+                  let code = Self.extractCode(from: callbackURL) else {
                 completion(.failure(NSError(domain: "SpotifyAuth", code: -2, userInfo: [NSLocalizedDescriptionKey: "無法取得授權碼"])))
                 return
             }
             
             // 使用授權碼換取 access token
-            self.fetchAccessToken(code: code) { token in
+            Self.fetchAccessToken(code: code) { token in
                 if let token = token {
                     completion(.success(token))
                 } else {
@@ -91,7 +89,7 @@ class SpotifyAuthServiceV2: NSObject, ObservableObject {
     }
     
     // MARK: - Fetch Access Token
-    private func fetchAccessToken(code: String, completion: @escaping (String?) -> Void) {
+    private static func fetchAccessToken(code: String, completion: @escaping (String?) -> Void) {
         guard let codeVerifier = TokenStorage.loadCodeVerifier() else {
             print("Missing code verifier for PKCE exchange.")
             completion(nil)
@@ -129,7 +127,7 @@ class SpotifyAuthServiceV2: NSObject, ObservableObject {
             
             do {
                 let authResponse = try JSONDecoder().decode(SpotifyAuthResponse.self, from: data)
-                Self.persistTokens(response: authResponse)
+                persistTokens(response: authResponse)
                 completion(authResponse.access_token)
             } catch {
                 print("Error decoding access token: \(error)")
@@ -213,9 +211,19 @@ class SpotifyAuthServiceV2: NSObject, ObservableObject {
     }
     
     // 提取授權碼
-    private func extractCode(from url: URL) -> String? {
+    private static func extractCode(from url: URL) -> String? {
         URLComponents(url: url, resolvingAgainstBaseURL: false)?
             .queryItems?.first(where: { $0.name == "code" })?.value
+    }
+
+    /// 處理外部回調 URL，適用於保留舊登入流程或多場景開發
+    static func handleRedirectURL(_ url: URL, completion: @escaping (String?) -> Void) {
+        guard let code = extractCode(from: url) else {
+            completion(nil)
+            return
+        }
+
+        fetchAccessToken(code: code, completion: completion)
     }
 }
 
@@ -230,4 +238,3 @@ class WebAuthenticationPresentationContextProvider: NSObject, ObservableObject, 
         return ASPresentationAnchor()
     }
 }
-

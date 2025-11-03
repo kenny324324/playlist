@@ -48,6 +48,8 @@ struct SearchView: View {
     @State private var searchResults: SearchResponse?
     @State private var isSearching = false
     @State private var isSearchActive = false
+    @State private var newReleases: [NewReleaseAlbum] = []
+    @State private var isLoadingBrowseData = false
     
     var body: some View {
         ZStack {
@@ -68,7 +70,12 @@ struct SearchView: View {
                 )
             } else {
                 // 未 Focus 鍵盤：顯示初始頁面
-                SearchInitialContentView()
+                SearchInitialContentView(
+                    newReleases: newReleases,
+                    isLoading: isLoadingBrowseData,
+                    audioPlayer: audioPlayer,
+                    accessToken: accessToken
+                )
             }
         }
         .navigationBarTitleDisplayMode(.inline)
@@ -97,6 +104,26 @@ struct SearchView: View {
                 isSearching = false
             }
         }
+        .onAppear {
+            if isLoggedIn && newReleases.isEmpty {
+                loadBrowseData()
+            }
+        }
+    }
+    
+    // MARK: - 載入瀏覽資料
+    private func loadBrowseData() {
+        guard !accessToken.isEmpty else { return }
+        
+        isLoadingBrowseData = true
+        
+        // 取得新發行專輯
+        SpotifyAPIService.fetchNewReleases(accessToken: accessToken, limit: 10) { albums in
+            DispatchQueue.main.async {
+                self.newReleases = albums
+                self.isLoadingBrowseData = false
+            }
+        }
     }
     
     // MARK: - 執行搜尋
@@ -121,23 +148,137 @@ struct SearchView: View {
 
 // MARK: - 初始頁面（未 Focus 鍵盤時）
 struct SearchInitialContentView: View {
+    let newReleases: [NewReleaseAlbum]
+    let isLoading: Bool
+    @ObservedObject var audioPlayer: AudioPlayer
+    let accessToken: String
+    
     var body: some View {
-        VStack {
-            Spacer()
-            VStack(spacing: 20) {
-                Image(systemName: "music.note.list")
-                    .font(.system(size: 60))
-                    .foregroundColor(.gray)
-                Text("search.initial.title")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundColor(.white)
-                Text("search.initial.subtitle")
-                    .font(.system(size: 14))
-                    .foregroundColor(.gray)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                if isLoading {
+                    // 載入中
+                    VStack(spacing: 20) {
+                        ProgressView()
+                            .scaleEffect(1.5)
+                            .tint(.spotifyGreen)
+                        Text("search.loading")
+                            .font(.system(size: 16))
+                            .foregroundColor(.gray)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 100)
+                } else if newReleases.isEmpty {
+                    // 空狀態
+                    VStack {
+                        Spacer()
+                        VStack(spacing: 20) {
+                            Image(systemName: "music.note.list")
+                                .font(.system(size: 60))
+                                .foregroundColor(.gray)
+                            Text("search.initial.title")
+                                .font(.system(size: 20, weight: .semibold))
+                                .foregroundColor(.white)
+                            Text("search.initial.subtitle")
+                                .font(.system(size: 14))
+                                .foregroundColor(.gray)
+                        }
+                        Spacer()
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    // 顯示新發行專輯
+                    NewReleasesSection(
+                        newReleases: newReleases,
+                        audioPlayer: audioPlayer,
+                        accessToken: accessToken
+                    )
+                }
             }
-            Spacer()
+            .padding(.horizontal)
+            .padding(.top, 16)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+// MARK: - 新發行專輯區塊
+struct NewReleasesSection: View {
+    let newReleases: [NewReleaseAlbum]
+    @ObservedObject var audioPlayer: AudioPlayer
+    let accessToken: String
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("search.new.releases")
+                .font(.system(size: 22, weight: .bold))
+                .foregroundColor(.white)
+            
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 16) {
+                    ForEach(newReleases) { album in
+                        NavigationLink(destination: AlbumDetailView(
+                            albumId: album.id,
+                            albumName: album.name,
+                            accessToken: accessToken,
+                            audioPlayer: audioPlayer
+                        )) {
+                            NewReleaseCard(album: album)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - 新發行專輯卡片
+struct NewReleaseCard: View {
+    let album: NewReleaseAlbum
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            // 專輯封面
+            AsyncImage(url: URL(string: album.imageUrl ?? "")) { phase in
+                switch phase {
+                case .empty:
+                    ZStack {
+                        Color.gray.opacity(0.3)
+                        ProgressView()
+                    }
+                case .success(let image):
+                    image
+                        .resizable()
+                        .scaledToFit()
+                case .failure:
+                    ZStack {
+                        Color.gray.opacity(0.3)
+                        Image(systemName: "music.note")
+                            .foregroundColor(.gray)
+                            .font(.system(size: 30))
+                    }
+                @unknown default:
+                    EmptyView()
+                }
+            }
+            .aspectRatio(1, contentMode: .fit)
+            .frame(width: 140)
+            .cornerRadius(8)
+            .clipped()
+            
+            // 專輯名稱
+            Text(album.name)
+                .font(.custom("SpotifyMix-Medium", size: 14))
+                .foregroundColor(.white)
+                .lineLimit(1)
+                .frame(width: 140, alignment: .leading)
+            
+            // 藝人名稱
+            Text(album.artistNames)
+                .font(.custom("SpotifyMix-Medium", size: 12))
+                .foregroundColor(.gray)
+                .lineLimit(1)
+                .frame(width: 140, alignment: .leading)
+        }
     }
 }
 

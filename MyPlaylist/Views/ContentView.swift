@@ -14,11 +14,19 @@ struct ContentView: View {
     @State private var selectedTab = 0  // 控制選中的 tab
     @ObservedObject var audioPlayer = AudioPlayer()
     
+    // 當前播放相關
+    @State private var currentlyPlaying: CurrentlyPlayingTrack? = nil
+    @State private var showTrackDetailFromPlayer = false
+    @State private var selectedTrackIdFromPlayer: String? = nil
+    
     // 用於 ASWebAuthenticationSession
     @StateObject private var presentationContextProvider = WebAuthenticationPresentationContextProvider()
 
     // 確保畫面在狀態變化時強制更新
     @Environment(\.scenePhase) var scenePhase
+    
+    // 定時器：每 10 秒更新當前播放
+    private let currentlyPlayingTimer = Timer.publish(every: 10, on: .main, in: .common).autoconnect()
 
     var body: some View {
         ZStack {
@@ -72,14 +80,24 @@ struct ContentView: View {
                 .onChange(of: isLoggedIn) { loggedIn in
                     if !loggedIn {
                         selectedTab = 0
+                        currentlyPlaying = nil
+                    } else {
+                        fetchCurrentlyPlaying()
                     }
                 }
-                //.tabBarMinimizeBehavior(.onScrollDown)
-                /*.tabViewBottomAccessory{
-                    Text("\(Image(systemName: "swift")) Made with SwiftUI")
-                        .foregroundStyle(.orange)
-                        .padding()
-                }*/
+                .tabBarMinimizeBehavior(.onScrollDown)
+                .tabViewBottomAccessory {
+                    if isLoggedIn {
+                        MiniPlayerBar(
+                            track: currentlyPlaying,
+                            audioPlayer: audioPlayer,
+                            onTapTrack: { trackId in
+                                selectedTrackIdFromPlayer = trackId
+                                showTrackDetailFromPlayer = true
+                            }
+                        )
+                    }
+                }
             } else {
                 TabView(selection: $selectedTab) {
                     Tab("tab.home", systemImage: "house.fill", value: 0) {
@@ -128,6 +146,9 @@ struct ContentView: View {
                 .onChange(of: isLoggedIn) { loggedIn in
                     if !loggedIn {
                         selectedTab = 0
+                        currentlyPlaying = nil
+                    } else {
+                        fetchCurrentlyPlaying()
                     }
                 }
             }
@@ -146,6 +167,18 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: .spotifyUnauthorized)) { _ in
             resetSessionState()
         }
+        .onReceive(currentlyPlayingTimer) { _ in
+            if scenePhase == .active && isLoggedIn {
+                fetchCurrentlyPlaying()
+            }
+        }
+        .sheet(isPresented: $showTrackDetailFromPlayer) {
+            if let trackId = selectedTrackIdFromPlayer {
+                NavigationView {
+                    TrackDetailView(trackId: trackId, accessToken: accessToken ?? "", audioPlayer: audioPlayer)
+                }
+            }
+        }
     }
 
     // Spotify 登入流程 - 新版使用 ASWebAuthenticationSession
@@ -163,18 +196,9 @@ struct ContentView: View {
         }
     }
     
-    // 舊版登入流程 - 使用外部瀏覽器（若需要恢復，取消註解並註解掉上面的新版）
-    /*
-    func login() {
-        guard let url = SpotifyAuthService.loginURL() else { return }
-        UIApplication.shared.open(url)
-    }
-    */
-
     // 登出流程
     func logout() {
-        SpotifyAuthServiceV2.logout()  // 新版
-        // SpotifyAuthService.logout()  // 舊版，若需要恢復則取消註解
+        SpotifyAuthServiceV2.logout()
         resetSessionState()
     }
 
@@ -183,13 +207,23 @@ struct ContentView: View {
         self.isLoggedIn = false
         self.userProfile = nil
         self.tracks = []
+        self.currentlyPlaying = nil
+    }
+    
+    // 獲取當前播放的歌曲
+    private func fetchCurrentlyPlaying() {
+        guard let token = accessToken, !token.isEmpty else { return }
+        
+        SpotifyAPIService.fetchCurrentlyPlaying(accessToken: token) { track in
+            DispatchQueue.main.async {
+                self.currentlyPlaying = track
+            }
+        }
     }
 
     // Spotify 回調處理
     func handleSpotifyCallback(url: URL) {
-        guard let code = extractCode(from: url) else { return }
-
-        SpotifyAuthService.fetchAccessToken(code: code) { token in
+        SpotifyAuthServiceV2.handleRedirectURL(url) { token in
             DispatchQueue.main.async {
                 guard let token = token else {
                     resetSessionState()
@@ -202,8 +236,7 @@ struct ContentView: View {
 
     // 檢查是否已登入
     func checkIfLoggedIn() {
-        SpotifyAuthServiceV2.ensureValidAccessToken { token in  // 新版
-        // SpotifyAuthService.ensureValidAccessToken { token in  // 舊版，若需要恢復則取消註解
+        SpotifyAuthServiceV2.ensureValidAccessToken { token in
             DispatchQueue.main.async {
                 guard let token = token else {
                     resetSessionState()
@@ -237,12 +270,6 @@ struct ContentView: View {
                 self.tracks = fetchedTracks
             }
         }
-    }
-
-    // 提取授權碼
-    func extractCode(from url: URL) -> String? {
-        URLComponents(url: url, resolvingAgainstBaseURL: false)?
-            .queryItems?.first(where: { $0.name == "code" })?.value
     }
 }
 

@@ -317,7 +317,7 @@ struct AlbumDetailView: View {
     // MARK: - Helper Functions
     private func refreshAccessTokenAndLoad() {
         isLoading = true
-        SpotifyAuthService.ensureValidAccessToken { token in
+        SpotifyAuthServiceV2.ensureValidAccessToken { token in
             DispatchQueue.main.async {
                 let effectiveToken = token ?? (accessToken.isEmpty ? nil : accessToken)
                 guard let token = effectiveToken else {
@@ -392,4 +392,3 @@ struct AlbumDetailView: View {
         return dateString
     }
 }
-

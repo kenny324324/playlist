@@ -3,14 +3,18 @@ import Foundation
 class SpotifyAPIService {
 
     private static func handleUnauthorized(response: URLResponse?) -> Bool {
-        guard let httpResponse = response as? HTTPURLResponse else { return false }
-        if httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
+        guard let httpResponse = response as? HTTPURLResponse else {
+            return false
+        }
+
+        if httpResponse.statusCode == 401 {
             DispatchQueue.main.async {
-                SpotifyAuthService.logout()
+                SpotifyAuthServiceV2.logout()
                 NotificationCenter.default.post(name: .spotifyUnauthorized, object: nil)
             }
             return true
         }
+
         return false
     }
     
@@ -616,5 +620,163 @@ class SpotifyAPIService {
             }
         }.resume()
     }
-
+    
+    // MARK: - Browse API
+    
+    // 獲取精選播放清單
+    static func fetchFeaturedPlaylists(accessToken: String, limit: Int = 10, completion: @escaping ([Playlist]) -> Void) {
+        // 按照官方文件：使用 locale 參數（不是 market 或 country）
+        let urlString = "https://api.spotify.com/v1/browse/featured-playlists?locale=zh_TW&limit=\(limit)"
+        
+        guard let url = URL(string: urlString) else {
+            print("❌ Invalid URL")
+            completion([])
+            return
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.addValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        
+        print("🔍 Fetching featured playlists")
+        print("📍 URL: \(url.absoluteString)")
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                print("❌ Network error: \(error.localizedDescription)")
+                completion([])
+                return
+            }
+            
+            if let httpResponse = response as? HTTPURLResponse {
+                print("📊 Featured playlists API status code: \(httpResponse.statusCode)")
+                
+                if httpResponse.statusCode == 404 {
+                    print("⚠️ 404 Error")
+                    print("⚠️ Trying without locale parameter...")
+                    // 如果帶 locale 失敗，嘗試不帶參數
+                    fetchFeaturedPlaylistsWithoutLocale(accessToken: accessToken, limit: limit, completion: completion)
+                    return
+                }
+            }
+            
+            if handleUnauthorized(response: response) {
+                completion([])
+                return
+            }
+            
+            guard let data = data else {
+                print("No data received from Spotify API")
+                completion([])
+                return
+            }
+            
+            do {
+                let featuredResponse = try JSONDecoder().decode(FeaturedPlaylistsResponse.self, from: data)
+                print("✅ Featured playlists fetched successfully: \(featuredResponse.playlists.items.count) playlists")
+                completion(featuredResponse.playlists.items)
+            } catch {
+                print("❌ Error decoding featured playlists: \(error.localizedDescription)")
+                if let jsonString = String(data: data, encoding: .utf8) {
+                    print("📄 Response data: \(jsonString.prefix(500))...")
+                }
+                completion([])
+            }
+        }.resume()
+    }
+    
+    // 備用方案：不帶 locale 參數
+    private static func fetchFeaturedPlaylistsWithoutLocale(accessToken: String, limit: Int, completion: @escaping ([Playlist]) -> Void) {
+        let urlString = "https://api.spotify.com/v1/browse/featured-playlists?limit=\(limit)"
+        
+        guard let url = URL(string: urlString) else {
+            print("❌ Invalid URL")
+            completion([])
+            return
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.addValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        
+        print("🔄 Retrying without locale parameter")
+        print("📍 URL: \(url.absoluteString)")
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                print("❌ Network error: \(error.localizedDescription)")
+                completion([])
+                return
+            }
+            
+            if let httpResponse = response as? HTTPURLResponse {
+                print("📊 Retry API status code: \(httpResponse.statusCode)")
+            }
+            
+            if handleUnauthorized(response: response) {
+                completion([])
+                return
+            }
+            
+            guard let data = data else {
+                print("No data received from Spotify API")
+                completion([])
+                return
+            }
+            
+            do {
+                let featuredResponse = try JSONDecoder().decode(FeaturedPlaylistsResponse.self, from: data)
+                print("✅ Featured playlists fetched successfully (without locale): \(featuredResponse.playlists.items.count) playlists")
+                completion(featuredResponse.playlists.items)
+            } catch {
+                print("❌ Error decoding featured playlists: \(error.localizedDescription)")
+                if let jsonString = String(data: data, encoding: .utf8) {
+                    print("📄 Response data: \(jsonString.prefix(500))...")
+                }
+                completion([])
+            }
+        }.resume()
+    }
+    
+    // 獲取新發行專輯
+    static func fetchNewReleases(accessToken: String, limit: Int = 20, completion: @escaping ([NewReleaseAlbum]) -> Void) {
+        let url = URL(string: "https://api.spotify.com/v1/browse/new-releases?limit=\(limit)&market=TW")!
+        var request = URLRequest(url: url)
+        request.addValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                print("Error fetching new releases: \(error.localizedDescription)")
+                completion([])
+                return
+            }
+            
+            if let httpResponse = response as? HTTPURLResponse {
+                print("New releases API status code: \(httpResponse.statusCode)")
+            }
+            
+            if handleUnauthorized(response: response) {
+                completion([])
+                return
+            }
+            
+            guard let data = data else {
+                print("No data received from Spotify API")
+                completion([])
+                return
+            }
+            
+            do {
+                let newReleasesResponse = try JSONDecoder().decode(NewReleasesResponse.self, from: data)
+                completion(newReleasesResponse.albums.items)
+            } catch {
+                print("Error decoding new releases: \(error.localizedDescription)")
+                if let jsonString = String(data: data, encoding: .utf8) {
+                    print("Response data: \(jsonString)")
+                }
+                completion([])
+            }
+        }.resume()
+    }
+    
 }

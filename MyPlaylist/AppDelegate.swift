@@ -21,8 +21,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
     private func ensureTokenValidity() {
-        // 使用 SpotifyAuthService 確保 token 有效
-        SpotifyAuthService.ensureValidAccessToken { accessToken in
+        // 使用 SpotifyAuthServiceV2 確保 token 有效
+        SpotifyAuthServiceV2.ensureValidAccessToken { accessToken in
             if let token = accessToken {
                 print("Token 有效: \(token)")
                 // 可以在這裡繼續應用的邏輯，例如載入主畫面

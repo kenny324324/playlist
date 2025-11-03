@@ -112,6 +112,12 @@ struct HomeView: View {
     @State private var showAllRecentlyPlayed = false
     @ObservedObject var audioPlayer: AudioPlayer
     
+    // Dashboard 相關狀態
+    @State private var dashboardSummary: DashboardSummary? = nil
+    @State private var isDashboardLoading = true
+    @State private var showTodayPlayed = false
+    @State private var showClearCacheAlert = false
+    
     let accessToken: String
     let userProfile: SpotifyUser?
     let isLoggedIn: Bool
@@ -124,6 +130,14 @@ struct HomeView: View {
                 if isLoggedIn {
                     ScrollView(showsIndicators: false) {
                         VStack(alignment: .leading, spacing: 20) {
+                            // 🎯 Dashboard 儀表板區域
+                            dashboardSection
+                            
+                            // 分隔線
+                            Divider()
+                                .background(Color.gray.opacity(0.3))
+                                .padding(.vertical, 5)
+                            
                             // 正在播放區域
                             currentlyPlayingSection
                             
@@ -164,6 +178,7 @@ struct HomeView: View {
                 }
             }
             .navigationTitle("tab.home")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     if isLoggedIn {
@@ -227,7 +242,7 @@ struct HomeView: View {
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    // 刷新按鈕
+                    // 刷新按鈕（長按清除快取）
                     Button(action: {
                         withAnimation(.easeInOut(duration: 0.5)) {
                             refreshRotation += 360
@@ -240,6 +255,12 @@ struct HomeView: View {
                             .frame(width: 30, height: 30)
                             .rotationEffect(.degrees(refreshRotation))
                     }
+                    .simultaneousGesture(
+                        LongPressGesture(minimumDuration: 1.0)
+                            .onEnded { _ in
+                                showClearCacheAlert = true
+                            }
+                    )
                 }
             }
         }
@@ -257,6 +278,21 @@ struct HomeView: View {
                 refreshCurrentlyPlaying()
             }
         }
+        .alert("清除 Dashboard 快取", isPresented: $showClearCacheAlert) {
+            Button("取消", role: .cancel) { }
+            Button("清除", role: .destructive) {
+                // 清除快取
+                DashboardMetricsService.shared.clearCache()
+                // 重新載入
+                withAnimation(.easeInOut(duration: 0.5)) {
+                    refreshRotation += 360
+                }
+                loadData()
+                print("🗑️ 已清除 Dashboard 快取並重新載入")
+            }
+        } message: {
+            Text("這將清除今日聆聽時間和本月熱門資料的快取，並重新從 Spotify 載入資料。")
+        }
         .onChange(of: isLoggedIn) { loggedIn in
             loggedIn ? loadData(using: accessToken) : clearData()
         }
@@ -270,6 +306,77 @@ struct HomeView: View {
         }
         .sheet(isPresented: $showAllRecentlyPlayed) {
             RecentlyPlayedView(audioPlayer: audioPlayer, accessToken: accessToken)
+        }
+    }
+    
+    // MARK: - Dashboard Section
+    private var dashboardSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            if isDashboardLoading {
+                DashboardLoadingPlaceholder()
+            } else if let summary = dashboardSummary {
+                // 今日聆聽卡片
+                TodayListeningCard(
+                    minutes: summary.todayListeningMinutes,
+                    trackCount: summary.todayListeningTrackCount,
+                    lastUpdated: summary.lastUpdated,
+                    onTap: {
+                        showTodayPlayed = true
+                    }
+                )
+                .background(
+                    NavigationLink(
+                        destination: TodayPlayedView(
+                            tracks: summary.todayPlayedTracks,
+                            totalMinutes: summary.todayListeningMinutes,
+                            accessToken: accessToken,
+                            audioPlayer: audioPlayer
+                        ),
+                        isActive: $showTodayPlayed
+                    ) {
+                        EmptyView()
+                    }
+                    .opacity(0)
+                )
+                
+                // 本月熱門歌曲
+                if !summary.weeklyTopTracks.isEmpty {
+                    VStack(alignment: .leading, spacing: 15) {
+                        Text(String(localized: "dashboard.monthlyTopTracks"))
+                            .font(.custom("SpotifyMix-Bold", size: 22))
+                            .foregroundColor(.white)
+                        
+                        LazyVStack(spacing: 10) {
+                            ForEach(Array(summary.weeklyTopTracks.prefix(3).enumerated()), id: \.element.id) { index, entry in
+                                NavigationLink(destination: TrackDetailView(trackId: entry.id, accessToken: accessToken, audioPlayer: audioPlayer)) {
+                                    WeeklyTopRowContent(entry: entry, rank: index + 1)
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                            }
+                        }
+                    }
+                }
+                
+                // 本月熱門藝人
+                if !summary.weeklyTopArtists.isEmpty {
+                    VStack(alignment: .leading, spacing: 15) {
+                        Text(String(localized: "dashboard.monthlyTopArtists"))
+                            .font(.custom("SpotifyMix-Bold", size: 22))
+                            .foregroundColor(.white)
+                        
+                        LazyVStack(spacing: 10) {
+                            ForEach(Array(summary.weeklyTopArtists.prefix(3).enumerated()), id: \.element.id) { index, entry in
+                                NavigationLink(destination: ArtistDetailView(artistId: entry.id, artistName: entry.name, accessToken: accessToken, audioPlayer: audioPlayer)) {
+                                    WeeklyTopRowContent(entry: entry, rank: index + 1)
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                            }
+                        }
+                    }
+                }
+            } else {
+                DashboardEmptyState()
+            }
         }
     }
     
@@ -548,12 +655,24 @@ struct HomeView: View {
         let authToken = tokenOverride ?? accessToken
         guard !authToken.isEmpty else {
             isLoading = false
+            isDashboardLoading = false
             return
         }
         
         isLoading = true
+        isDashboardLoading = true
         
         let group = DispatchGroup()
+        
+        // 🎯 獲取 Dashboard 資料
+        group.enter()
+        DashboardMetricsService.shared.fetchDashboardSummary(accessToken: authToken) { summary in
+            DispatchQueue.main.async {
+                self.dashboardSummary = summary
+                self.isDashboardLoading = false
+                group.leave()
+            }
+        }
         
         // 獲取正在播放的歌曲
         group.enter()
@@ -630,7 +749,9 @@ struct HomeView: View {
         savedAlbums = []
         userPlaylists = []
         followedArtists = []
+        dashboardSummary = nil
         isLoading = true
+        isDashboardLoading = true
     }
 }
 
@@ -1218,6 +1339,89 @@ struct ArtistPlaceholder: View {
                 .fill(Color.gray.opacity(0.3))
                 .frame(width: 80, height: 12)
                 .shimmer()
+        }
+    }
+}
+
+// MARK: - WeeklyTopRow Content (用於 NavigationLink)
+struct WeeklyTopRowContent: View {
+    let entry: WeeklyTopEntry
+    let rank: Int
+    
+    var body: some View {
+        HStack(alignment: .center, spacing: 8) {
+            // 排名和變化指示器
+            VStack(spacing: 5) {
+                Rectangle()
+                    .fill(Color.gray)
+                    .frame(width: 12, height: 2)
+                    .cornerRadius(1)
+                
+                Text("#\(rank)")
+                    .foregroundColor(.white)
+                    .font(.custom("SpotifyMix-Bold", size: 22))
+                    .lineLimit(1)
+            }
+            .frame(width: 50, alignment: .center)
+            
+            // 灰色框框內容
+            HStack(spacing: 6) {
+                // 封面圖
+                AsyncImage(url: entry.imageUrl.flatMap { URL(string: $0) }) { phase in
+                    switch phase {
+                    case .empty:
+                        placeholderImage
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    case .failure:
+                        placeholderImage
+                    @unknown default:
+                        placeholderImage
+                    }
+                }
+                .aspectRatio(1, contentMode: .fit)
+                .cornerRadius(entry.artistName == nil ? 3 : 6)
+                .clipped()
+                
+                // 資訊
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(entry.name)
+                        .font(.custom("SpotifyMix-Bold", size: 17))
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                    
+                    if let artistName = entry.artistName {
+                        Text(artistName)
+                            .font(.custom("SpotifyMix-Medium", size: 15))
+                            .foregroundColor(.gray)
+                            .lineLimit(1)
+                    }
+                }
+                
+                Spacer()
+                
+                // 箭頭
+                Image(systemName: "chevron.right")
+                    .foregroundColor(.gray)
+                    .font(.system(size: 14))
+            }
+            .frame(height: 45)
+            .padding(8)
+            .padding(.trailing, 12)
+            .background(Color(red: 0.12, green: 0.12, blue: 0.12))
+            .cornerRadius(10)
+        }
+        .frame(maxWidth: .infinity)
+    }
+    
+    private var placeholderImage: some View {
+        ZStack {
+            Color.gray.opacity(0.3)
+            Image(systemName: entry.artistName == nil ? "person.fill" : "music.note")
+                .foregroundColor(.gray)
+                .font(.system(size: 16))
         }
     }
 }
