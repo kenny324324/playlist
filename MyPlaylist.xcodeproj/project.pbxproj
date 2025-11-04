@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		317121AD2EB9EDF100FD61E2 /* glass_icon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 317121AC2EB9EDF000FD61E2 /* glass_icon.icon */; };
+		317121AE2EB9EDF100FD61E2 /* glass_icon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 317121AC2EB9EDF000FD61E2 /* glass_icon.icon */; };
+		317121AF2EB9EDF100FD61E2 /* glass_icon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 317121AC2EB9EDF000FD61E2 /* glass_icon.icon */; };
 		31F0D3A82CCF243B00104662 /* BackupCode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31F0D3A72CCF243500104662 /* BackupCode.swift */; };
 /* End PBXBuildFile section */
 
@@ -28,6 +31,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		317121AC2EB9EDF000FD61E2 /* glass_icon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = glass_icon.icon; sourceTree = "<group>"; };
 		31F0D34D2CCA412100104662 /* MyPlaylist.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MyPlaylist.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		31F0D35D2CCA412300104662 /* MyPlaylistTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MyPlaylistTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		31F0D3672CCA412300104662 /* MyPlaylistUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MyPlaylistUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -296,6 +300,7 @@
 				31F0D3602CCA412300104662 /* MyPlaylistTests */,
 				31F0D36A2CCA412300104662 /* MyPlaylistUITests */,
 				31B2EF452EB1B38C0091004A /* 2024-spotify-full-logo */,
+				317121AC2EB9EDF000FD61E2 /* glass_icon.icon */,
 				31B2EF602EB1B38C0091004A /* 2024-spotify-logo-icon */,
 				31F0D34E2CCA412100104662 /* Products */,
 			);
@@ -433,6 +438,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				317121AD2EB9EDF100FD61E2 /* glass_icon.icon in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -440,6 +446,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				317121AE2EB9EDF100FD61E2 /* glass_icon.icon in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -447,6 +454,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				317121AF2EB9EDF100FD61E2 /* glass_icon.icon in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -616,7 +624,7 @@
 		31F0D3722CCA412300104662 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = glass_icon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_STYLE = Automatic;
@@ -650,7 +658,7 @@
 		31F0D3732CCA412300104662 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = glass_icon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_STYLE = Automatic;
