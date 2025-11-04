@@ -203,6 +203,7 @@ struct HomeView: View {
                             .foregroundColor(.gray)
                         Spacer()
                     }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
             .background(Color.spotifyText.ignoresSafeArea())
@@ -1430,6 +1431,7 @@ struct WeeklyTopRowContent: View {
                     .foregroundColor(.gray)
                     .font(.system(size: 14))
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .frame(height: 45)
             .padding(8)
             .padding(.trailing, 12)

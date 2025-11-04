@@ -16,12 +16,19 @@ struct SettingsView: View {
     @AppStorage("updateFrequency") private var updateFrequency: Int = 5
     @AppStorage("defaultTimeRange") private var defaultTimeRange: String = "short_term"
     
+    // 個人化設定
+    @StateObject private var themeManager = ThemeManager.shared
+    @AppStorage("hapticFeedbackEnabled") private var hapticFeedbackEnabled: Bool = true
+    
     var body: some View {
         NavigationView {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 20) {
                     // 一般設定
                     generalSettingsSection
+                    
+                    // 個人化
+                    personalizationSection
                     
                     // 儲存與快取
                     storageSection
@@ -87,7 +94,7 @@ struct SettingsView: View {
                     HStack(spacing: 15) {
                         Image(systemName: "globe")
                             .font(.system(size: 20))
-                            .foregroundColor(.spotifyGreen)
+                            .foregroundColor(themeManager.themeColor)
                             .frame(width: 30)
                         
                         Text(LocalizedStringKey("settings.language"))
@@ -120,7 +127,7 @@ struct SettingsView: View {
                             updateFrequency = freq
                         }) {
                             HStack {
-                                Text("\(freq) 秒")
+                                Text(String(format: String(localized: "settings.seconds.format"), freq))
                                 if updateFrequency == freq {
                                     Image(systemName: "checkmark")
                                 }
@@ -131,7 +138,7 @@ struct SettingsView: View {
                     HStack(spacing: 15) {
                         Image(systemName: "arrow.clockwise")
                             .font(.system(size: 20))
-                            .foregroundColor(.spotifyGreen)
+                            .foregroundColor(themeManager.themeColor)
                             .frame(width: 30)
                         
                         Text(LocalizedStringKey("settings.updateFrequency"))
@@ -140,7 +147,7 @@ struct SettingsView: View {
                         
                         Spacer()
                         
-                        Text("\(updateFrequency) 秒")
+                        Text(String(format: String(localized: "settings.seconds.format"), updateFrequency))
                             .font(.custom("SpotifyMix-Medium", size: 14))
                             .foregroundColor(.white)
                             .padding(.horizontal, 12)
@@ -174,7 +181,7 @@ struct SettingsView: View {
                     HStack(spacing: 15) {
                         Image(systemName: "chart.bar.fill")
                             .font(.system(size: 20))
-                            .foregroundColor(.spotifyGreen)
+                            .foregroundColor(themeManager.themeColor)
                             .frame(width: 30)
                         
                         Text(LocalizedStringKey("settings.defaultTimeRange"))
@@ -200,6 +207,120 @@ struct SettingsView: View {
         }
     }
     
+    // MARK: - 個人化
+    private var personalizationSection: some View {
+        VStack(alignment: .leading, spacing: 15) {
+            Text("settings.section.personalization")
+                .font(.custom("SpotifyMix-Bold", size: 22))
+                .foregroundColor(.white)
+            
+            VStack(spacing: 0) {
+                // 主題色彩選擇
+                VStack(spacing: 0) {
+                    HStack(spacing: 15) {
+                        Image(systemName: "paintpalette.fill")
+                            .font(.system(size: 20))
+                            .foregroundColor(themeManager.themeColor)
+                            .frame(width: 30)
+                        
+                        Text(LocalizedStringKey("settings.themeColor"))
+                            .font(.custom("SpotifyMix-Medium", size: 16))
+                            .foregroundColor(.white)
+                        
+                        Spacer()
+                        
+                        // 色系選擇下拉選單（膠囊狀）
+                        Menu {
+                            ForEach(ColorTone.allCases) { tone in
+                                Button(action: {
+                                    HapticManager.shared.light()
+                                    withAnimation(.spring(response: 0.3)) {
+                                        themeManager.setTone(tone)
+                                    }
+                                }) {
+                                    HStack {
+                                        Text(tone.displayName)
+                                        if themeManager.currentTone == tone {
+                                            Image(systemName: "checkmark")
+                                        }
+                                    }
+                                }
+                            }
+                        } label: {
+                            Text(themeManager.currentTone.displayName)
+                                .font(.custom("SpotifyMix-Medium", size: 14))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(Color.gray.opacity(0.3))
+                                .clipShape(Capsule())
+                        }
+                    }
+                    .padding()
+                    
+                    // 顏色選擇網格
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 60))], spacing: 15) {
+                        ForEach(ThemeColor.allCases) { theme in
+                            Button(action: {
+                                HapticManager.shared.light()
+                                withAnimation(.spring(response: 0.3)) {
+                                    themeManager.setTheme(theme)
+                                }
+                            }) {
+                                ZStack {
+                                    Circle()
+                                        .fill(theme.color(for: themeManager.currentTone))
+                                        .frame(width: 50, height: 50)
+                                    
+                                    if themeManager.currentTheme == theme {
+                                        Circle()
+                                            .stroke(Color.white, lineWidth: 3)
+                                            .frame(width: 50, height: 50)
+                                        
+                                        Image(systemName: "checkmark")
+                                            .font(.system(size: 18, weight: .bold))
+                                            .foregroundColor(.white)
+                                    }
+                                }
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                        }
+                    }
+                    .padding(.horizontal)
+                    .padding(.bottom)
+                }
+                
+                Divider()
+                    .background(Color.gray.opacity(0.3))
+                    .padding(.leading, 50)
+                
+                // 觸覺回饋開關
+                Toggle(isOn: $hapticFeedbackEnabled) {
+                    HStack(spacing: 15) {
+                        Image(systemName: "hand.tap.fill")
+                            .font(.system(size: 20))
+                            .foregroundColor(themeManager.themeColor)
+                            .frame(width: 30)
+                        
+                        Text(LocalizedStringKey("settings.hapticFeedback"))
+                            .font(.custom("SpotifyMix-Medium", size: 16))
+                            .foregroundColor(.white)
+                    }
+                }
+                .tint(themeManager.themeColor)
+                .padding()
+                .onChange(of: hapticFeedbackEnabled) { newValue in
+                    HapticManager.shared.setEnabled(newValue)
+                    if newValue {
+                        HapticManager.shared.light()
+                    }
+                }
+            }
+            .background(Color.white.opacity(0.1))
+            .cornerRadius(15)
+        }
+    }
+    
     // MARK: - 儲存與快取
     private var storageSection: some View {
         VStack(alignment: .leading, spacing: 15) {
@@ -213,7 +334,8 @@ struct SettingsView: View {
                     icon: "internaldrive",
                     title: "settings.cacheSize",
                     value: cacheSize,
-                    showChevron: false
+                    showChevron: false,
+                    themeColor: themeManager.themeColor
                 )
                 
                 Divider()
@@ -229,7 +351,8 @@ struct SettingsView: View {
                         title: "settings.clearImageCache",
                         value: "",
                         showChevron: false,
-                        isDestructive: false
+                        isDestructive: false,
+                        themeColor: themeManager.themeColor
                     )
                 }
                 .buttonStyle(PlainButtonStyle())
@@ -247,7 +370,8 @@ struct SettingsView: View {
                         title: "settings.clearDataCache",
                         value: "",
                         showChevron: false,
-                        isDestructive: false
+                        isDestructive: false,
+                        themeColor: themeManager.themeColor
                     )
                 }
                 .buttonStyle(PlainButtonStyle())
@@ -287,7 +411,8 @@ struct SettingsView: View {
                     title: "settings.authStatus",
                     value: isLoggedIn ? "settings.authorized" : "settings.notAuthorized",
                     showChevron: false,
-                    valueColor: isLoggedIn ? .spotifyGreen : .red
+                    valueColor: isLoggedIn ? themeManager.themeColor : .red,
+                    themeColor: themeManager.themeColor
                 )
                 
                 if isLoggedIn {
@@ -303,7 +428,8 @@ struct SettingsView: View {
                             icon: "arrow.clockwise.circle",
                             title: "settings.reauthorize",
                             value: "",
-                            showChevron: false
+                            showChevron: false,
+                            themeColor: themeManager.themeColor
                         )
                     }
                     .buttonStyle(PlainButtonStyle())
@@ -365,7 +491,8 @@ struct SettingsView: View {
                     icon: "person.fill",
                     title: "settings.developer",
                     value: "Kenny",
-                    showChevron: false
+                    showChevron: false,
+                    themeColor: themeManager.themeColor
                 )
             }
             .background(Color.white.opacity(0.1))
@@ -511,12 +638,13 @@ struct SettingRow: View {
     let showChevron: Bool
     var isDestructive: Bool = false
     var valueColor: Color = .gray
+    var themeColor: Color = .green
     
     var body: some View {
         HStack(spacing: 15) {
             Image(systemName: icon)
                 .font(.system(size: 20))
-                .foregroundColor(isDestructive ? .red : .spotifyGreen)
+                .foregroundColor(isDestructive ? .red : themeColor)
                 .frame(width: 30)
             
             Text(LocalizedStringKey(title))

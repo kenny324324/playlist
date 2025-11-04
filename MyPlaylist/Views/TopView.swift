@@ -109,6 +109,7 @@ struct TopView: View {
                         .foregroundColor(.gray)
                     Spacer()
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if isLoading {
                 // 載入中：顯示 15 個佔位符，禁止捲動
                 ScrollView(showsIndicators: false) {

@@ -1,12 +1,8 @@
 import SwiftUI
 import AuthenticationServices
 
-extension Color {
-    static let spotifyGreen = Color(red: 0.11, green: 0.84, blue: 0.38)
-    static let spotifyText = Color(red: 0.07, green: 0.07, blue: 0.07)
-}
-
 struct ContentView: View {
+    @StateObject private var themeManager = ThemeManager.shared
     @State private var accessToken: String? = nil
     @State private var isLoggedIn = false  // 控制登入狀態
     @State private var tracks: [Track] = []
