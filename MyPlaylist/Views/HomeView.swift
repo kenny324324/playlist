@@ -18,32 +18,56 @@ struct HomeFadingText: View {
     }
     
     var body: some View {
-        ZStack(alignment: .leading) {
-            // 原始文字
-            Text(text)
-                .font(font)
-                .foregroundColor(foregroundColor)
-                .lineLimit(lineLimit)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            
-            // 右側漸層遮罩
-            HStack {
-                Spacer()
-                LinearGradient(
-                    gradient: Gradient(stops: [
-                        .init(color: backgroundColor.opacity(0), location: 0.0),
-                        .init(color: backgroundColor.opacity(0.3), location: 0.3),
-                        .init(color: backgroundColor.opacity(0.7), location: 0.7),
-                        .init(color: backgroundColor, location: 1.0)
-                    ]),
-                    startPoint: .leading,
-                    endPoint: .trailing
+        GeometryReader { geometry in
+            text(withWidth: geometry.size.width)
+                .mask(
+                    fadeGradient(for: geometry.size.width)
+                        .frame(width: geometry.size.width)
                 )
-                .frame(width: 25)
-            }
-            .allowsHitTesting(false)
         }
         .frame(height: lineLimit == 1 ? 20 : CGFloat(20 * lineLimit))
+    }
+    
+    @ViewBuilder
+    private func text(withWidth width: CGFloat) -> some View {
+        let base = Text(text)
+            .font(font)
+            .foregroundColor(foregroundColor)
+            .lineLimit(lineLimit)
+            .multilineTextAlignment(.leading)
+            .layoutPriority(1)
+        
+        if lineLimit == 1 {
+            base
+                .fixedSize(horizontal: true, vertical: false)
+                .frame(width: width, alignment: .leading)
+        } else {
+            base
+                .frame(width: width, alignment: .leading)
+        }
+    }
+    
+    private func fadeGradient(for width: CGFloat) -> LinearGradient {
+        guard width > 0 else {
+            return LinearGradient(
+                gradient: Gradient(colors: [.white]),
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+        }
+        
+        let fadeWidth = min(width * 0.35, 60)
+        let fadeStart = max(0, (width - fadeWidth) / width)
+        
+        return LinearGradient(
+            gradient: Gradient(stops: [
+                .init(color: .white, location: 0),
+                .init(color: .white, location: fadeStart),
+                .init(color: .clear, location: 1)
+            ]),
+            startPoint: .leading,
+            endPoint: .trailing
+        )
     }
 }
 
@@ -99,8 +123,11 @@ extension View {
 
 struct HomeView: View {
     @Environment(\.scenePhase) private var scenePhase
-    private let currentlyPlayingTimer = Timer.publish(every: 12, on: .main, in: .common).autoconnect()
+    @AppStorage("updateFrequency") private var updateFrequency: Int = 5
+    private let currentlyPlayingTimer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+    private let dashboardAutoRefreshTimer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
     @State private var currentlyPlaying: CurrentlyPlayingTrack? = nil
+    @State private var isSpotifyPlaying: Bool = false
     @State private var recentlyPlayed: [RecentlyPlayedTrack] = []
     @State private var savedTracks: [SavedTrackItem] = []
     @State private var savedAlbums: [SavedAlbumItem] = []
@@ -110,6 +137,7 @@ struct HomeView: View {
     @State private var showUserProfile = false
     @State private var refreshRotation: Double = 0
     @State private var showAllRecentlyPlayed = false
+    @State private var lastUpdateTime: Date = Date()
     @ObservedObject var audioPlayer: AudioPlayer
     
     // Dashboard 相關狀態
@@ -177,6 +205,7 @@ struct HomeView: View {
                     }
                 }
             }
+            .background(Color.spotifyText.ignoresSafeArea())
             .navigationTitle("tab.home")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -271,7 +300,19 @@ struct HomeView: View {
         }
         .onReceive(currentlyPlayingTimer) { _ in
             guard scenePhase == .active && isLoggedIn else { return }
-            refreshCurrentlyPlaying()
+            
+            // 檢查是否達到更新頻率
+            let now = Date()
+            let timeInterval = now.timeIntervalSince(lastUpdateTime)
+            
+            if timeInterval >= Double(updateFrequency) {
+                lastUpdateTime = now
+                refreshCurrentlyPlaying()
+            }
+        }
+        .onReceive(dashboardAutoRefreshTimer) { _ in
+            guard scenePhase == .active && isLoggedIn else { return }
+            loadData(showLoading: false)
         }
         .onChange(of: scenePhase) { newPhase in
             if newPhase == .active && isLoggedIn {
@@ -651,16 +692,20 @@ struct HomeView: View {
         }
     }
     
-    private func loadData(using tokenOverride: String? = nil) {
+    private func loadData(using tokenOverride: String? = nil, showLoading: Bool = true) {
         let authToken = tokenOverride ?? accessToken
         guard !authToken.isEmpty else {
-            isLoading = false
-            isDashboardLoading = false
+            if showLoading {
+                isLoading = false
+                isDashboardLoading = false
+            }
             return
         }
         
-        isLoading = true
-        isDashboardLoading = true
+        if showLoading {
+            isLoading = true
+            isDashboardLoading = true
+        }
         
         let group = DispatchGroup()
         
@@ -676,9 +721,11 @@ struct HomeView: View {
         
         // 獲取正在播放的歌曲
         group.enter()
-        SpotifyAPIService.fetchCurrentlyPlaying(accessToken: authToken) { track in
+        SpotifyAPIService.fetchCurrentlyPlaying(accessToken: authToken) { response in
             DispatchQueue.main.async {
-                self.currentlyPlaying = track
+                let isPlaying = response?.is_playing ?? false
+                self.isSpotifyPlaying = isPlaying
+                self.currentlyPlaying = isPlaying ? response?.item : nil
                 group.leave()
             }
         }
@@ -729,21 +776,26 @@ struct HomeView: View {
         }
         
         group.notify(queue: .main) {
-            self.isLoading = false
+            if showLoading {
+                self.isLoading = false
+            }
         }
     }
     
     private func refreshCurrentlyPlaying() {
         guard !accessToken.isEmpty else { return }
-        SpotifyAPIService.fetchCurrentlyPlaying(accessToken: accessToken) { track in
+        SpotifyAPIService.fetchCurrentlyPlaying(accessToken: accessToken) { response in
             DispatchQueue.main.async {
-                self.currentlyPlaying = track
+                let isPlaying = response?.is_playing ?? false
+                self.isSpotifyPlaying = isPlaying
+                self.currentlyPlaying = isPlaying ? response?.item : nil
             }
         }
     }
     
     private func clearData() {
         currentlyPlaying = nil
+        isSpotifyPlaying = false
         recentlyPlayed = []
         savedTracks = []
         savedAlbums = []
@@ -1019,39 +1071,6 @@ struct RecentlyPlayedPlaceholder: View {
         .background(Color(red: 0.12, green: 0.12, blue: 0.12))
         .cornerRadius(10)
         .frame(maxWidth: .infinity)
-    }
-}
-
-// MARK: - Shimmer Effect
-extension View {
-    func shimmer() -> some View {
-        self.modifier(ShimmerModifier())
-    }
-}
-
-struct ShimmerModifier: ViewModifier {
-    @State private var phase: CGFloat = 0
-    
-    func body(content: Content) -> some View {
-        content
-            .overlay(
-                LinearGradient(
-                    gradient: Gradient(colors: [
-                        Color.white.opacity(0),
-                        Color.white.opacity(0.3),
-                        Color.white.opacity(0)
-                    ]),
-                    startPoint: .leading,
-                    endPoint: .trailing
-                )
-                .offset(x: phase)
-                .mask(content)
-            )
-            .onAppear {
-                withAnimation(Animation.linear(duration: 1.5).repeatForever(autoreverses: false)) {
-                    phase = 300
-                }
-            }
     }
 }
 
@@ -1387,16 +1406,20 @@ struct WeeklyTopRowContent: View {
                 
                 // 資訊
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(entry.name)
-                        .font(.custom("SpotifyMix-Bold", size: 17))
-                        .foregroundColor(.white)
-                        .lineLimit(1)
+                    HomeFadingText(
+                        text: entry.name,
+                        font: .custom("SpotifyMix-Bold", size: 17),
+                        foregroundColor: .white,
+                        backgroundColor: Color(red: 0.12, green: 0.12, blue: 0.12)
+                    )
                     
                     if let artistName = entry.artistName {
-                        Text(artistName)
-                            .font(.custom("SpotifyMix-Medium", size: 15))
-                            .foregroundColor(.gray)
-                            .lineLimit(1)
+                        HomeFadingText(
+                            text: artistName,
+                            font: .custom("SpotifyMix-Medium", size: 15),
+                            foregroundColor: .gray,
+                            backgroundColor: Color(red: 0.12, green: 0.12, blue: 0.12)
+                        )
                     }
                 }
                 

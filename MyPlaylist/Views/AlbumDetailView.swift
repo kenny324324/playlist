@@ -11,34 +11,37 @@ struct AlbumDetailView: View {
     @State private var isLoading = true
     
     var body: some View {
-        ScrollView(showsIndicators: false) {
-            VStack(spacing: 0) {
-                if isLoading {
-                    ProgressView()
-                        .padding(.top, 100)
-                } else if let album = albumDetail {
-                    // 專輯封面
-                    albumCoverSection(album: album)
-                    
-                    // 專輯資訊
-                    albumInfoSection(album: album)
-                    
-                    // 專輯曲目
-                    if !album.tracks.items.isEmpty {
-                        albumTracksSection(album: album)
+        ZStack {
+            Color.spotifyText.ignoresSafeArea()
+            
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 0) {
+                    if isLoading {
+                        albumDetailPlaceholder()
+                    } else if let album = albumDetail {
+                        // 專輯封面
+                        albumCoverSection(album: album)
+                        
+                        // 專輯資訊
+                        albumInfoSection(album: album)
+                        
+                        // 專輯曲目
+                        if !album.tracks.items.isEmpty {
+                            albumTracksSection(album: album)
+                        }
+                        
+                        // 藝人資訊
+                        if !artistDetails.isEmpty {
+                            artistInfoSection()
+                        }
+                        
+                        // 在 Spotify 中打開
+                        openInSpotifyButton(album: album)
+                    } else {
+                        Text("detail.cannotLoad.album")
+                            .foregroundColor(.gray)
+                            .padding(.top, 100)
                     }
-                    
-                    // 藝人資訊
-                    if !artistDetails.isEmpty {
-                        artistInfoSection()
-                    }
-                    
-                    // 在 Spotify 中打開
-                    openInSpotifyButton(album: album)
-                } else {
-                    Text("detail.cannotLoad.album")
-                        .foregroundColor(.gray)
-                        .padding(.top, 100)
                 }
             }
         }
@@ -57,19 +60,32 @@ struct AlbumDetailView: View {
         GeometryReader { geometry in
             if let imageUrl = album.images.first?.url,
                let url = URL(string: imageUrl) {
-                AsyncImage(url: url) { image in
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                } placeholder: {
-                    Rectangle()
-                        .fill(Color.gray.opacity(0.3))
-                        .overlay(
-                            ProgressView()
-                        )
+                ZStack(alignment: .top) {
+                    AsyncImage(url: url) { image in
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    } placeholder: {
+                        Rectangle()
+                            .fill(Color.gray.opacity(0.3))
+                            .overlay(
+                                ProgressView()
+                            )
+                    }
+                    .frame(width: geometry.size.width, height: geometry.size.width)
+                    .clipped()
+                    
+                    // 頂部漸層遮罩（讓導航欄按鈕更清晰）
+                    LinearGradient(
+                        colors: [
+                            Color.spotifyText.opacity(0.7),
+                            Color.spotifyText.opacity(0.01)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(height: geometry.safeAreaInsets.top + 120)
                 }
-                .frame(width: geometry.size.width, height: geometry.size.width)
-                .clipped()
             }
         }
         .frame(height: UIScreen.main.bounds.width)
@@ -390,5 +406,131 @@ struct AlbumDetailView: View {
         }
         
         return dateString
+    }
+    
+    // MARK: - Placeholder
+    private func albumDetailPlaceholder() -> some View {
+        VStack(spacing: 0) {
+            // 專輯封面佔位符
+            Rectangle()
+                .fill(Color.gray.opacity(0.3))
+                .frame(height: UIScreen.main.bounds.width)
+                .shimmer()
+            
+            VStack(alignment: .leading, spacing: 24) {
+                // 專輯名稱佔位符
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.gray.opacity(0.3))
+                    .frame(height: 40)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 20)
+                    .shimmer()
+                
+                // 資訊卡片佔位符
+                VStack(spacing: 12) {
+                    HStack(spacing: 12) {
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.gray.opacity(0.3))
+                            .frame(height: 70)
+                            .shimmer()
+                        
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.gray.opacity(0.3))
+                            .frame(height: 70)
+                            .shimmer()
+                    }
+                    
+                    HStack(spacing: 12) {
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.gray.opacity(0.3))
+                            .frame(height: 70)
+                            .shimmer()
+                        
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.gray.opacity(0.3))
+                            .frame(height: 70)
+                            .shimmer()
+                    }
+                }
+                .padding(.horizontal, 20)
+                
+                // 曲目列表佔位符
+                VStack(alignment: .leading, spacing: 16) {
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(Color.gray.opacity(0.3))
+                        .frame(width: 120, height: 24)
+                        .shimmer()
+                    
+                    ForEach(0..<5, id: \.self) { _ in
+                        HStack(spacing: 12) {
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color.gray.opacity(0.3))
+                                .frame(width: 50, height: 50)
+                                .shimmer()
+                            
+                            VStack(alignment: .leading, spacing: 6) {
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(Color.gray.opacity(0.3))
+                                    .frame(width: 200, height: 18)
+                                    .shimmer()
+                                
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(Color.gray.opacity(0.3))
+                                    .frame(width: 150, height: 14)
+                                    .shimmer()
+                            }
+                            
+                            Spacer()
+                            
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(Color.gray.opacity(0.3))
+                                .frame(width: 40, height: 14)
+                                .shimmer()
+                        }
+                        .padding(.vertical, 8)
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 10)
+                
+                // 藝人資訊佔位符
+                VStack(alignment: .leading, spacing: 16) {
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(Color.gray.opacity(0.3))
+                        .frame(width: 80, height: 24)
+                        .shimmer()
+                    
+                    ForEach(0..<2, id: \.self) { _ in
+                        HStack(spacing: 12) {
+                            Circle()
+                                .fill(Color.gray.opacity(0.3))
+                                .frame(width: 50, height: 50)
+                                .shimmer()
+                            
+                            VStack(alignment: .leading, spacing: 6) {
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(Color.gray.opacity(0.3))
+                                    .frame(width: 150, height: 20)
+                                    .shimmer()
+                                
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(Color.gray.opacity(0.3))
+                                    .frame(width: 100, height: 16)
+                                    .shimmer()
+                            }
+                            
+                            Spacer()
+                        }
+                        .padding(.vertical, 8)
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 10)
+                
+                Spacer()
+                    .frame(height: 100)
+            }
+        }
     }
 }

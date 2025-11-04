@@ -30,7 +30,7 @@ struct TodayListeningCard: View {
                             .foregroundColor(.white)
                             .contentTransition(.numericText())
                             .animation(.easeOut(duration: 1.2), value: displayedTrackCount)
-                        Text("首歌曲")
+                        Text("dashboard.tracksCount")
                             .font(.custom("SpotifyMix-Medium", size: 13))
                             .foregroundColor(.gray)
                             .animation(nil, value: displayedTrackCount)

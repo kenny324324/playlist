@@ -146,7 +146,7 @@ class SpotifyAPIService {
     }
 
     // 新增：獲取目前正在播放的歌曲
-    static func fetchCurrentlyPlaying(accessToken: String, completion: @escaping (CurrentlyPlayingTrack?) -> Void) {
+    static func fetchCurrentlyPlaying(accessToken: String, completion: @escaping (CurrentlyPlayingResponse?) -> Void) {
         let url = URL(string: "https://api.spotify.com/v1/me/player/currently-playing")!
         var request = URLRequest(url: url)
         request.addValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
@@ -178,7 +178,7 @@ class SpotifyAPIService {
 
             do {
                 let currentlyPlaying = try JSONDecoder().decode(CurrentlyPlayingResponse.self, from: data)
-                completion(currentlyPlaying.item)
+                completion(currentlyPlaying)
             } catch {
                 print("Error decoding currently playing: \(error.localizedDescription)")
                 completion(nil)

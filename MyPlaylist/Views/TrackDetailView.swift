@@ -13,13 +13,12 @@ struct TrackDetailView: View {
     
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            Color.spotifyText.ignoresSafeArea()
             
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 0) {
                     if isLoading {
-                        ProgressView()
-                            .padding(.top, 100)
+                        trackDetailPlaceholder()
                     } else if let track = trackDetail {
                         // 專輯封面
                         albumArtSection(track: track)
@@ -77,8 +76,8 @@ struct TrackDetailView: View {
 
                     LinearGradient(
                         colors: [
-                            Color.black.opacity(0.45),
-                            Color.black.opacity(0.01)
+                            Color.spotifyText.opacity(0.7),
+                            Color.spotifyText.opacity(0.01)
                         ],
                         startPoint: .top,
                         endPoint: .bottom
@@ -464,6 +463,119 @@ struct TrackDetailView: View {
         }
         
         return dateString
+    }
+    
+    // MARK: - Placeholder
+    private func trackDetailPlaceholder() -> some View {
+        VStack(spacing: 0) {
+            // 專輯封面佔位符
+            Rectangle()
+                .fill(Color.gray.opacity(0.3))
+                .frame(height: UIScreen.main.bounds.width)
+                .shimmer()
+            
+            VStack(alignment: .leading, spacing: 24) {
+                // 歌曲名稱佔位符
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.gray.opacity(0.3))
+                    .frame(height: 40)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 20)
+                    .shimmer()
+                
+                // 資訊卡片佔位符
+                VStack(spacing: 12) {
+                    HStack(spacing: 12) {
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.gray.opacity(0.3))
+                            .frame(height: 70)
+                            .shimmer()
+                        
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.gray.opacity(0.3))
+                            .frame(height: 70)
+                            .shimmer()
+                    }
+                    
+                    HStack(spacing: 12) {
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.gray.opacity(0.3))
+                            .frame(height: 70)
+                            .shimmer()
+                        
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.gray.opacity(0.3))
+                            .frame(height: 70)
+                            .shimmer()
+                    }
+                }
+                .padding(.horizontal, 20)
+                
+                // 藝人資訊佔位符
+                VStack(alignment: .leading, spacing: 16) {
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(Color.gray.opacity(0.3))
+                        .frame(width: 120, height: 24)
+                        .shimmer()
+                    
+                    ForEach(0..<2, id: \.self) { _ in
+                        HStack(spacing: 12) {
+                            Circle()
+                                .fill(Color.gray.opacity(0.3))
+                                .frame(width: 50, height: 50)
+                                .shimmer()
+                            
+                            VStack(alignment: .leading, spacing: 6) {
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(Color.gray.opacity(0.3))
+                                    .frame(width: 150, height: 20)
+                                    .shimmer()
+                                
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(Color.gray.opacity(0.3))
+                                    .frame(width: 100, height: 16)
+                                    .shimmer()
+                            }
+                            
+                            Spacer()
+                        }
+                        .padding(.vertical, 8)
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 10)
+                
+                // 音訊特徵佔位符
+                VStack(alignment: .leading, spacing: 16) {
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(Color.gray.opacity(0.3))
+                        .frame(width: 120, height: 24)
+                        .shimmer()
+                    
+                    VStack(spacing: 12) {
+                        ForEach(0..<6, id: \.self) { _ in
+                            VStack(alignment: .leading, spacing: 8) {
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(Color.gray.opacity(0.3))
+                                    .frame(width: 100, height: 16)
+                                    .shimmer()
+                                
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(Color.gray.opacity(0.3))
+                                    .frame(height: 8)
+                                    .shimmer()
+                            }
+                        }
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 10)
+                
+                Spacer()
+                    .frame(height: 100)
+            }
+        }
     }
 }
 

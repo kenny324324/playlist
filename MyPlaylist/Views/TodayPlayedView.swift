@@ -2,11 +2,21 @@ import SwiftUI
 
 // MARK: - 今日播放記錄頁面
 struct TodayPlayedView: View {
-    let tracks: [TodayPlayedTrack]
-    let totalMinutes: Int
     let accessToken: String
     @ObservedObject var audioPlayer: AudioPlayer
     @Environment(\.dismiss) var dismiss
+    
+    @State private var tracks: [TodayPlayedTrack]
+    @State private var totalMinutes: Int
+    @State private var isRefreshing = false
+    @State private var refreshRotation: Double = 0
+    
+    init(tracks: [TodayPlayedTrack], totalMinutes: Int, accessToken: String, audioPlayer: AudioPlayer) {
+        self.accessToken = accessToken
+        self._audioPlayer = ObservedObject(initialValue: audioPlayer)
+        _tracks = State(initialValue: tracks)
+        _totalMinutes = State(initialValue: totalMinutes)
+    }
     
     var body: some View {
         ScrollView {
@@ -24,29 +34,65 @@ struct TodayPlayedView: View {
             .padding(.horizontal, 20)
             .padding(.vertical, 16)
         }
-        .background(Color.black.ignoresSafeArea())
+        .background(Color.spotifyText.ignoresSafeArea())
         .navigationTitle(todayDateString)
         .navigationBarTitleDisplayMode(.large)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button(action: {
+                    guard !isRefreshing else { return }
+                    withAnimation(.easeInOut(duration: 0.5)) {
+                        refreshRotation += 360
+                    }
+                    refresh()
+                }) {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(.white)
+                        .rotationEffect(.degrees(refreshRotation))
+                }
+                .disabled(isRefreshing)
+            }
+        }
+        .onAppear {
+            if tracks.isEmpty {
+                refresh()
+            }
+        }
+    }
+    
+    private func refresh() {
+        guard !isRefreshing else { return }
+        isRefreshing = true
+        DashboardMetricsService.shared.fetchTodayListeningMinutes(accessToken: accessToken) { minutes, _, tracks in
+            DispatchQueue.main.async {
+                self.totalMinutes = minutes
+                self.tracks = tracks
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    self.isRefreshing = false
+                }
+            }
+        }
     }
     
     // MARK: - 頂部統計
     private var statsHeader: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("今天播放歌曲")
+            Text("todayPlayed.title")
                 .font(.custom("SpotifyMix-Bold", size: 24))
                 .foregroundColor(.white)
             
             HStack(spacing: 24) {
                 // 總時長
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("總時長")
+                    Text("todayPlayed.totalDuration")
                         .font(.custom("SpotifyMix-Medium", size: 13))
                         .foregroundColor(.gray)
                     HStack(alignment: .firstTextBaseline, spacing: 4) {
                         Text("\(totalMinutes)")
                             .font(.custom("SpotifyMix-Bold", size: 28))
                             .foregroundColor(.spotifyGreen)
-                        Text("分鐘")
+                        Text("todayPlayed.minutes")
                             .font(.custom("SpotifyMix-Medium", size: 14))
                             .foregroundColor(.gray)
                     }
@@ -54,14 +100,14 @@ struct TodayPlayedView: View {
                 
                 // 歌曲數量
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("歌曲數量")
+                    Text("todayPlayed.trackCount")
                         .font(.custom("SpotifyMix-Medium", size: 13))
                         .foregroundColor(.gray)
                     HStack(alignment: .firstTextBaseline, spacing: 4) {
                         Text("\(tracks.count)")
                             .font(.custom("SpotifyMix-Bold", size: 28))
                             .foregroundColor(.spotifyGreen)
-                        Text("首")
+                        Text("todayPlayed.tracks")
                             .font(.custom("SpotifyMix-Medium", size: 14))
                             .foregroundColor(.gray)
                     }
@@ -90,7 +136,7 @@ struct TodayPlayedView: View {
     // MARK: - 歌曲列表
     private var tracksList: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("播放記錄")
+            Text("todayPlayed.playbackHistory")
                 .font(.custom("SpotifyMix-Bold", size: 18))
                 .foregroundColor(.white)
             
@@ -111,7 +157,7 @@ struct TodayPlayedView: View {
             Image(systemName: "music.note.list")
                 .font(.system(size: 60))
                 .foregroundColor(.gray)
-            Text("今天還沒有播放記錄")
+            Text("todayPlayed.empty")
                 .font(.custom("SpotifyMix-Medium", size: 18))
                 .foregroundColor(.gray)
         }
@@ -122,8 +168,8 @@ struct TodayPlayedView: View {
     // MARK: - 日期字串
     private var todayDateString: String {
         let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy 年 M 月 d 日"
-        formatter.locale = Locale(identifier: "zh_TW")
+        formatter.dateStyle = .long
+        formatter.timeStyle = .none
         return formatter.string(from: Date())
     }
 }
@@ -164,25 +210,19 @@ struct TodayPlayedRow: View {
             
             // 歌曲信息
             VStack(alignment: .leading, spacing: 4) {
-                Text(track.name)
-                    .font(.custom("SpotifyMix-Medium", size: 16))
-                    .foregroundColor(.white)
-                    .lineLimit(1)
+                HomeFadingText(
+                    text: track.name,
+                    font: .custom("SpotifyMix-Medium", size: 16),
+                    foregroundColor: .white,
+                    backgroundColor: Color(red: 0.12, green: 0.12, blue: 0.12)
+                )
                 
-                HStack(spacing: 0) {
-                    Text(track.artistName)
-                        .font(.custom("SpotifyMix-Medium", size: 14))
-                        .foregroundColor(.gray)
-                        .lineLimit(1)
-                    
-                    Text(" · ")
-                        .font(.custom("SpotifyMix-Medium", size: 14))
-                        .foregroundColor(.gray)
-                    
-                    Text(track.durationFormatted)
-                        .font(.custom("SpotifyMix-Medium", size: 14))
-                        .foregroundColor(.gray)
-                }
+                HomeFadingText(
+                    text: "\(track.artistName) · \(track.durationFormatted)",
+                    font: .custom("SpotifyMix-Medium", size: 14),
+                    foregroundColor: .gray,
+                    backgroundColor: Color(red: 0.12, green: 0.12, blue: 0.12)
+                )
             }
             
             Spacer()
@@ -200,4 +240,3 @@ struct TodayPlayedRow: View {
         .frame(maxWidth: .infinity)
     }
 }
-

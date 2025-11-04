@@ -1,88 +1,558 @@
 import SwiftUI
 
 struct SettingsView: View {
+    let userProfile: SpotifyUser?
+    let accessToken: String
+    let isLoggedIn: Bool
+    let logout: () -> Void
+    
+    @State private var showUserProfile = false
+    @State private var showClearImageCacheAlert = false
+    @State private var showClearDataCacheAlert = false
+    @State private var showReauthorizeAlert = false
+    @State private var cacheSize: String = "計算中..."
+    
+    // 設定選項
+    @AppStorage("updateFrequency") private var updateFrequency: Int = 5
+    @AppStorage("defaultTimeRange") private var defaultTimeRange: String = "short_term"
+    
     var body: some View {
         NavigationView {
-            VStack(spacing: 20) {
-                Spacer()
-                
-                VStack(spacing: 30) {
-                    // App 圖示
-                    Image(systemName: "music.note.house")
-                        .font(.system(size: 80))
-                        .foregroundColor(.spotifyGreen)
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 20) {
+                    // 一般設定
+                    generalSettingsSection
                     
-                    // App 名稱
-                    Text("MyPlaylist")
-                        .font(.custom("SpotifyMix-Bold", size: 34))
-                        .foregroundColor(.white)
+                    // 儲存與快取
+                    storageSection
                     
-                    // 版本資訊
-                    Text("settings.version")
-                        .font(.custom("SpotifyMix-Medium", size: 18))
-                        .foregroundColor(.gray)
+                    // 授權狀態
+                    authorizationSection
                     
-                    // 開發者資訊
-                    Text("settings.madeBy")
-                        .font(.custom("SpotifyMix-Medium", size: 16))
-                        .foregroundColor(.gray)
-                }
-                
-                Spacer()
-                
-                // 功能說明
-                VStack(alignment: .leading, spacing: 15) {
-                    Text("settings.features")
-                        .font(.custom("SpotifyMix-Bold", size: 22))
-                        .foregroundColor(.white)
-                    
-                    FeatureRow(icon: "house.fill", titleKey: "settings.feature.home", descriptionKey: "settings.feature.home.description")
-                    FeatureRow(icon: "chart.bar.fill", titleKey: "settings.feature.topCharts", descriptionKey: "settings.feature.topCharts.description")
-                    FeatureRow(icon: "play.fill", titleKey: "settings.feature.preview", descriptionKey: "settings.feature.preview.description")
-                    FeatureRow(icon: "person.circle.fill", titleKey: "settings.feature.profile", descriptionKey: "settings.feature.profile.description")
+                    // 關於
+                    aboutSection
                 }
                 .padding()
-                .background(Color.white.opacity(0.1))
-                .cornerRadius(15)
-                
-                Spacer()
+                .padding(.top, 10)
             }
-            .padding()
-            .navigationTitle("settings.title")
             .background(Color.spotifyText.ignoresSafeArea())
+            .navigationTitle("settings.title")
+                      .navigationBarTitleDisplayMode(.inline)
+                      .toolbar {
+                          ToolbarItem(placement: .navigationBarLeading) {
+                              if isLoggedIn {
+                                  // 用戶頭像按鈕
+                                  if let user = userProfile,
+                                     let imageUrl = user.images?.first?.url,
+                                     let url = URL(string: imageUrl) {
+                                      Button(action: {
+                                          showUserProfile = true
+                                      }) {
+                                          AsyncImage(url: url) { image in
+                                              image.resizable()
+                                                  .clipShape(Circle())
+                                          } placeholder: {
+                                              ProgressView()
+                                          }
+                                          .frame(width: 30, height: 30)
+                                      }
+                                      .frame(width: 30, height: 30)
+                                      .contentShape(Rectangle())
+                                      .sheet(isPresented: $showUserProfile) {
+                                          UserProfileView(userProfile: user, accessToken: accessToken, logout: logout)
+                                              .presentationDetents([.medium])
+                                      }
+                                  }
+                              }
+                          }
+                      }
+                      .onAppear {
+                          calculateCacheSize()
+                      }
+                  }
+              }
+    
+    // MARK: - 一般設定
+    private var generalSettingsSection: some View {
+        VStack(alignment: .leading, spacing: 15) {
+            Text("settings.section.general")
+                .font(.custom("SpotifyMix-Bold", size: 22))
+                .foregroundColor(.white)
+            
+            VStack(spacing: 0) {
+                // 語言設定 - 打開系統設定
+                Button(action: {
+                    openAppSettings()
+                }) {
+                    HStack(spacing: 15) {
+                        Image(systemName: "globe")
+                            .font(.system(size: 20))
+                            .foregroundColor(.spotifyGreen)
+                            .frame(width: 30)
+                        
+                        Text(LocalizedStringKey("settings.language"))
+                            .font(.custom("SpotifyMix-Medium", size: 16))
+                            .foregroundColor(.white)
+                        
+                        Spacer()
+                        
+                        // 語言膠囊
+                        Text(currentSystemLanguage())
+                            .font(.custom("SpotifyMix-Medium", size: 14))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(Color.gray.opacity(0.3))
+                            .clipShape(Capsule())
+                    }
+                    .padding()
+                }
+                .buttonStyle(PlainButtonStyle())
+                
+                Divider()
+                    .background(Color.gray.opacity(0.3))
+                    .padding(.leading, 50)
+                
+                // 資料更新頻率
+                Menu {
+                    ForEach([5, 10, 30, 60], id: \.self) { freq in
+                        Button(action: {
+                            updateFrequency = freq
+                        }) {
+                            HStack {
+                                Text("\(freq) 秒")
+                                if updateFrequency == freq {
+                                    Image(systemName: "checkmark")
+                                }
+                            }
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 15) {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.system(size: 20))
+                            .foregroundColor(.spotifyGreen)
+                            .frame(width: 30)
+                        
+                        Text(LocalizedStringKey("settings.updateFrequency"))
+                            .font(.custom("SpotifyMix-Medium", size: 16))
+                            .foregroundColor(.white)
+                        
+                        Spacer()
+                        
+                        Text("\(updateFrequency) 秒")
+                            .font(.custom("SpotifyMix-Medium", size: 14))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(Color.gray.opacity(0.3))
+                            .clipShape(Capsule())
+                    }
+                    .padding()
+                }
+                .buttonStyle(PlainButtonStyle())
+                
+                Divider()
+                    .background(Color.gray.opacity(0.3))
+                    .padding(.leading, 50)
+                
+                // 預設時間範圍
+                Menu {
+                    ForEach([("short_term", "timeRange.1month"), ("medium_term", "timeRange.6months"), ("long_term", "timeRange.1year")], id: \.0) { code, nameKey in
+                        Button(action: {
+                            defaultTimeRange = code
+                        }) {
+                            HStack {
+                                Text(LocalizedStringKey(nameKey))
+                                if defaultTimeRange == code {
+                                    Image(systemName: "checkmark")
+                                }
+                            }
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 15) {
+                        Image(systemName: "chart.bar.fill")
+                            .font(.system(size: 20))
+                            .foregroundColor(.spotifyGreen)
+                            .frame(width: 30)
+                        
+                        Text(LocalizedStringKey("settings.defaultTimeRange"))
+                            .font(.custom("SpotifyMix-Medium", size: 16))
+                            .foregroundColor(.white)
+                        
+                        Spacer()
+                        
+                        Text(LocalizedStringKey(timeRangeDisplayName(defaultTimeRange)))
+                            .font(.custom("SpotifyMix-Medium", size: 14))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(Color.gray.opacity(0.3))
+                            .clipShape(Capsule())
+                    }
+                    .padding()
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+            .background(Color.white.opacity(0.1))
+            .cornerRadius(15)
         }
+    }
+    
+    // MARK: - 儲存與快取
+    private var storageSection: some View {
+        VStack(alignment: .leading, spacing: 15) {
+            Text("settings.section.storage")
+                .font(.custom("SpotifyMix-Bold", size: 22))
+                .foregroundColor(.white)
+            
+            VStack(spacing: 0) {
+                // 快取大小顯示
+                SettingRow(
+                    icon: "internaldrive",
+                    title: "settings.cacheSize",
+                    value: cacheSize,
+                    showChevron: false
+                )
+                
+                Divider()
+                    .background(Color.gray.opacity(0.3))
+                    .padding(.leading, 50)
+                
+                // 清除圖片快取
+                Button(action: {
+                    showClearImageCacheAlert = true
+                }) {
+                    SettingRow(
+                        icon: "photo",
+                        title: "settings.clearImageCache",
+                        value: "",
+                        showChevron: false,
+                        isDestructive: false
+                    )
+                }
+                .buttonStyle(PlainButtonStyle())
+                
+                Divider()
+                    .background(Color.gray.opacity(0.3))
+                    .padding(.leading, 50)
+                
+                // 清除統計快取
+                Button(action: {
+                    showClearDataCacheAlert = true
+                }) {
+                    SettingRow(
+                        icon: "chart.line.uptrend.xyaxis",
+                        title: "settings.clearDataCache",
+                        value: "",
+                        showChevron: false,
+                        isDestructive: false
+                    )
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+            .background(Color.white.opacity(0.1))
+            .cornerRadius(15)
+        }
+        .alert("settings.clearImageCache", isPresented: $showClearImageCacheAlert) {
+            Button("common.cancel", role: .cancel) { }
+            Button("settings.clear", role: .destructive) {
+                clearImageCache()
+            }
+        } message: {
+            Text("settings.clearImageCache.message")
+        }
+        .alert("settings.clearDataCache", isPresented: $showClearDataCacheAlert) {
+            Button("common.cancel", role: .cancel) { }
+            Button("settings.clear", role: .destructive) {
+                clearDataCache()
+            }
+        } message: {
+            Text("settings.clearDataCache.message")
+        }
+    }
+    
+    // MARK: - 授權狀態
+    private var authorizationSection: some View {
+        VStack(alignment: .leading, spacing: 15) {
+            Text("settings.section.authorization")
+                .font(.custom("SpotifyMix-Bold", size: 22))
+                .foregroundColor(.white)
+            
+            VStack(spacing: 0) {
+                // 授權狀態
+                SettingRow(
+                    icon: "checkmark.shield.fill",
+                    title: "settings.authStatus",
+                    value: isLoggedIn ? "settings.authorized" : "settings.notAuthorized",
+                    showChevron: false,
+                    valueColor: isLoggedIn ? .spotifyGreen : .red
+                )
+                
+                if isLoggedIn {
+                    Divider()
+                        .background(Color.gray.opacity(0.3))
+                        .padding(.leading, 50)
+                    
+                    // 重新授權
+                    Button(action: {
+                        showReauthorizeAlert = true
+                    }) {
+                        SettingRow(
+                            icon: "arrow.clockwise.circle",
+                            title: "settings.reauthorize",
+                            value: "",
+                            showChevron: false
+                        )
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                }
+            }
+            .background(Color.white.opacity(0.1))
+            .cornerRadius(15)
+        }
+        .alert("settings.reauthorize", isPresented: $showReauthorizeAlert) {
+            Button("common.cancel", role: .cancel) { }
+            Button("settings.reauthorize.confirm", role: .destructive) {
+                reauthorize()
+            }
+        } message: {
+            Text("settings.reauthorize.message")
+        }
+    }
+    
+    // MARK: - 關於
+    private var aboutSection: some View {
+        VStack(alignment: .leading, spacing: 15) {
+            Text("settings.section.about")
+                .font(.custom("SpotifyMix-Bold", size: 22))
+                .foregroundColor(.white)
+            
+            VStack(spacing: 0) {
+                // App 圖示和名稱
+                HStack(spacing: 15) {
+                    // 使用真實的 App Icon
+                    Image("AppIconImage")
+                        .resizable()
+                        .frame(width: 60, height: 60)
+                        .cornerRadius(13)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 13)
+                                .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                        )
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("MyPlaylist")
+                            .font(.custom("SpotifyMix-Bold", size: 20))
+                            .foregroundColor(.white)
+                        
+                        Text("settings.version")
+                            .font(.custom("SpotifyMix-Medium", size: 14))
+                            .foregroundColor(.gray)
+                    }
+                    
+                    Spacer()
+                }
+                .padding()
+                
+                Divider()
+                    .background(Color.gray.opacity(0.3))
+                    .padding(.leading, 50)
+                
+                // 開發者
+                SettingRow(
+                    icon: "person.fill",
+                    title: "settings.developer",
+                    value: "Kenny",
+                    showChevron: false
+                )
+            }
+            .background(Color.white.opacity(0.1))
+            .cornerRadius(15)
+        }
+    }
+    
+    // MARK: - Helper Functions
+    
+    private func currentSystemLanguage() -> String {
+        let languageCode = Locale.current.language.languageCode?.identifier ?? "zh-Hant"
+        switch languageCode {
+        case "zh": return "繁體中文"
+        case "en": return "English"
+        case "ja": return "日本語"
+        case "ko": return "한국어"
+        default: return "繁體中文"
+        }
+    }
+    
+    private func openAppSettings() {
+        if let url = URL(string: UIApplication.openSettingsURLString) {
+            UIApplication.shared.open(url)
+        }
+    }
+    
+    private func timeRangeDisplayName(_ range: String) -> String {
+        switch range {
+        case "short_term": return String(localized: "timeRange.1month")
+        case "medium_term": return String(localized: "timeRange.6months")
+        case "long_term": return String(localized: "timeRange.1year")
+        default: return String(localized: "timeRange.1month")
+        }
+    }
+    
+    private func calculateCacheSize() {
+        DispatchQueue.global(qos: .background).async {
+            var totalBytes: Int64 = 0
+            
+            // 1. 計算 URLCache 大小（圖片快取）
+            let urlCache = URLCache.shared
+            totalBytes += Int64(urlCache.currentDiskUsage)
+            totalBytes += Int64(urlCache.currentMemoryUsage)
+            
+            // 2. 計算檔案系統快取目錄大小
+            if let cacheURL = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first {
+                do {
+                    let contents = try FileManager.default.contentsOfDirectory(
+                        at: cacheURL,
+                        includingPropertiesForKeys: [.fileSizeKey, .isDirectoryKey],
+                        options: [.skipsHiddenFiles]
+                    )
+                    
+                    for fileURL in contents {
+                        // 遞迴計算子目錄
+                        totalBytes += Int64(calculateDirectorySize(url: fileURL))
+                    }
+                } catch {
+                    print("❌ 計算快取大小錯誤: \(error.localizedDescription)")
+                }
+            }
+            
+            // 3. 估算 UserDefaults 資料大小（Dashboard 快取）
+            if let dailyLog = UserDefaults.standard.dailyListeningLog {
+                // 估算每個 track ID 約 100 bytes
+                let estimatedDailyLogSize = dailyLog.trackDurations.count * 100
+                totalBytes += Int64(estimatedDailyLogSize)
+            }
+            
+            if let weeklyCache = UserDefaults.standard.weeklyTopCache {
+                // 估算每個項目約 200 bytes
+                let estimatedWeeklyCacheSize = (weeklyCache.tracks.count + weeklyCache.artists.count) * 200
+                totalBytes += Int64(estimatedWeeklyCacheSize)
+            }
+            
+            // 格式化顯示
+            let formatter = ByteCountFormatter()
+            formatter.countStyle = .file
+            formatter.allowedUnits = [.useKB, .useMB, .useGB]
+            formatter.includesUnit = true
+            
+            DispatchQueue.main.async {
+                self.cacheSize = formatter.string(fromByteCount: totalBytes)
+                print("📦 總快取大小: \(formatter.string(fromByteCount: totalBytes))")
+                print("   - URLCache (磁碟): \(formatter.string(fromByteCount: Int64(urlCache.currentDiskUsage)))")
+                print("   - URLCache (記憶體): \(formatter.string(fromByteCount: Int64(urlCache.currentMemoryUsage)))")
+            }
+        }
+    }
+    
+    private func calculateDirectorySize(url: URL) -> Int {
+        var totalSize = 0
+        
+        do {
+            let resourceValues = try url.resourceValues(forKeys: [.isDirectoryKey, .fileSizeKey])
+            
+            if resourceValues.isDirectory == true {
+                // 如果是目錄，遞迴計算
+                let contents = try FileManager.default.contentsOfDirectory(
+                    at: url,
+                    includingPropertiesForKeys: [.fileSizeKey, .isDirectoryKey],
+                    options: [.skipsHiddenFiles]
+                )
+                for fileURL in contents {
+                    totalSize += calculateDirectorySize(url: fileURL)
+                }
+            } else {
+                // 如果是檔案，加入大小
+                totalSize += resourceValues.fileSize ?? 0
+            }
+        } catch {
+            print("❌ 計算目錄大小錯誤: \(error.localizedDescription)")
+        }
+        
+        return totalSize
+    }
+    
+    private func clearImageCache() {
+        URLCache.shared.removeAllCachedResponses()
+        print("✅ 已清除圖片快取")
+        // 重新計算快取大小
+        calculateCacheSize()
+    }
+    
+    private func clearDataCache() {
+        DashboardMetricsService.shared.clearCache()
+        print("✅ 已清除統計資料快取")
+        // 重新計算快取大小
+        calculateCacheSize()
+    }
+    
+    private func reauthorize() {
+        logout()
+        // 用戶需要重新登入
     }
 }
 
-struct FeatureRow: View {
+// MARK: - Setting Row Component
+struct SettingRow: View {
     let icon: String
-    let titleKey: String
-    let descriptionKey: String
+    let title: String
+    let value: String
+    let showChevron: Bool
+    var isDestructive: Bool = false
+    var valueColor: Color = .gray
     
     var body: some View {
         HStack(spacing: 15) {
             Image(systemName: icon)
                 .font(.system(size: 20))
-                .foregroundColor(.spotifyGreen)
+                .foregroundColor(isDestructive ? .red : .spotifyGreen)
                 .frame(width: 30)
             
-            VStack(alignment: .leading, spacing: 2) {
-                Text(LocalizedStringKey(titleKey))
-                    .font(.custom("SpotifyMix-Medium", size: 18))
-                    .foregroundColor(.white)
-                
-                Text(LocalizedStringKey(descriptionKey))
-                    .font(.custom("SpotifyMix-Medium", size: 14))
-                    .foregroundColor(.gray)
-            }
+            Text(LocalizedStringKey(title))
+                .font(.custom("SpotifyMix-Medium", size: 16))
+                .foregroundColor(isDestructive ? .red : .white)
             
             Spacer()
+            
+            if !value.isEmpty {
+                Text(LocalizedStringKey(value))
+                    .font(.custom("SpotifyMix-Medium", size: 14))
+                    .foregroundColor(valueColor)
+            }
+            
+            if showChevron {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14))
+                    .foregroundColor(.gray)
+            }
         }
+        .padding()
     }
 }
 
 #Preview {
-    SettingsView()
-        .preferredColorScheme(.dark)
-        .background(Color.spotifyText)
+    SettingsView(
+        userProfile: SpotifyUser(
+            display_name: "Kenny",
+            images: nil,
+            email: "kenny@example.com",
+            id: "user123",
+            followers: nil
+        ),
+        accessToken: "preview_token",
+        isLoggedIn: true,
+        logout: {}
+    )
+    .preferredColorScheme(.dark)
 }

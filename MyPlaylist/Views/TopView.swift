@@ -9,6 +9,7 @@ struct TopView: View {
     let accessToken: String
     
     @State private var selectedContentType: ContentType = .tracks
+    @AppStorage("defaultTimeRange") private var defaultTimeRangeSetting: String = "short_term"
     @State private var selectedTimeRange: TimeRange = .shortTerm
     
     @State private var tracks: [Track] = []
@@ -54,6 +55,7 @@ struct TopView: View {
                 // 主要內容區域
                 contentView
             }
+            .background(Color.spotifyText.ignoresSafeArea())
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -65,6 +67,11 @@ struct TopView: View {
                 }
             }
             .onAppear {
+                // 從設定載入預設時間範圍
+                if let defaultRange = TimeRange(rawValue: defaultTimeRangeSetting) {
+                    selectedTimeRange = defaultRange
+                }
+                
                 if isLoggedIn {
                     loadData()
                 }

@@ -95,15 +95,6 @@ struct MiniPlayerBar: View {
             .padding(.leading, 18)
             .padding(.trailing, 14)
             .padding(.vertical, 8)
-            .background(
-                // 頂部細線分隔
-                VStack {
-                    Rectangle()
-                        .fill(Color.gray.opacity(0.2))
-                        .frame(height: 0.3)
-                    Spacer()
-                }
-            )
         }
     }
 }

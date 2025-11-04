@@ -16,6 +16,8 @@ struct ContentView: View {
     
     // 當前播放相關
     @State private var currentlyPlaying: CurrentlyPlayingTrack? = nil
+    @State private var currentlyPlayingProgressMs: Int = 0
+    @State private var isSpotifyPlaying: Bool = false
     @State private var showTrackDetailFromPlayer = false
     @State private var selectedTrackIdFromPlayer: String? = nil
     
@@ -24,9 +26,11 @@ struct ContentView: View {
 
     // 確保畫面在狀態變化時強制更新
     @Environment(\.scenePhase) var scenePhase
+    @AppStorage("updateFrequency") private var updateFrequency: Int = 5
+    @State private var lastUpdateTime: Date = Date()
     
-    // 定時器：每 10 秒更新當前播放
-    private let currentlyPlayingTimer = Timer.publish(every: 10, on: .main, in: .common).autoconnect()
+    // 定時器：每秒檢查，但根據設定頻率執行
+    private let currentlyPlayingTimer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     var body: some View {
         ZStack {
@@ -71,7 +75,12 @@ struct ContentView: View {
                     .disabled(!isLoggedIn)
                     
                     Tab("tab.settings", systemImage: "gearshape.fill", value: 3) {
-                        SettingsView()
+                        SettingsView(
+                            userProfile: userProfile,
+                            accessToken: accessToken ?? "",
+                            isLoggedIn: isLoggedIn,
+                            logout: logout
+                        )
                     }
                     .disabled(!isLoggedIn)
                 }
@@ -137,7 +146,12 @@ struct ContentView: View {
                     .disabled(!isLoggedIn)
                     
                     Tab("tab.settings", systemImage: "gearshape.fill", value: 3) {
-                        SettingsView()
+                        SettingsView(
+                            userProfile: userProfile,
+                            accessToken: accessToken ?? "",
+                            isLoggedIn: isLoggedIn,
+                            logout: logout
+                        )
                     }
                     .disabled(!isLoggedIn)
                 }
@@ -169,7 +183,14 @@ struct ContentView: View {
         }
         .onReceive(currentlyPlayingTimer) { _ in
             if scenePhase == .active && isLoggedIn {
+                // 檢查是否達到更新頻率
+                let now = Date()
+                let timeInterval = now.timeIntervalSince(lastUpdateTime)
+                
+                if timeInterval >= Double(updateFrequency) {
+                    lastUpdateTime = now
                 fetchCurrentlyPlaying()
+                }
             }
         }
         .sheet(isPresented: $showTrackDetailFromPlayer) {
@@ -208,15 +229,27 @@ struct ContentView: View {
         self.userProfile = nil
         self.tracks = []
         self.currentlyPlaying = nil
+        self.currentlyPlayingProgressMs = 0
+        self.isSpotifyPlaying = false
     }
     
     // 獲取當前播放的歌曲
     private func fetchCurrentlyPlaying() {
         guard let token = accessToken, !token.isEmpty else { return }
         
-        SpotifyAPIService.fetchCurrentlyPlaying(accessToken: token) { track in
+        SpotifyAPIService.fetchCurrentlyPlaying(accessToken: token) { response in
             DispatchQueue.main.async {
-                self.currentlyPlaying = track
+                let newTrack = response?.item
+                self.currentlyPlayingProgressMs = response?.progress_ms ?? 0
+                self.isSpotifyPlaying = response?.is_playing ?? false
+                
+                if let newTrack {
+                    if self.currentlyPlaying?.id != newTrack.id {
+                        self.currentlyPlaying = newTrack
+                    }
+                } else {
+                    self.currentlyPlaying = nil
+                }
             }
         }
     }
