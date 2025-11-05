@@ -1,10 +1,21 @@
 import Foundation
 import CloudKit
+import Combine
+
+/// CloudKit 同步狀態
+enum CloudKitSyncStatus {
+    case available        // 雲端可用且同步完成
+    case syncing         // 載入中或同步中
+    case unavailable     // 載入失敗或不可用
+}
 
 /// CloudKit 版本的排名歷史服務
 /// 支援跨裝置同步、離線快取、自動清理
-class CloudKitRankingService {
+class CloudKitRankingService: ObservableObject {
     static let shared = CloudKitRankingService()
+    
+    // 狀態追蹤（用於 UI 顯示）
+    @Published var syncStatus: CloudKitSyncStatus = .unavailable
     
     // CloudKit 容器和資料庫（延遲初始化）
     private var _container: CKContainer?
@@ -60,21 +71,28 @@ class CloudKitRankingService {
                     switch accountStatus {
                     case .available:
                         print("✅ iCloud 帳號狀態：正常")
+                        self.syncStatus = .available
                     case .noAccount:
                         print("⚠️ 未登入 iCloud 帳號")
                         print("💡 請到「設定」登入 iCloud")
+                        self.syncStatus = .unavailable
                     case .restricted:
                         print("⚠️ iCloud 使用受限")
+                        self.syncStatus = .unavailable
                     case .couldNotDetermine:
                         print("⚠️ 無法確認 iCloud 狀態")
+                        self.syncStatus = .unavailable
                     case .temporarilyUnavailable:
                         print("⚠️ iCloud 暫時無法使用")
+                        self.syncStatus = .unavailable
                     @unknown default:
                         print("⚠️ 未知的 iCloud 狀態")
+                        self.syncStatus = .unavailable
                     }
                     
                     if let error = error {
                         print("❌ iCloud 狀態檢查錯誤: \(error.localizedDescription)")
+                        self.syncStatus = .unavailable
                     }
                 }
             }
@@ -87,6 +105,7 @@ class CloudKitRankingService {
             print("   4. 勾選 CloudKit")
             print("   5. 重新執行 App")
             print("📖 詳細步驟請參考：CLOUDKIT_SETUP.md")
+            syncStatus = .unavailable
         }
     }
     
@@ -119,6 +138,11 @@ class CloudKitRankingService {
             return
         }
         
+        // 更新狀態為同步中
+        DispatchQueue.main.async {
+            self.syncStatus = .syncing
+        }
+        
         var recordsToSave: [CKRecord] = []
         
         // 為每首歌創建一個 CKRecord
@@ -142,16 +166,22 @@ class CloudKitRankingService {
         operation.qualityOfService = .userInitiated
         
         operation.modifyRecordsResultBlock = { result in
-            switch result {
-            case .success:
-                print("✅ CloudKit: 成功同步 \(recordsToSave.count) 筆排名記錄")
-                // 清理舊記錄
-                self.cleanupOldRecords(userId: userId)
-                
-            case .failure(let error):
-                print("❌ CloudKit 同步失敗: \(error.localizedDescription)")
-                if let ckError = error as? CKError {
-                    print("🔍 錯誤 Code: \(ckError.code.rawValue)")
+            DispatchQueue.main.async {
+                switch result {
+                case .success:
+                    print("✅ CloudKit: 成功同步 \(recordsToSave.count) 筆排名記錄")
+                    // 清理舊記錄
+                    self.cleanupOldRecords(userId: userId)
+                    // 更新狀態為可用
+                    self.syncStatus = .available
+                    
+                case .failure(let error):
+                    print("❌ CloudKit 同步失敗: \(error.localizedDescription)")
+                    if let ckError = error as? CKError {
+                        print("🔍 錯誤 Code: \(ckError.code.rawValue)")
+                    }
+                    // 更新狀態為不可用
+                    self.syncStatus = .unavailable
                 }
             }
         }
@@ -160,7 +190,7 @@ class CloudKitRankingService {
     }
     
     // MARK: - 計算排名變化
-    /// 計算每首歌的排名變化
+    /// 計算每首歌的排名變化（完全優先雲端策略）
     /// - Parameters:
     ///   - userId: 用戶 ID
     ///   - currentTracks: 當前的歌曲列表
@@ -172,28 +202,49 @@ class CloudKitRankingService {
         timeRange: String,
         completion: @escaping ([String: RankChange]) -> Void
     ) {
-        // 先嘗試從本地快取讀取（快速）
-        let cachedResults = calculateFromCache(userId: userId, currentTracks: currentTracks, timeRange: timeRange)
-        
-        // 立即返回快取結果
-        completion(cachedResults)
-        
-        // 同時從 CloudKit 同步最新資料（背景）
-        fetchLatestRankings(userId: userId, timeRange: timeRange) { cloudRecords in
-            if !cloudRecords.isEmpty {
-                // 用 CloudKit 資料更新本地快取
-                self.updateLocalCache(with: cloudRecords, userId: userId, timeRange: timeRange)
-                
-                // 重新計算（使用最新資料）
-                let updatedResults = self.calculateFromCache(userId: userId, currentTracks: currentTracks, timeRange: timeRange)
-                
-                // 如果結果有變化，再次回調
-                if updatedResults != cachedResults {
-                    DispatchQueue.main.async {
-                        completion(updatedResults)
+        // 如果 CloudKit 可用，優先從雲端獲取資料
+        if isCloudKitAvailable {
+            // 更新狀態為同步中
+            DispatchQueue.main.async {
+                self.syncStatus = .syncing
+            }
+            
+            print("☁️ 優先從 CloudKit 同步歷史排名資料...")
+            
+            // 從 CloudKit 同步資料（等待完成）
+            fetchLatestRankings(userId: userId, timeRange: timeRange) { cloudRecords in
+                DispatchQueue.main.async {
+                    if !cloudRecords.isEmpty {
+                        print("✅ 從 CloudKit 同步了 \(cloudRecords.count) 筆歷史記錄")
+                        // 用 CloudKit 資料更新本地快取
+                        self.updateLocalCache(with: cloudRecords, userId: userId, timeRange: timeRange)
+                        
+                        // 使用 CloudKit 資料計算排名變化
+                        let cloudResults = self.calculateFromCache(userId: userId, currentTracks: currentTracks, timeRange: timeRange)
+                        
+                        // 更新狀態為可用
+                        self.syncStatus = .available
+                        completion(cloudResults)
+                    } else {
+                        // CloudKit 也沒有資料，這是真正的初次使用
+                        print("ℹ️ CloudKit 也沒有歷史記錄，這是初次使用")
+                        let cachedResults = self.calculateFromCache(userId: userId, currentTracks: currentTracks, timeRange: timeRange)
+                        
+                        // 更新狀態為可用（雖然沒有歷史資料，但 CloudKit 可用）
+                        self.syncStatus = .available
+                        completion(cachedResults)
                     }
                 }
             }
+        } else {
+            // CloudKit 不可用，使用本地快取
+            print("💾 CloudKit 不可用，使用本地快取")
+            DispatchQueue.main.async {
+                self.syncStatus = .unavailable
+            }
+            
+            let cachedResults = calculateFromCache(userId: userId, currentTracks: currentTracks, timeRange: timeRange)
+            completion(cachedResults)
         }
     }
     
@@ -247,6 +298,9 @@ class CloudKitRankingService {
     private func fetchLatestRankings(userId: String, timeRange: String, completion: @escaping ([RankingHistory]) -> Void) {
         // 如果 CloudKit 不可用，直接返回空陣列
         guard isCloudKitAvailable, let db = database else {
+            DispatchQueue.main.async {
+                self.syncStatus = .unavailable
+            }
             completion([])
             return
         }
@@ -286,6 +340,11 @@ class CloudKitRankingService {
                     print("❌ CloudKit 查詢失敗:", ckError, "userInfo:", ckError.userInfo)
                 } else {
                     print("❌ CloudKit 查詢失敗:", error)
+                }
+                
+                // 查詢失敗時更新狀態
+                DispatchQueue.main.async {
+                    self.syncStatus = .unavailable
                 }
                 completion([])
             }
@@ -492,3 +551,4 @@ class CloudKitRankingService {
         }
     }
 }
+

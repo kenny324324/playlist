@@ -2,6 +2,7 @@ import SwiftUI
 
 struct TopView: View {
     @ObservedObject var audioPlayer: AudioPlayer
+    @ObservedObject private var cloudKitService = CloudKitRankingService.shared
     var userProfile: SpotifyUser?
     let isLoggedIn: Bool
     let login: () -> Void
@@ -60,7 +61,19 @@ struct TopView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    userProfileButton
+                    HStack(spacing: 8) {
+                        userProfileButton
+                        
+                        if isLoggedIn {
+                            // 分隔線
+                            Rectangle()
+                                .fill(Color.white.opacity(0.2))
+                                .frame(width: 1, height: 22)
+                                .padding(.horizontal, 2)
+                            
+                            cloudKitStatusIndicator
+                        }
+                    }
                 }
 
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -92,6 +105,26 @@ struct TopView: View {
     }
     
     private var contentTypeSelector: some View { EmptyView() }
+    
+    // MARK: - CloudKit 狀態指示器
+    private var cloudKitStatusIndicator: some View {
+        // 根據狀態顯示不同的圖示（灰階化的原色）
+        Group {
+            switch cloudKitService.syncStatus {
+            case .available:
+                Image(systemName: "checkmark.icloud.fill")
+                    .foregroundColor(Color(red: 0.55, green: 0.7, blue: 0.55))  // 灰階化的綠色
+            case .syncing:
+                Image(systemName: "arrow.trianglehead.2.clockwise.rotate.90.icloud.fill")
+                    .foregroundColor(Color(red: 0.55, green: 0.65, blue: 0.7))  // 灰階化的藍色
+            case .unavailable:
+                Image(systemName: "xmark.icloud.fill")
+                    .foregroundColor(Color(red: 0.7, green: 0.55, blue: 0.55))  // 灰階化的紅色
+            }
+        }
+        .font(.system(size: 14))
+        .padding(.trailing, 12)
+    }
     
     private var contentView: some View {
         Group {
