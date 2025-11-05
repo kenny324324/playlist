@@ -20,6 +20,7 @@ struct TopView: View {
     @State private var selectedTrack: Track? = nil
     @State private var showUserProfile = false
     @State private var isLoading = false
+    @State private var rankChanges: [String: RankChange] = [:]  // 排名變化記錄
     
     enum ContentType: String, CaseIterable {
         case tracks = "Tracks"
@@ -237,7 +238,8 @@ struct TopView: View {
                     index: index + 1,
                     audioPlayer: audioPlayer,
                     selectedTrack: $selectedTrack,
-                    showPlayer: $showPlayer
+                    showPlayer: $showPlayer,
+                    rankChange: rankChanges[track.id]  // 傳入排名變化
                 )
                 .padding(.horizontal, 12)
                 .padding(.bottom, 5)
@@ -340,6 +342,36 @@ struct TopView: View {
         ) { fetchedTracks in
             DispatchQueue.main.async {
                 self.tracks = fetchedTracks
+                
+                // 取得當前用戶 ID（如果有的話）
+                guard let userId = self.userProfile?.id else {
+                    self.isLoading = false
+                    return
+                }
+                
+                // 使用 CloudKit 計算排名變化（支援跨裝置同步）
+                CloudKitRankingService.shared.calculateRankChanges(
+                    userId: userId,
+                    currentTracks: fetchedTracks,
+                    timeRange: self.selectedTimeRange.rawValue
+                ) { rankChanges in
+                    DispatchQueue.main.async {
+                        self.rankChanges = rankChanges
+                    }
+                }
+                
+                // 檢查是否需要記錄新的排名
+                CloudKitRankingService.shared.shouldRecord(userId: userId, for: self.selectedTimeRange.rawValue) { shouldRecord in
+                    if shouldRecord {
+                        // 儲存新的排名記錄到 CloudKit（會自動同步到其他裝置）
+                        CloudKitRankingService.shared.saveCurrentRanking(
+                            userId: userId,
+                            tracks: fetchedTracks,
+                            timeRange: self.selectedTimeRange.rawValue
+                        )
+                    }
+                }
+                
                 self.isLoading = false
             }
         }
@@ -383,6 +415,7 @@ struct TopView: View {
         tracks = []
         artists = []
         genres = [:]
+        rankChanges = [:]
         isLoading = false
     }
     

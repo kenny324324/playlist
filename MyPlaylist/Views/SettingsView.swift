@@ -459,14 +459,26 @@ struct SettingsView: View {
                 // App 圖示和名稱
                 HStack(spacing: 15) {
                     // 使用真實的 App Icon
-                    Image("AppIconImage")
-                        .resizable()
-                        .frame(width: 60, height: 60)
-                        .cornerRadius(13)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 13)
-                                .stroke(Color.white.opacity(0.1), lineWidth: 1)
-                        )
+                    if let appIcon = getAppIcon() {
+                        Image(uiImage: appIcon)
+                            .resizable()
+                            .frame(width: 60, height: 60)
+                            .cornerRadius(13)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 13)
+                                    .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                            )
+                    } else {
+                        // 備用方案：使用 Assets 中的圖片
+                        Image("AppIconImage")
+                            .resizable()
+                            .frame(width: 60, height: 60)
+                            .cornerRadius(13)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 13)
+                                    .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                            )
+                    }
                     
                     VStack(alignment: .leading, spacing: 4) {
                         Text("MyPlaylist")
@@ -501,6 +513,19 @@ struct SettingsView: View {
     }
     
     // MARK: - Helper Functions
+    
+    private func getAppIcon() -> UIImage? {
+        // 嘗試從 app bundle 中讀取實際的 app icon
+        if let icons = Bundle.main.object(forInfoDictionaryKey: "CFBundleIcons") as? [String: Any],
+           let primaryIcon = icons["CFBundlePrimaryIcon"] as? [String: Any],
+           let iconFiles = primaryIcon["CFBundleIconFiles"] as? [String],
+           let lastIcon = iconFiles.last {
+            return UIImage(named: lastIcon)
+        }
+        
+        // 備用方案：嘗試從 Assets 中讀取
+        return UIImage(named: "AppIconImage")
+    }
     
     private func currentSystemLanguage() -> String {
         let languageCode = Locale.current.language.languageCode?.identifier ?? "zh-Hant"

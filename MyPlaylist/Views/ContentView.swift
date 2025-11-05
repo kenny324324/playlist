@@ -220,6 +220,9 @@ struct ContentView: View {
     }
 
     private func resetSessionState() {
+        // 不清除排名歷史記錄，讓每個用戶的資料保留
+        // 當用戶重新登入時，會自動使用該用戶的歷史記錄
+        
         self.accessToken = nil
         self.isLoggedIn = false
         self.userProfile = nil

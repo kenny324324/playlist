@@ -2207,6 +2207,9 @@
         }
       }
     },
+    "NEW" : {
+
+    },
     "picker.timeRange" : {
       "localizations" : {
         "en" : {
@@ -4303,6 +4306,35 @@
         }
       }
     },
+    "theme.indigo" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indigo"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "インディゴ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "인디고"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "靛藍"
+          }
+        }
+      }
+    },
     "theme.orange" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4473,35 +4505,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "青色"
-          }
-        }
-      }
-    },
-    "theme.indigo" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Indigo"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "インディゴ"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "인디고"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "靛藍"
           }
         }
       }

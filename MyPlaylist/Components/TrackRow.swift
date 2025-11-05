@@ -43,16 +43,14 @@ struct TrackRow: View {
     @ObservedObject var audioPlayer: AudioPlayer
     @Binding var selectedTrack: Track?
     @Binding var showPlayer: Bool
+    var rankChange: RankChange?  // 新增：排名變化參數
 
     var body: some View {
         HStack(alignment: .center, spacing: 8) {
             // 排名和變化指示器（在框框外面）
             VStack(spacing: 5) {
-                // 排名變化指示器（目前顯示橫線，未來可顯示上升/下降）
-                Rectangle()
-                    .fill(Color.gray)
-                    .frame(width: 12, height: 2)
-                    .cornerRadius(1)
+                // 排名變化指示器
+                rankChangeIndicator
                 
                 Text("#\(index)")
                     .foregroundColor(.white)
@@ -123,5 +121,59 @@ struct TrackRow: View {
             .cornerRadius(10)
         }
         .frame(maxWidth: .infinity)
+    }
+    
+    // MARK: - 排名變化指示器
+    @ViewBuilder
+    private var rankChangeIndicator: some View {
+        if let change = rankChange {
+            switch change {
+            case .up(let amount):
+                // 上升：柔和綠色向上三角形
+                HStack(spacing: 2) {
+                    Image(systemName: "arrowtriangle.up.fill")
+                        .font(.system(size: 13, weight: .bold))
+                    if amount > 1 {
+                        Text("\(amount)")
+                            .font(.system(size: 11, weight: .bold))
+                    }
+                }
+                .foregroundColor(Color(red: 0.4, green: 0.75, blue: 0.4))
+                .frame(height: 14)
+                
+            case .down(let amount):
+                // 下降：柔和紅色向下三角形
+                HStack(spacing: 2) {
+                    Image(systemName: "arrowtriangle.down.fill")
+                        .font(.system(size: 13, weight: .bold))
+                    if amount > 1 {
+                        Text("\(amount)")
+                            .font(.system(size: 11, weight: .bold))
+                    }
+                }
+                .foregroundColor(Color(red: 0.85, green: 0.4, blue: 0.4))
+                .frame(height: 14)
+                
+            case .new:
+                // 新進榜：藍色 "NEW"
+                Text("NEW")
+                    .font(.system(size: 10, weight: .black))
+                    .foregroundColor(Color(red: 0.4, green: 0.6, blue: 0.85))
+                    .frame(height: 14)
+                
+            case .same:
+                // 不變：灰色橫線
+                Rectangle()
+                    .fill(Color.gray)
+                    .frame(width: 12, height: 2)
+                    .cornerRadius(1)
+            }
+        } else {
+            // 沒有資料：灰色橫線
+            Rectangle()
+                .fill(Color.gray)
+                .frame(width: 12, height: 2)
+                .cornerRadius(1)
+        }
     }
 }

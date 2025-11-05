@@ -412,4 +412,21 @@ struct NewReleaseAlbum: Codable, Identifiable {
     var artistNames: String {
         return artists.map { $0.name }.joined(separator: ", ")
     }
+}
+
+// MARK: - Ranking History Models
+struct RankingHistory: Codable {
+    let userId: String        // 新增：用戶 ID，區分不同帳號
+    let trackId: String
+    let rank: Int
+    let timeRange: String
+    let recordedDate: Date
+}
+
+// MARK: - Rank Change
+enum RankChange: Equatable {
+    case up(Int)      // 上升幾名
+    case down(Int)    // 下降幾名
+    case new          // 新進榜
+    case same         // 不變
 } 
