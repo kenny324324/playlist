@@ -5,10 +5,23 @@ class DashboardMetricsService {
     
     private init() {}
     
+    // 檢查是否為 Demo 模式
+    private var isDemoMode: Bool {
+        return DemoModeManager.shared.isDemoMode
+    }
+    
     // MARK: - Public Methods
     
     /// 取得完整的儀表板資料
     func fetchDashboardSummary(accessToken: String, forceRefresh: Bool = false, completion: @escaping (DashboardSummary?) -> Void) {
+        // Demo 模式：返回模擬的儀表板數據
+        if isDemoMode {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                completion(self.createDemoDashboardSummary())
+            }
+            return
+        }
+        
         let group = DispatchGroup()
         
         var todayMinutes = 0
@@ -49,24 +62,16 @@ class DashboardMetricsService {
     
     // MARK: - Today's Listening Time
     
-    /// 計算今日聆聽分鐘數、歌曲數量和播放列表
+    /// 計算今日聆聽分鐘數、歌曲數量和播放列表（即時資料，不使用快取）
     func fetchTodayListeningMinutes(accessToken: String, completion: @escaping (Int, Int, [TodayPlayedTrack]) -> Void) {
-        let todayKey = DailyListeningLog.dateKey(from: Date())
-        
-        // 從快取讀取今日記錄
-        var log = UserDefaults.standard.dailyListeningLog
-        
-        // 如果日期不同，重置記錄
-        if log?.date != todayKey {
-            log = DailyListeningLog(date: todayKey, totalMinutes: 0, lastPlayedAt: nil)
-            print("🗓️ 新的一天，重置聆聽記錄")
-        }
+        // 🔥 不使用快取，每次都直接從 API 計算
+        print("🔄 從 API 即時計算今日聆聽時間")
         
         // 獲取最近播放記錄（限制 50 筆以涵蓋完整一天）
         SpotifyAPIService.fetchRecentlyPlayed(accessToken: accessToken, limit: 50) { items in
             guard !items.isEmpty else {
                 print("⚠️ 沒有獲取到播放記錄")
-                completion(log?.totalMinutes ?? 0, 0, [])
+                completion(0, 0, [])
                 return
             }
             
@@ -76,56 +81,31 @@ class DashboardMetricsService {
             let calendar = Calendar.current
             let now = Date()
             
-            // 調試：顯示當前時間
-            let debugFormatter = DateFormatter()
-            debugFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
-            debugFormatter.timeZone = TimeZone.current
-            print("🕐 當前時間: \(debugFormatter.string(from: now))")
-            print("⏰ 時區: \(TimeZone.current.identifier)")
-            
-            var updatedLog = log ?? DailyListeningLog(date: todayKey, totalMinutes: 0, lastPlayedAt: nil)
-            var processedTracks = updatedLog.trackDurations
-            var todayCount = 0
-            var newTracksCount = 0
+            var processedTracks: [String: Int] = [:]  // trackKey -> duration
             var todayPlayedTracks: [TodayPlayedTrack] = []
             
             // 配置 ISO8601 解析器以支援毫秒
             let iso8601Formatter = ISO8601DateFormatter()
             iso8601Formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
             
-            // 調試：顯示前 3 筆記錄的時間
-            print("🔍 檢查最近 3 筆播放記錄的時間：")
-            for (index, item) in items.prefix(3).enumerated() {
-                if let playedDate = iso8601Formatter.date(from: item.played_at) {
-                    print("  [\(index + 1)] \(item.track.name)")
-                    print("      API 時間: \(item.played_at)")
-                    print("      解析時間: \(debugFormatter.string(from: playedDate))")
-                    print("      是今天？: \(calendar.isDate(playedDate, inSameDayAs: now))")
-                }
-            }
-            
             for item in items {
                 // 解析播放時間
                 guard let playedDate = iso8601Formatter.date(from: item.played_at) else {
-                    print("⚠️ 無法解析時間: \(item.played_at)")
                     continue
                 }
                 
                 // 只計算今天的播放
                 if calendar.isDate(playedDate, inSameDayAs: now) {
-                    todayCount += 1
                     let trackKey = "\(item.track.id)_\(item.played_at)"
                     
-                    // 避免重複計算
+                    // 避免重複計算同一筆記錄
                     if processedTracks[trackKey] == nil {
                         processedTracks[trackKey] = item.track.duration_ms
-                        newTracksCount += 1
-                        print("✅ 新增: \(item.track.name) (\(item.track.duration_ms / 60000) 分鐘)")
                     }
                     
                     // 添加到今日播放列表
                     let todayTrack = TodayPlayedTrack(
-                        id: "\(item.track.id)_\(item.played_at)",
+                        id: trackKey,
                         name: item.track.name,
                         artistName: item.track.artists.map(\.name).joined(separator: ", "),
                         albumName: item.track.album.name,
@@ -137,27 +117,21 @@ class DashboardMetricsService {
                 }
             }
             
-            // 重新計算所有已處理歌曲的總時長
+            // 計算總時長
             let totalMs = processedTracks.values.reduce(0, +)
             let totalMinutes = totalMs / 60000
             let trackCount = processedTracks.count
             
-            print("✅ 今天的播放記錄: \(todayCount) 筆，新增 \(newTracksCount) 筆")
-            print("⏱️ 今日聆聽時間: \(totalMinutes) 分鐘 (共 \(trackCount) 首歌曲)")
-            
-            // 更新記錄
-            updatedLog.totalMinutes = totalMinutes
-            updatedLog.trackDurations = processedTracks
-            updatedLog.lastPlayedAt = items.first?.played_at
-            
-            // 儲存快取
-            UserDefaults.standard.dailyListeningLog = updatedLog
-            print("💾 已保存聆聽記錄，共 \(trackCount) 首歌曲")
+            if trackCount > 0 {
+                print("✅ 今日聆聽時間: \(totalMinutes) 分鐘 (共 \(trackCount) 首歌曲)")
+            } else {
+                print("⚠️ 今天尚未播放任何歌曲")
+            }
             
             // 按播放時間倒序排列（最新的在前）
             todayPlayedTracks.sort { $0.playedAt > $1.playedAt }
             
-            completion(updatedLog.totalMinutes, trackCount, todayPlayedTracks)
+            completion(totalMinutes, trackCount, todayPlayedTracks)
         }
     }
     
@@ -165,14 +139,8 @@ class DashboardMetricsService {
     
     /// 取得每月熱門歌曲和藝人（基於 Spotify short_term，約 4 週）
     private func fetchWeeklyTopItems(accessToken: String, forceRefresh: Bool, completion: @escaping ([WeeklyTopEntry], [WeeklyTopEntry]) -> Void) {
-        // 檢查快取
-        if !forceRefresh, let cache = UserDefaults.standard.weeklyTopCache, !cache.isExpired {
-            print("📦 使用快取的每月熱門資料")
-            completion(cache.tracks, cache.artists)
-            return
-        }
-        
-        print("🔄 從 API 取得每月熱門資料")
+        // 🔥 不使用快取，每次都從 API 抓取最新資料
+        print("🔄 從 API 取得每月熱門資料（即時更新）")
         
         let group = DispatchGroup()
         var topTracks: [WeeklyTopEntry] = []
@@ -210,15 +178,13 @@ class DashboardMetricsService {
         }
         
         group.notify(queue: .main) {
-            // 儲存快取
-            let cache = WeeklyTopCache(
-                tracks: topTracks,
-                artists: topArtists,
-                lastUpdated: Date(),
-                weekStartDate: WeeklyTopCache.weekKey(from: Date())
-            )
-            UserDefaults.standard.weeklyTopCache = cache
+            if topTracks.isEmpty && topArtists.isEmpty {
+                print("⚠️ 沒有取得每月熱門資料（帳號可能沒有足夠的聆聽歷史）")
+            } else {
+                print("✅ 取得每月資料：\(topTracks.count) 首歌曲、\(topArtists.count) 位藝人")
+            }
             
+            // 不再儲存快取，每次都抓最新資料
             completion(topTracks, topArtists)
         }
     }
@@ -235,6 +201,57 @@ class DashboardMetricsService {
     /// 強制刷新每月資料
     func refreshWeeklyData(accessToken: String, completion: @escaping ([WeeklyTopEntry], [WeeklyTopEntry]) -> Void) {
         fetchWeeklyTopItems(accessToken: accessToken, forceRefresh: true, completion: completion)
+    }
+    
+    // MARK: - Demo Mode
+    
+    /// 創建 Demo 模式的儀表板數據
+    private func createDemoDashboardSummary() -> DashboardSummary {
+        // 今日播放的歌曲（使用 MockSpotifyData 的前 5 首）
+        let todayTracks = MockSpotifyData.demoTracks.prefix(5).enumerated().map { index, track in
+            TodayPlayedTrack(
+                id: "\(track.id)_demo_\(index)",
+                name: track.name,
+                artistName: track.artists.map(\.name).joined(separator: ", "),
+                albumName: track.album.name ?? "Album",
+                imageUrl: track.album.images.first?.url,
+                playedAt: ISO8601DateFormatter().string(from: Date().addingTimeInterval(-Double(index * 600))),
+                durationMs: 200000
+            )
+        }
+        
+        // 本月熱門歌曲（前 3 首）
+        let weeklyTopTracks = MockSpotifyData.demoTracks.prefix(3).map { track in
+            WeeklyTopEntry(
+                id: track.id,
+                name: track.name,
+                artistName: track.artists.map(\.name).joined(separator: ", "),
+                imageUrl: track.album.images.first?.url,
+                playCount: Int.random(in: 15...30),
+                totalPlayTimeMs: nil
+            )
+        }
+        
+        // 本月熱門藝人（前 3 位）
+        let weeklyTopArtists = MockSpotifyData.demoArtists.prefix(3).map { artist in
+            WeeklyTopEntry(
+                id: artist.id,
+                name: artist.name,
+                artistName: nil,
+                imageUrl: artist.images.first?.url,
+                playCount: Int.random(in: 20...40),
+                totalPlayTimeMs: nil
+            )
+        }
+        
+        return DashboardSummary(
+            todayListeningMinutes: 45,  // 45 分鐘
+            todayListeningTrackCount: 5, // 5 首歌
+            todayPlayedTracks: Array(todayTracks),
+            weeklyTopTracks: Array(weeklyTopTracks),
+            weeklyTopArtists: Array(weeklyTopArtists),
+            lastUpdated: Date()
+        )
     }
 }
 

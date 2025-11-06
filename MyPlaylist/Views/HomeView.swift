@@ -151,6 +151,7 @@ struct HomeView: View {
     let isLoggedIn: Bool
     let login: () -> Void
     let logout: () -> Void
+    var enterDemoMode: (() -> Void)? = nil
     
     var body: some View {
         NavigationView {
@@ -382,12 +383,26 @@ struct HomeView: View {
                 )
                 
                 // 本月熱門歌曲
-                if !summary.weeklyTopTracks.isEmpty {
-                    VStack(alignment: .leading, spacing: 15) {
-                        Text(String(localized: "dashboard.monthlyTopTracks"))
-                            .font(.custom("SpotifyMix-Bold", size: 22))
-                            .foregroundColor(.white)
-                        
+                VStack(alignment: .leading, spacing: 15) {
+                    Text(String(localized: "dashboard.monthlyTopTracks"))
+                        .font(.custom("SpotifyMix-Bold", size: 22))
+                        .foregroundColor(.white)
+                    
+                    if summary.weeklyTopTracks.isEmpty {
+                        VStack(spacing: 10) {
+                            Image(systemName: "chart.bar")
+                                .font(.system(size: 40))
+                                .foregroundColor(.gray)
+                            Text("dashboard.empty.noTopTracks")
+                                .font(.custom("SpotifyMix-Medium", size: 16))
+                                .foregroundColor(.gray)
+                                .multilineTextAlignment(.center)
+                        }
+                        .frame(maxWidth: .infinity, minHeight: 100)
+                        .padding(16)
+                        .background(Color(red: 0.12, green: 0.12, blue: 0.12))
+                        .cornerRadius(15)
+                    } else {
                         LazyVStack(spacing: 10) {
                             ForEach(Array(summary.weeklyTopTracks.prefix(3).enumerated()), id: \.element.id) { index, entry in
                                 NavigationLink(destination: TrackDetailView(trackId: entry.id, accessToken: accessToken, audioPlayer: audioPlayer)) {
@@ -400,12 +415,26 @@ struct HomeView: View {
                 }
                 
                 // 本月熱門藝人
-                if !summary.weeklyTopArtists.isEmpty {
-                    VStack(alignment: .leading, spacing: 15) {
-                        Text(String(localized: "dashboard.monthlyTopArtists"))
-                            .font(.custom("SpotifyMix-Bold", size: 22))
-                            .foregroundColor(.white)
-                        
+                VStack(alignment: .leading, spacing: 15) {
+                    Text(String(localized: "dashboard.monthlyTopArtists"))
+                        .font(.custom("SpotifyMix-Bold", size: 22))
+                        .foregroundColor(.white)
+                    
+                    if summary.weeklyTopArtists.isEmpty {
+                        VStack(spacing: 10) {
+                            Image(systemName: "person.2")
+                                .font(.system(size: 40))
+                                .foregroundColor(.gray)
+                            Text("dashboard.empty.noTopArtists")
+                                .font(.custom("SpotifyMix-Medium", size: 16))
+                                .foregroundColor(.gray)
+                                .multilineTextAlignment(.center)
+                        }
+                        .frame(maxWidth: .infinity, minHeight: 100)
+                        .padding(16)
+                        .background(Color(red: 0.12, green: 0.12, blue: 0.12))
+                        .cornerRadius(15)
+                    } else {
                         LazyVStack(spacing: 10) {
                             ForEach(Array(summary.weeklyTopArtists.prefix(3).enumerated()), id: \.element.id) { index, entry in
                                 NavigationLink(destination: ArtistDetailView(artistId: entry.id, artistName: entry.name, accessToken: accessToken, audioPlayer: audioPlayer)) {

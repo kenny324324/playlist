@@ -1,6 +1,11 @@
 import Foundation
 
 class SpotifyAPIService {
+    
+    // 檢查是否為 Demo 模式
+    private static var isDemoMode: Bool {
+        return DemoModeManager.shared.isDemoMode
+    }
 
     private static func handleUnauthorized(response: URLResponse?) -> Bool {
         guard let httpResponse = response as? HTTPURLResponse else {
@@ -19,6 +24,14 @@ class SpotifyAPIService {
     }
     
     static func fetchTopTracks(accessToken: String, timeRange: String, completion: @escaping ([Track]) -> Void) {
+        // Demo 模式：返回模擬數據
+        if isDemoMode {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                completion(MockSpotifyData.demoTracks)
+            }
+            return
+        }
+        
         let url = URL(string: "https://api.spotify.com/v1/me/top/tracks?limit=50&time_range=\(timeRange)")!
         var request = URLRequest(url: url)
         request.addValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
@@ -52,6 +65,14 @@ class SpotifyAPIService {
     }
     
     static func fetchCurrentUserProfile(accessToken: String, completion: @escaping (SpotifyUser?) -> Void) {
+        // Demo 模式：返回模擬數據
+        if isDemoMode {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                completion(MockSpotifyData.demoUser)
+            }
+            return
+        }
+        
         let url = URL(string: "https://api.spotify.com/v1/me")!
         var request = URLRequest(url: url)
         request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
@@ -79,6 +100,14 @@ class SpotifyAPIService {
     }
     
     static func fetchTopArtists(accessToken: String, timeRange: String = "medium_term", completion: @escaping ([Artist]) -> Void) {
+        // Demo 模式：返回模擬數據
+        if isDemoMode {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                completion(MockSpotifyData.demoArtists)
+            }
+            return
+        }
+        
         let url = URL(string: "https://api.spotify.com/v1/me/top/artists?limit=50&time_range=\(timeRange)")!
         var request = URLRequest(url: url)
         request.addValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
@@ -113,6 +142,14 @@ class SpotifyAPIService {
     
     // 新增的方法來獲取使用者播放列表
     static func fetchUserPlaylists(accessToken: String, completion: @escaping ([Playlist]) -> Void) {
+        // Demo 模式：返回模擬數據
+        if isDemoMode {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                completion(MockSpotifyData.demoPlaylists)
+            }
+            return
+        }
+        
         let url = URL(string: "https://api.spotify.com/v1/me/playlists")!
         var request = URLRequest(url: url)
         request.addValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
@@ -147,6 +184,19 @@ class SpotifyAPIService {
 
     // 新增：獲取目前正在播放的歌曲
     static func fetchCurrentlyPlaying(accessToken: String, completion: @escaping (CurrentlyPlayingResponse?) -> Void) {
+        // Demo 模式：返回模擬數據
+        if isDemoMode {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                let response = CurrentlyPlayingResponse(
+                    item: MockSpotifyData.demoCurrentlyPlaying,
+                    is_playing: true,
+                    progress_ms: 45000
+                )
+                completion(response)
+            }
+            return
+        }
+        
         let url = URL(string: "https://api.spotify.com/v1/me/player/currently-playing")!
         var request = URLRequest(url: url)
         request.addValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
@@ -188,6 +238,14 @@ class SpotifyAPIService {
 
     // 新增：獲取最近播放的歌曲
     static func fetchRecentlyPlayed(accessToken: String, limit: Int = 20, completion: @escaping ([RecentlyPlayedTrack]) -> Void) {
+        // Demo 模式：返回模擬數據
+        if isDemoMode {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                completion(MockSpotifyData.demoRecentlyPlayed)
+            }
+            return
+        }
+        
         let url = URL(string: "https://api.spotify.com/v1/me/player/recently-played?limit=\(limit)")!
         var request = URLRequest(url: url)
         request.addValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
@@ -222,6 +280,14 @@ class SpotifyAPIService {
     
     // 新增：獲取收藏的歌曲
     static func fetchSavedTracks(accessToken: String, limit: Int = 10, completion: @escaping ([SavedTrackItem]) -> Void) {
+        // Demo 模式：返回模擬數據
+        if isDemoMode {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                completion(MockSpotifyData.demoSavedTracks)
+            }
+            return
+        }
+        
         let url = URL(string: "https://api.spotify.com/v1/me/tracks?limit=\(limit)")!
         var request = URLRequest(url: url)
         request.addValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
@@ -256,6 +322,14 @@ class SpotifyAPIService {
     
     // 新增：獲取收藏的專輯
     static func fetchSavedAlbums(accessToken: String, limit: Int = 10, completion: @escaping ([SavedAlbumItem]) -> Void) {
+        // Demo 模式：返回模擬數據
+        if isDemoMode {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                completion(MockSpotifyData.demoSavedAlbums)
+            }
+            return
+        }
+        
         let url = URL(string: "https://api.spotify.com/v1/me/albums?limit=\(limit)")!
         var request = URLRequest(url: url)
         request.addValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
@@ -290,6 +364,14 @@ class SpotifyAPIService {
     
     // 新增：獲取追蹤的藝術家
     static func fetchFollowedArtists(accessToken: String, limit: Int = 20, completion: @escaping ([Artist]) -> Void) {
+        // Demo 模式：返回模擬數據
+        if isDemoMode {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                completion(MockSpotifyData.demoFollowedArtists)
+            }
+            return
+        }
+        
         let url = URL(string: "https://api.spotify.com/v1/me/following?type=artist&limit=\(limit)")!
         var request = URLRequest(url: url)
         request.addValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
@@ -326,6 +408,14 @@ class SpotifyAPIService {
     
     // 獲取歌曲詳細資訊
     static func fetchTrackDetail(trackId: String, accessToken: String, completion: @escaping (TrackDetail?) -> Void) {
+        // Demo 模式：返回模擬數據
+        if isDemoMode {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                completion(MockSpotifyData.demoTrackDetail(for: trackId))
+            }
+            return
+        }
+        
         let url = URL(string: "https://api.spotify.com/v1/tracks/\(trackId)")!
         var request = URLRequest(url: url)
         request.addValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
@@ -367,6 +457,14 @@ class SpotifyAPIService {
     
     // 獲取歌曲音訊特徵
     static func fetchAudioFeatures(trackId: String, accessToken: String, completion: @escaping (AudioFeatures?) -> Void) {
+        // Demo 模式：返回模擬數據
+        if isDemoMode {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                completion(MockSpotifyData.demoAudioFeatures(for: trackId))
+            }
+            return
+        }
+        
         let url = URL(string: "https://api.spotify.com/v1/audio-features/\(trackId)")!
         var request = URLRequest(url: url)
         request.addValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
@@ -415,6 +513,26 @@ class SpotifyAPIService {
     
     // 獲取藝人詳細資訊
     static func fetchArtistDetail(artistId: String, accessToken: String, completion: @escaping (ArtistDetail?) -> Void) {
+        // Demo 模式：返回模擬數據
+        if isDemoMode {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                // 尋找對應的藝人，如果找不到就返回第一個
+                let demoArtist = MockSpotifyData.demoArtists.first { $0.id == artistId } ?? MockSpotifyData.demoArtists.first!
+                let artistDetail = ArtistDetail(
+                    id: demoArtist.id,
+                    name: demoArtist.name,
+                    genres: demoArtist.genres,
+                    images: demoArtist.images.map { SpotifyImage(url: $0.url) },
+                    followers: ArtistDetail.Followers(total: demoArtist.followers.total),
+                    popularity: demoArtist.popularity,
+                    uri: "spotify:artist:\(demoArtist.id)",
+                    external_urls: ArtistDetail.ExternalUrls(spotify: "https://open.spotify.com/artist/\(demoArtist.id)")
+                )
+                completion(artistDetail)
+            }
+            return
+        }
+        
         let url = URL(string: "https://api.spotify.com/v1/artists/\(artistId)")!
         var request = URLRequest(url: url)
         request.addValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
@@ -456,6 +574,28 @@ class SpotifyAPIService {
     
     // 獲取藝人熱門歌曲
     static func fetchArtistTopTracks(artistId: String, accessToken: String, completion: @escaping ([ArtistTopTrack]) -> Void) {
+        // Demo 模式：返回模擬數據
+        if isDemoMode {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                // 將 demo tracks 轉換為 ArtistTopTrack
+                let topTracks = MockSpotifyData.demoTracks.prefix(5).map { track in
+                    ArtistTopTrack(
+                        id: track.id,
+                        name: track.name,
+                        album: ArtistTopTrack.ArtistTopTrackAlbum(
+                            name: track.album.name ?? "Album",
+                            images: track.album.images.map { SpotifyImage(url: $0.url) }
+                        ),
+                        artists: track.artists.map { ArtistTopTrack.ArtistTopTrackArtist(name: $0.name) },
+                        preview_url: track.previewUrl,
+                        duration_ms: 200000
+                    )
+                }
+                completion(Array(topTracks))
+            }
+            return
+        }
+        
         let url = URL(string: "https://api.spotify.com/v1/artists/\(artistId)/top-tracks?market=TW")!
         var request = URLRequest(url: url)
         request.addValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
@@ -490,6 +630,24 @@ class SpotifyAPIService {
     
     // 獲取藝人專輯
     static func fetchArtistAlbums(artistId: String, accessToken: String, limit: Int = 10, completion: @escaping ([ArtistAlbum]) -> Void) {
+        // Demo 模式：返回模擬數據
+        if isDemoMode {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                let albums = MockSpotifyData.demoSavedAlbums.prefix(limit).map { savedAlbum in
+                    ArtistAlbum(
+                        id: savedAlbum.album.id,
+                        name: savedAlbum.album.name,
+                        images: savedAlbum.album.images,
+                        release_date: savedAlbum.album.release_date,
+                        total_tracks: 12,
+                        artists: savedAlbum.album.artists.map { ArtistAlbum.ArtistAlbumArtist(name: $0.name) }
+                    )
+                }
+                completion(Array(albums))
+            }
+            return
+        }
+        
         let url = URL(string: "https://api.spotify.com/v1/artists/\(artistId)/albums?market=TW&limit=\(limit)&include_groups=album,single")!
         var request = URLRequest(url: url)
         request.addValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
@@ -524,6 +682,37 @@ class SpotifyAPIService {
     
     // 獲取專輯詳細資訊
     static func fetchAlbumDetail(albumId: String, accessToken: String, completion: @escaping (AlbumDetail?) -> Void) {
+        // Demo 模式：返回模擬數據
+        if isDemoMode {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                let album = MockSpotifyData.demoSavedAlbums.first?.album ?? MockSpotifyData.demoSavedAlbums[0].album
+                let albumDetail = AlbumDetail(
+                    id: album.id,
+                    name: album.name,
+                    images: album.images,
+                    artists: album.artists.map { AlbumDetail.AlbumDetailArtist(id: "demo_artist", name: $0.name) },
+                    release_date: album.release_date,
+                    total_tracks: 14,
+                    album_type: "album",
+                    popularity: 85,
+                    tracks: AlbumTracksResponse(items: MockSpotifyData.demoTracks.prefix(5).map { track in
+                        AlbumTrack(
+                            id: track.id,
+                            name: track.name,
+                            track_number: 1,
+                            duration_ms: 200000,
+                            artists: track.artists.map { AlbumTrack.AlbumTrackArtist(name: $0.name, id: $0.id ?? "demo") },
+                            preview_url: track.previewUrl
+                        )
+                    }),
+                    uri: "spotify:album:\(album.id)",
+                    external_urls: AlbumDetail.ExternalUrls(spotify: "https://open.spotify.com/album/\(album.id)")
+                )
+                completion(albumDetail)
+            }
+            return
+        }
+        
         let url = URL(string: "https://api.spotify.com/v1/albums/\(albumId)?market=TW")!
         var request = URLRequest(url: url)
         request.addValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
@@ -567,6 +756,14 @@ class SpotifyAPIService {
     
     // 搜尋歌曲、藝人、專輯
     static func search(query: String, types: [String], accessToken: String, limit: Int = 20, completion: @escaping (SearchResponse?) -> Void) {
+        // Demo 模式：返回模擬數據
+        if isDemoMode {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                completion(MockSpotifyData.demoSearchResults(query: query))
+            }
+            return
+        }
+        
         // URL 編碼搜尋關鍵字
         guard let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
             print("Failed to encode search query")
@@ -625,6 +822,14 @@ class SpotifyAPIService {
     
     // 獲取精選播放清單
     static func fetchFeaturedPlaylists(accessToken: String, limit: Int = 10, completion: @escaping ([Playlist]) -> Void) {
+        // Demo 模式：返回模擬數據
+        if isDemoMode {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                completion(MockSpotifyData.demoPlaylists)
+            }
+            return
+        }
+        
         // 按照官方文件：使用 locale 參數（不是 market 或 country）
         let urlString = "https://api.spotify.com/v1/browse/featured-playlists?locale=zh_TW&limit=\(limit)"
         
@@ -740,6 +945,14 @@ class SpotifyAPIService {
     
     // 獲取新發行專輯
     static func fetchNewReleases(accessToken: String, limit: Int = 20, completion: @escaping ([NewReleaseAlbum]) -> Void) {
+        // Demo 模式：返回模擬數據
+        if isDemoMode {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                completion(MockSpotifyData.demoNewReleases)
+            }
+            return
+        }
+        
         let url = URL(string: "https://api.spotify.com/v1/browse/new-releases?limit=\(limit)&market=TW")!
         var request = URLRequest(url: url)
         request.addValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")

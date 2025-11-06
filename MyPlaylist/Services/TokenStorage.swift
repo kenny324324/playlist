@@ -76,7 +76,9 @@ enum TokenStorage {
         ]
 
         let attributes: [String: Any] = [
-            kSecValueData as String: data
+            kSecValueData as String: data,
+            // 刪除 App 時會清除，且裝置鎖定時仍可存取（適合背景任務）
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
         ]
 
         let status = SecItemCopyMatching(query as CFDictionary, nil)
@@ -86,6 +88,8 @@ enum TokenStorage {
         case errSecItemNotFound:
             var newItem = query
             newItem[kSecValueData as String] = data
+            // 刪除 App 時會清除，且裝置鎖定時仍可存取（適合背景任務）
+            newItem[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
             SecItemAdd(newItem as CFDictionary, nil)
         default:
             break

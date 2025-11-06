@@ -390,6 +390,62 @@
         }
       }
     },
+    "dashboard.empty.noTopArtists" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No top artists yet\nListen to more music to see your favorites!"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "トップアーティストがありません\nもっと音楽を聴いてお気に入りを見つけよう！"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "아직 인기 아티스트가 없습니다\n더 많은 음악을 들어보세요!"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尚無熱門藝人\n多聽些音樂，就能看到你的最愛！"
+          }
+        }
+      }
+    },
+    "dashboard.empty.noTopTracks" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No top tracks yet\nListen to more music to see your favorites!"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "トップトラックがありません\nもっと音楽を聴いてお気に入りを見つけよう！"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "아직 인기 트랙이 없습니다\n더 많은 음악을 들어보세요!"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尚無熱門歌曲\n多聽些音樂，就能看到你的最愛！"
+          }
+        }
+      }
+    },
     "dashboard.empty.title" : {
       "localizations" : {
         "en" : {
@@ -846,6 +902,12 @@
           }
         }
       }
+    },
+    "Demo Mode" : {
+
+    },
+    "Demo Mode (For Review)" : {
+
     },
     "detail.acousticness" : {
       "extractionState" : "stale",

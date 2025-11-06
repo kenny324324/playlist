@@ -82,7 +82,7 @@ class SpotifyAuthServiceV2: NSObject, ObservableObject {
         authSession?.presentationContextProvider = presentationContext
         
         // 優先使用臨時瀏覽器會話（不共享 cookie），更安全
-        authSession?.prefersEphemeralWebBrowserSession = false
+        authSession?.prefersEphemeralWebBrowserSession = true
         
         // 開始認證流程
         authSession?.start()

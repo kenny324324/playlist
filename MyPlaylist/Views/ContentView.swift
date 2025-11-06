@@ -3,6 +3,7 @@ import AuthenticationServices
 
 struct ContentView: View {
     @StateObject private var themeManager = ThemeManager.shared
+    @StateObject private var demoModeManager = DemoModeManager.shared
     @State private var accessToken: String? = nil
     @State private var isLoggedIn = false  // 控制登入狀態
     @State private var tracks: [Track] = []
@@ -31,6 +32,27 @@ struct ContentView: View {
     var body: some View {
         ZStack {
             Color.spotifyText.ignoresSafeArea()
+            
+            // Demo 模式指示器
+            if demoModeManager.isDemoMode {
+                VStack {
+                    HStack {
+                        Image(systemName: "theatermasks.fill")
+                        Text("Demo Mode")
+                        Image(systemName: "theatermasks.fill")
+                    }
+                    .font(.custom("SpotifyMix-Bold", size: 14))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(Color.orange)
+                    .cornerRadius(20)
+                    .shadow(radius: 4)
+                    Spacer()
+                }
+                .padding(.top, 50)
+                .zIndex(999)
+            }
 
             if #available(iOS 26.0, *) {
                 TabView(selection: $selectedTab) {
@@ -41,7 +63,8 @@ struct ContentView: View {
                             userProfile: userProfile,
                             isLoggedIn: isLoggedIn,
                             login: login,
-                            logout: logout
+                            logout: logout,
+                            enterDemoMode: enterDemoMode
                         )
                     }
                     
@@ -112,7 +135,8 @@ struct ContentView: View {
                             userProfile: userProfile,
                             isLoggedIn: isLoggedIn,
                             login: login,
-                            logout: logout
+                            logout: logout,
+                            enterDemoMode: enterDemoMode
                         )
                     }
                     
@@ -213,8 +237,26 @@ struct ContentView: View {
         }
     }
     
+    // 進入 Demo 模式（僅在審核版本可用）
+    func enterDemoMode() {
+        print("🎭 進入 Demo 模式")
+        demoModeManager.enableDemoMode()
+        
+        // 模擬登入狀態
+        self.accessToken = demoModeManager.demoAccessToken
+        self.isLoggedIn = true
+        self.userProfile = MockSpotifyData.demoUser
+        self.tracks = MockSpotifyData.demoTracks
+        self.currentlyPlaying = MockSpotifyData.demoCurrentlyPlaying
+    }
+    
     // 登出流程
     func logout() {
+        // 如果是 Demo 模式，關閉 Demo 模式
+        if demoModeManager.isDemoMode {
+            demoModeManager.disableDemoMode()
+        }
+        
         SpotifyAuthServiceV2.logout()
         resetSessionState()
     }
