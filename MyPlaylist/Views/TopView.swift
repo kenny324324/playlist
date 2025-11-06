@@ -178,7 +178,7 @@ struct TopView: View {
 
     // 左右兩個按鈕 + Menu（左：類型；右：時間），中間保留分隔線（供 toolbar 使用）
     private var toolbarFilterMenus: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 6) {
             // 類型選單按鈕
             Menu {
                 ForEach(ContentType.allCases, id: \.self) { type in
@@ -199,16 +199,16 @@ struct TopView: View {
                     }
                 }
             } label: {
-                HStack(spacing: 6) {
+                HStack(spacing: 5) {
                     Text(selectedContentType.title)
-                        .font(.custom("SpotifyMix-Medium", size: 15))
+                        .font(.custom("SpotifyMix-Medium", size: 14))
                     Image(systemName: "chevron.down")
-                        .font(.system(size: 12, weight: .medium))
+                        .font(.system(size: 11, weight: .medium))
                         .opacity(0.8)
                 }
                 .foregroundColor(.white)
-                .padding(.vertical, 8)
-                .padding(.horizontal, 14)
+                .padding(.vertical, 7)
+                .padding(.horizontal, 12)
                 .clipShape(Capsule())
             }
             .buttonStyle(PlainButtonStyle())
@@ -216,8 +216,8 @@ struct TopView: View {
             // 分隔線
             Rectangle()
                 .fill(Color.white.opacity(0.2))
-                .frame(width: 1, height: 22)
-                .padding(.horizontal, 2)
+                .frame(width: 1, height: 20)
+                .padding(.horizontal, 1)
 
             // 時間選單按鈕
             Menu {
@@ -239,22 +239,22 @@ struct TopView: View {
                     }
                 }
             } label: {
-                HStack(spacing: 6) {
+                HStack(spacing: 5) {
                     Text(selectedTimeRange.title)
-                        .font(.custom("SpotifyMix-Medium", size: 15))
+                        .font(.custom("SpotifyMix-Medium", size: 14))
                     Image(systemName: "chevron.down")
-                        .font(.system(size: 12, weight: .medium))
+                        .font(.system(size: 11, weight: .medium))
                         .opacity(0.8)
                 }
                 .foregroundColor(.white)
-                .padding(.vertical, 8)
-                .padding(.horizontal, 14)
+                .padding(.vertical, 7)
+                .padding(.horizontal, 12)
                 .clipShape(Capsule())
             }
             .buttonStyle(PlainButtonStyle())
         }
-        .padding(.horizontal, 0)
-        .padding(.vertical, 6)
+        .padding(.vertical, 5)
+        .padding(.trailing, 4)
     }
     
     private var tracksContent: some View {

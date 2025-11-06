@@ -12,6 +12,23 @@ struct ArtistDetailView: View {
     @State private var isLoading = true
     @State private var showAllTracks = false
     @State private var showAllAlbums = false
+    @State private var selectedTab: DetailTab = .info
+    @State private var artistStats: ArtistStats?
+    @State private var isLoadingStats = false
+    
+    enum DetailTab: String, CaseIterable {
+        case info
+        case stats
+        
+        var localizedTitle: String {
+            switch self {
+            case .info:
+                return String(localized: "detail.tab.info")
+            case .stats:
+                return String(localized: "detail.tab.stats")
+            }
+        }
+    }
     
     var body: some View {
         ZStack {
@@ -25,21 +42,42 @@ struct ArtistDetailView: View {
                         // 藝人照片
                         artistImageSection(artist: artist)
                         
-                        // 藝人資訊
-                        artistInfoSection(artist: artist)
+                        // 分頁選擇器
+                        tabSelector
+                            .offset(y: -10)
                         
-                        // 熱門歌曲
-                        if !topTracks.isEmpty {
-                            topTracksSection()
+                        // 藝人名稱（兩個分頁都顯示）
+                        artistTitleSection(artist: artist)
+                            .offset(y: -10)
+                        
+                        // 根據選擇的分頁顯示內容
+                        VStack(spacing: 0) {
+                            if selectedTab == .info {
+                                // Info 分頁內容
+                                artistInfoCardsSection(artist: artist)
+                                
+                                // 熱門歌曲
+                                if !topTracks.isEmpty {
+                                    topTracksSection()
+                                }
+                                
+                                // 熱門專輯
+                                if !albums.isEmpty {
+                                    albumsSection()
+                                }
+                                
+                                // 在 Spotify 中打開
+                                openInSpotifyButton(artist: artist)
+                            } else {
+                                // Stats 分頁內容
+                                if let stats = artistStats {
+                                    artistStatsSection(stats: stats, artistName: artist.name)
+                                } else if isLoadingStats {
+                                    statsLoadingPlaceholder()
+                                }
+                            }
                         }
-                        
-                        // 熱門專輯
-                        if !albums.isEmpty {
-                            albumsSection()
-                        }
-                        
-                        // 在 Spotify 中打開
-                        openInSpotifyButton(artist: artist)
+                        .offset(y: -10)
                     } else {
                         Text("detail.cannotLoad.artist")
                             .foregroundColor(.gray)
@@ -55,6 +93,119 @@ struct ArtistDetailView: View {
         .toolbarColorScheme(.light, for: .navigationBar)
         .onAppear {
             refreshAccessTokenAndLoad()
+        }
+    }
+    
+    // MARK: - Tab Selector
+    private var tabSelector: some View {
+        VStack(spacing: 0) {
+            Picker("", selection: $selectedTab) {
+                ForEach(DetailTab.allCases, id: \.self) { tab in
+                    Text(tab.localizedTitle)
+                        .tag(tab)
+                }
+            }
+            .pickerStyle(.segmented)
+            .onChange(of: selectedTab) { newTab in
+                // 當切換到 Stats 分頁且尚未載入統計數據時，載入統計數據
+                if newTab == .stats && artistStats == nil && !isLoadingStats {
+                    loadArtistStats()
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 20)
+            .padding(.bottom, 20)
+            .onAppear {
+                // 設定 Segmented Control 的選中背景色為 Spotify Green 的 0.2 透明度
+                UISegmentedControl.appearance().selectedSegmentTintColor = UIColor(Color.spotifyGreen.opacity(0.2))
+                
+                // 設定選中時的文字樣式：主題色（綠色）+ Spotify Bold 字體 + 較大字號
+                let selectedFont = UIFont(name: "SpotifyMix-Bold", size: 16) ?? UIFont.systemFont(ofSize: 16, weight: .bold)
+                UISegmentedControl.appearance().setTitleTextAttributes([
+                    .foregroundColor: UIColor(Color.spotifyGreen),
+                    .font: selectedFont
+                ], for: .selected)
+                
+                // 設定未選中時的文字樣式：白色 + Spotify Bold 字體 + 較大字號
+                let normalFont = UIFont(name: "SpotifyMix-Bold", size: 16) ?? UIFont.systemFont(ofSize: 16, weight: .bold)
+                UISegmentedControl.appearance().setTitleTextAttributes([
+                    .foregroundColor: UIColor.white,
+                    .font: normalFont
+                ], for: .normal)
+            }
+        }
+    }
+    
+    // MARK: - Artist Title Section
+    private func artistTitleSection(artist: ArtistDetail) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(artist.name)
+                .font(.custom("SpotifyMix-Bold", size: 32))
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 20)
+        }
+    }
+    
+    // MARK: - Artist Info Cards Section (不含藝人名稱)
+    private func artistInfoCardsSection(artist: ArtistDetail) -> some View {
+        VStack(alignment: .leading, spacing: 24) {
+            // 人氣和粉絲數卡片
+            HStack(spacing: 12) {
+                // 人氣卡片
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(String(format: "%.1f", Double(artist.popularity) / 10.0))
+                        .font(.custom("SpotifyMix-Bold", size: 22))
+                        .foregroundColor(.spotifyGreen)
+                    Text("detail.popularity")
+                        .font(.custom("SpotifyMix-Medium", size: 12))
+                        .foregroundColor(.white)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
+                .background(Color(red: 0.15, green: 0.15, blue: 0.15))
+                .cornerRadius(12)
+                
+                // 粉絲數卡片
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(formatFollowers(artist.followers.total))
+                        .font(.custom("SpotifyMix-Bold", size: 22))
+                        .foregroundColor(.spotifyGreen)
+                    Text("detail.followers")
+                        .font(.custom("SpotifyMix-Medium", size: 12))
+                        .foregroundColor(.white)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
+                .background(Color(red: 0.15, green: 0.15, blue: 0.15))
+                .cornerRadius(12)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 24)
+            
+            // 流派
+            if !artist.genres.isEmpty {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("detail.genres")
+                        .font(.custom("SpotifyMix-Bold", size: 20))
+                        .foregroundColor(.white)
+                    
+                    FlowLayout(spacing: 8) {
+                        ForEach(artist.genres.prefix(10), id: \.self) { genre in
+                            Text(genre)
+                                .font(.custom("SpotifyMix-Medium", size: 14))
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(Color.spotifyGreen.opacity(0.2))
+                                .foregroundColor(.spotifyGreen)
+                                .cornerRadius(20)
+                        }
+                    }
+                }
+                .padding(.horizontal, 20)
+            }
         }
     }
     
@@ -77,6 +228,17 @@ struct ArtistDetailView: View {
                     }
                     .frame(width: geometry.size.width, height: geometry.size.width)
                     .clipped()
+                    .overlay(
+                        // 底部漸層，讓圖片和下方資訊區塊有過渡效果
+                        LinearGradient(
+                            colors: [
+                                Color.clear,
+                                Color.spotifyText
+                            ],
+                            startPoint: .init(x: 0.5, y: 0.7),
+                            endPoint: .bottom
+                        )
+                    )
                     
                     // 頂部漸層遮罩（讓導航欄按鈕更清晰）
                     LinearGradient(
@@ -645,6 +807,100 @@ struct ArtistDetailView: View {
                     .frame(height: 100)
             }
         }
+    }
+    
+    // MARK: - Artist Stats Section
+    private func artistStatsSection(stats: ArtistStats, artistName: String) -> some View {
+        VStack(spacing: 16) {
+            // 第一行：4週 + 6個月
+            HStack(spacing: 12) {
+                SmallStatCard(
+                    number: "\(stats.tracksInShortTerm)",
+                    text: "\(stats.tracksInShortTerm) \(String(localized: "stats.artist.tracksOf")) \(artistName) \(String(localized: "stats.album.inTop50.4weeks"))",
+                    highlightWord: artistName
+                )
+                
+                SmallStatCard(
+                    number: "\(stats.tracksInMediumTerm)",
+                    text: "\(stats.tracksInMediumTerm) \(String(localized: "stats.artist.tracksOf")) \(artistName) \(String(localized: "stats.album.inTop50.6months"))",
+                    highlightWord: artistName
+                )
+            }
+            
+            // 第二行：所有時間 + 最近50次
+            HStack(spacing: 12) {
+                SmallStatCard(
+                    number: "\(stats.tracksInLongTerm)",
+                    text: "\(stats.tracksInLongTerm) \(String(localized: "stats.artist.tracksOf")) \(artistName) \(String(localized: "stats.album.inTop50.allTime"))",
+                    highlightWord: artistName
+                )
+                
+                SmallStatCard(
+                    number: "\(stats.recentPlayCount)",
+                    text: "\(stats.recentPlayCount) \(String(localized: "stats.artist.tracksBy")) \(artistName) \(String(localized: "stats.artist.appearedInLast50"))",
+                    highlightWord: artistName
+                )
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 24)
+        .padding(.bottom, 24)
+    }
+    
+    // MARK: - Load Artist Stats
+    private func loadArtistStats() {
+        isLoadingStats = true
+        
+        SpotifyAuthService.ensureValidAccessToken { token in
+            guard let token = token else {
+                DispatchQueue.main.async {
+                    self.isLoadingStats = false
+                }
+                return
+            }
+            
+            StatsCalculationService.shared.calculateArtistStats(
+                artistId: self.artistId,
+                accessToken: token
+            ) { stats in
+                DispatchQueue.main.async {
+                    self.artistStats = stats
+                    self.isLoadingStats = false
+                }
+            }
+        }
+    }
+    
+    // MARK: - Stats Loading Placeholder
+    private func statsLoadingPlaceholder() -> some View {
+        VStack(spacing: 16) {
+            HStack(spacing: 12) {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.gray.opacity(0.3))
+                    .frame(height: 100)
+                    .shimmer()
+                
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.gray.opacity(0.3))
+                    .frame(height: 100)
+                    .shimmer()
+            }
+            
+            HStack(spacing: 12) {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.gray.opacity(0.3))
+                    .frame(height: 100)
+                    .shimmer()
+                
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.gray.opacity(0.3))
+                    .frame(height: 100)
+                    .shimmer()
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 24)
+        .padding(.bottom, 24)
     }
 }
 

@@ -58,10 +58,13 @@ struct Track: Decodable, Identifiable, Equatable, Encodable {
     let album: TrackAlbum
 
     struct TrackArtist: Decodable, Equatable, Encodable {
+        let id: String?
         let name: String
     }
 
     struct TrackAlbum: Decodable, Equatable, Encodable {
+        let id: String?
+        let name: String?
         let images: [TrackImage]
         
         struct TrackImage: Decodable, Equatable, Encodable {
@@ -91,10 +94,12 @@ struct CurrentlyPlayingTrack: Codable, Identifiable {
     let duration_ms: Int
     
     struct CurrentlyPlayingArtist: Codable {
+        let id: String?
         let name: String
     }
     
     struct CurrentlyPlayingAlbum: Codable {
+        let id: String?
         let name: String
         let images: [SpotifyImage]
     }

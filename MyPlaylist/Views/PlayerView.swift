@@ -194,8 +194,12 @@ extension UIImage {
             id: "preview123",
             name: "Preview Song",
             previewUrl: "https://example.com/preview.mp3",
-            artists: [Track.TrackArtist(name: "Preview Artist")],
-            album: Track.TrackAlbum(images: [Track.TrackAlbum.TrackImage(url: "https://i.scdn.co/image/ab67616d0000b273")])
+            artists: [Track.TrackArtist(id: "artist1", name: "Preview Artist")],
+            album: Track.TrackAlbum(
+                id: "album1",
+                name: "Preview Album",
+                images: [Track.TrackAlbum.TrackImage(url: "https://i.scdn.co/image/ab67616d0000b273")]
+            )
         ))
     )
     .preferredColorScheme(.dark)

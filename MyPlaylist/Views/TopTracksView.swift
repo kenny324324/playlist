@@ -144,15 +144,23 @@ enum TrackTimeRange: String, CaseIterable {
                 id: "track1",
                 name: "Preview Song 1",
                 previewUrl: "https://example.com/preview1.mp3",
-                artists: [Track.TrackArtist(name: "Artist 1")],
-                album: Track.TrackAlbum(images: [Track.TrackAlbum.TrackImage(url: "https://i.scdn.co/image/ab67616d0000b273")])
+                artists: [Track.TrackArtist(id: "artist1", name: "Artist 1")],
+                album: Track.TrackAlbum(
+                    id: "album1",
+                    name: "Album 1",
+                    images: [Track.TrackAlbum.TrackImage(url: "https://i.scdn.co/image/ab67616d0000b273")]
+                )
             ),
             Track(
                 id: "track2",
                 name: "Preview Song 2",
                 previewUrl: "https://example.com/preview2.mp3",
-                artists: [Track.TrackArtist(name: "Artist 2")],
-                album: Track.TrackAlbum(images: [Track.TrackAlbum.TrackImage(url: "https://i.scdn.co/image/ab67616d0000b273")])
+                artists: [Track.TrackArtist(id: "artist2", name: "Artist 2")],
+                album: Track.TrackAlbum(
+                    id: "album2",
+                    name: "Album 2",
+                    images: [Track.TrackAlbum.TrackImage(url: "https://i.scdn.co/image/ab67616d0000b273")]
+                )
             )
         ]),
         audioPlayer: AudioPlayer(),

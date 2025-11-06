@@ -10,6 +10,30 @@ struct TrackDetailView: View {
     @State private var audioFeatures: AudioFeatures?
     @State private var artistDetails: [ArtistDetail] = []
     @State private var isLoading = true
+    @State private var selectedTab: DetailTab = .info
+    @State private var trackStats: TrackStats?
+    @State private var isLoadingStats = false
+    
+    struct TrackStats {
+        var rankShortTerm: Int?      // 4週排名
+        var rankMediumTerm: Int?     // 6個月排名
+        var rankLongTerm: Int?       // 所有時間排名
+        var recentPlayCount: Int = 0 // 最近50次播放中出現次數
+    }
+    
+    enum DetailTab: String, CaseIterable {
+        case info
+        case stats
+        
+        var localizedTitle: String {
+            switch self {
+            case .info:
+                return String(localized: "detail.tab.info")
+            case .stats:
+                return String(localized: "detail.tab.stats")
+            }
+        }
+    }
     
     var body: some View {
         ZStack {
@@ -23,21 +47,46 @@ struct TrackDetailView: View {
                         // 專輯封面
                         albumArtSection(track: track)
                         
-                        // 基本資訊
-                        trackInfoSection(track: track)
+                        // 分頁選擇器
+                        tabSelector
+                            .offset(y: -10)
                         
-                        // 藝人資訊
-                        if !artistDetails.isEmpty {
-                            artistInfoSection()
+                        // 歌曲名稱（兩個分頁都顯示）
+                        trackTitleSection(track: track)
+                            .offset(y: -10)
+                        
+                        // 根據選擇的分頁顯示內容
+                        VStack(spacing: 0) {
+                            if selectedTab == .info {
+                                // Info 分頁內容
+                                
+                                // 基本資訊（人氣、時長、試聽、專輯）
+                                trackInfoCardsSection(track: track)
+                                
+                                // 藝人資訊
+                                if !artistDetails.isEmpty {
+                                    artistInfoSection()
+                                }
+                                
+                                // 在 Spotify 中打開
+                                openInSpotifyButton(track: track)
+                            } else {
+                                // Stats 分頁內容
+                                
+                                // 統計卡片
+                                if let stats = trackStats, let trackName = trackDetail?.name {
+                                    trackStatsSection(stats: stats, trackName: trackName)
+                                } else if isLoadingStats {
+                                    statsLoadingPlaceholder()
+                                }
+                                
+                                // 音訊特徵
+                                if let features = audioFeatures {
+                                    audioFeaturesSection(features: features)
+                                }
+                            }
                         }
-                        
-                        // 音訊特徵
-                        if let features = audioFeatures {
-                            audioFeaturesSection(features: features)
-                        }
-                        
-                        // 在 Spotify 中打開
-                        openInSpotifyButton(track: track)
+                        .offset(y: -10)
                     } else {
                         Text("detail.cannotLoad.track")
                             .foregroundColor(.gray)
@@ -53,6 +102,57 @@ struct TrackDetailView: View {
         .toolbarColorScheme(.light, for: .navigationBar)
         .onAppear {
             refreshAccessTokenAndLoad()
+        }
+    }
+    
+    // MARK: - Tab Selector
+    private var tabSelector: some View {
+        VStack(spacing: 0) {
+            Picker("", selection: $selectedTab) {
+                ForEach(DetailTab.allCases, id: \.self) { tab in
+                    Text(tab.localizedTitle)
+                        .tag(tab)
+                }
+            }
+            .pickerStyle(.segmented)
+            .onChange(of: selectedTab) { newTab in
+                // 當切換到 Stats 分頁且尚未載入統計數據時，載入統計數據
+                if newTab == .stats && trackStats == nil && !isLoadingStats {
+                    loadTrackStats()
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 20)
+            .padding(.bottom, 20)
+            .onAppear {
+                // 設定 Segmented Control 的選中背景色為 Spotify Green 的 0.2 透明度
+                UISegmentedControl.appearance().selectedSegmentTintColor = UIColor(Color.spotifyGreen.opacity(0.2))
+                
+                // 設定選中時的文字樣式：主題色（綠色）+ Spotify Bold 字體 + 較大字號
+                let selectedFont = UIFont(name: "SpotifyMix-Bold", size: 16) ?? UIFont.systemFont(ofSize: 16, weight: .bold)
+                UISegmentedControl.appearance().setTitleTextAttributes([
+                    .foregroundColor: UIColor(Color.spotifyGreen),
+                    .font: selectedFont
+                ], for: .selected)
+                
+                // 設定未選中時的文字樣式：白色 + Spotify Bold 字體 + 較大字號
+                let normalFont = UIFont(name: "SpotifyMix-Bold", size: 16) ?? UIFont.systemFont(ofSize: 16, weight: .bold)
+                UISegmentedControl.appearance().setTitleTextAttributes([
+                    .foregroundColor: UIColor.white,
+                    .font: normalFont
+                ], for: .normal)
+            }
+        }
+    }
+    
+    // MARK: - Track Title Section
+    private func trackTitleSection(track: TrackDetail) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(track.name)
+                .font(.custom("SpotifyMix-Bold", size: 32))
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 20)
         }
     }
     
@@ -73,7 +173,19 @@ struct TrackDetailView: View {
                     }
                     .frame(width: geometry.size.width, height: geometry.size.width)
                     .clipped()
+                    .overlay(
+                        // 底部漸層，讓圖片和下方資訊區塊有過渡效果
+                        LinearGradient(
+                            colors: [
+                                Color.clear,
+                                Color.spotifyText
+                            ],
+                            startPoint: .init(x: 0.5, y: 0.7),
+                            endPoint: .bottom
+                        )
+                    )
 
+                    // 頂部漸層（導航欄區域）
                     LinearGradient(
                         colors: [
                             Color.spotifyText.opacity(0.7),
@@ -89,17 +201,9 @@ struct TrackDetailView: View {
         .frame(height: UIScreen.main.bounds.width)
     }
     
-    // MARK: - Track Info Section
-    private func trackInfoSection(track: TrackDetail) -> some View {
+    // MARK: - Track Info Cards Section (不含歌曲名稱)
+    private func trackInfoCardsSection(track: TrackDetail) -> some View {
         VStack(alignment: .leading, spacing: 24) {
-            // 歌曲名稱
-            Text(track.name)
-                .font(.custom("SpotifyMix-Bold", size: 32))
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 20)
-                .padding(.top, 20)
-            
             // 人氣和時長卡片
             HStack(spacing: 12) {
                 // 人氣卡片
@@ -133,6 +237,7 @@ struct TrackDetailView: View {
                 .cornerRadius(12)
             }
             .padding(.horizontal, 20)
+            .padding(.top, 24)
             
             // 試聽區塊
             if let previewUrl = track.preview_url {
@@ -212,6 +317,7 @@ struct TrackDetailView: View {
                 .font(.custom("SpotifyMix-Bold", size: 20))
                 .foregroundColor(.white)
                 .padding(.horizontal, 20)
+                .padding(.top, 24)
             
             // 音訊特徵進度條
             VStack(alignment: .leading, spacing: 16) {
@@ -465,6 +571,130 @@ struct TrackDetailView: View {
         return dateString
     }
     
+    // MARK: - Track Stats Loading
+    
+    private func loadTrackStats() {
+        isLoadingStats = true
+        
+        SpotifyAuthServiceV2.ensureValidAccessToken { token in
+            guard let token = token else {
+                DispatchQueue.main.async {
+                    self.isLoadingStats = false
+                }
+                return
+            }
+            
+            let group = DispatchGroup()
+            var stats = TrackStats()
+            
+            // 獲取不同時間範圍的排名
+            for (timeRange, rankType) in [("short_term", "short"), ("medium_term", "medium"), ("long_term", "long")] {
+                group.enter()
+                SpotifyAPIService.fetchTopTracks(accessToken: token, timeRange: timeRange) { tracks in
+                    if let rank = tracks.firstIndex(where: { $0.id == self.trackId }) {
+                        DispatchQueue.main.async {
+                            switch rankType {
+                            case "short":
+                                stats.rankShortTerm = rank + 1
+                            case "medium":
+                                stats.rankMediumTerm = rank + 1
+                            case "long":
+                                stats.rankLongTerm = rank + 1
+                            default:
+                                break
+                            }
+                        }
+                    }
+                    group.leave()
+                }
+            }
+            
+            // 獲取最近播放記錄中的出現次數
+            group.enter()
+            SpotifyAPIService.fetchRecentlyPlayed(accessToken: token, limit: 50) { recentTracks in
+                let count = recentTracks.filter { $0.track.id == self.trackId }.count
+                DispatchQueue.main.async {
+                    stats.recentPlayCount = count
+                }
+                group.leave()
+            }
+            
+            group.notify(queue: .main) {
+                self.trackStats = stats
+                self.isLoadingStats = false
+            }
+        }
+    }
+    
+    // MARK: - Track Stats Section
+    
+    private func trackStatsSection(stats: TrackStats, trackName: String) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // 第一行：4週排名 + 6個月排名
+            HStack(spacing: 12) {
+                SmallStatCard(
+                    number: stats.rankShortTerm != nil ? "#\(stats.rankShortTerm!)" : "-",
+                    text: String(localized: "stats.ofYourMostStreamed.4weeks")
+                )
+                
+                SmallStatCard(
+                    number: stats.rankMediumTerm != nil ? "#\(stats.rankMediumTerm!)" : "-",
+                    text: String(localized: "stats.ofYourMostStreamed.6months")
+                )
+            }
+            
+            // 第二行：所有時間排名 + 最近播放次數
+            HStack(spacing: 12) {
+                SmallStatCard(
+                    number: stats.rankLongTerm != nil ? "#\(stats.rankLongTerm!)" : "-",
+                    text: String(localized: "stats.ofYourMostStreamed.allTime")
+                )
+                
+                SmallStatCard(
+                    number: "\(stats.recentPlayCount)",
+                    text: String(localized: "stats.times") + " \(trackName) " + String(localized: "stats.appearedInLast50"),
+                    highlightWord: trackName
+                )
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 24)
+        .padding(.bottom, 30)
+    }
+    
+    private func statsLoadingPlaceholder() -> some View {
+        VStack(spacing: 12) {
+            // 第一行
+            HStack(spacing: 12) {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.gray.opacity(0.3))
+                    .frame(height: 100)
+                    .shimmer()
+                
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.gray.opacity(0.3))
+                    .frame(height: 100)
+                    .shimmer()
+            }
+            
+            // 第二行
+            HStack(spacing: 12) {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.gray.opacity(0.3))
+                    .frame(height: 100)
+                    .shimmer()
+                
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.gray.opacity(0.3))
+                    .frame(height: 100)
+                    .shimmer()
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 24)
+        .padding(.bottom, 30)
+    }
+    
     // MARK: - Placeholder
     private func trackDetailPlaceholder() -> some View {
         VStack(spacing: 0) {
@@ -689,3 +919,6 @@ struct AudioAnalysisCard: View {
         .cornerRadius(12)
     }
 }
+
+// MARK: - Small Stat Card
+

@@ -9,6 +9,23 @@ struct AlbumDetailView: View {
     @State private var albumDetail: AlbumDetail?
     @State private var artistDetails: [ArtistDetail] = []
     @State private var isLoading = true
+    @State private var selectedTab: DetailTab = .info
+    @State private var albumStats: AlbumStats?
+    @State private var isLoadingStats = false
+    
+    enum DetailTab: String, CaseIterable {
+        case info
+        case stats
+        
+        var localizedTitle: String {
+            switch self {
+            case .info:
+                return String(localized: "detail.tab.info")
+            case .stats:
+                return String(localized: "detail.tab.stats")
+            }
+        }
+    }
     
     var body: some View {
         ZStack {
@@ -22,21 +39,42 @@ struct AlbumDetailView: View {
                         // 專輯封面
                         albumCoverSection(album: album)
                         
-                        // 專輯資訊
-                        albumInfoSection(album: album)
+                        // 分頁選擇器
+                        tabSelector
+                            .offset(y: -10)
                         
-                        // 專輯曲目
-                        if !album.tracks.items.isEmpty {
-                            albumTracksSection(album: album)
+                        // 專輯名稱（兩個分頁都顯示）
+                        albumTitleSection(album: album)
+                            .offset(y: -10)
+                        
+                        // 根據選擇的分頁顯示內容
+                        VStack(spacing: 0) {
+                            if selectedTab == .info {
+                                // Info 分頁內容
+                                albumInfoCardsSection(album: album)
+                                
+                                // 專輯曲目
+                                if !album.tracks.items.isEmpty {
+                                    albumTracksSection(album: album)
+                                }
+                                
+                                // 藝人資訊
+                                if !artistDetails.isEmpty {
+                                    artistInfoSection()
+                                }
+                                
+                                // 在 Spotify 中打開
+                                openInSpotifyButton(album: album)
+                            } else {
+                                // Stats 分頁內容
+                                if let stats = albumStats {
+                                    albumStatsSection(stats: stats, albumName: album.name)
+                                } else if isLoadingStats {
+                                    statsLoadingPlaceholder()
+                                }
+                            }
                         }
-                        
-                        // 藝人資訊
-                        if !artistDetails.isEmpty {
-                            artistInfoSection()
-                        }
-                        
-                        // 在 Spotify 中打開
-                        openInSpotifyButton(album: album)
+                        .offset(y: -10)
                     } else {
                         Text("detail.cannotLoad.album")
                             .foregroundColor(.gray)
@@ -52,6 +90,135 @@ struct AlbumDetailView: View {
         .toolbarColorScheme(.light, for: .navigationBar)
         .onAppear {
             refreshAccessTokenAndLoad()
+        }
+    }
+    
+    // MARK: - Tab Selector
+    private var tabSelector: some View {
+        VStack(spacing: 0) {
+            Picker("", selection: $selectedTab) {
+                ForEach(DetailTab.allCases, id: \.self) { tab in
+                    Text(tab.localizedTitle)
+                        .tag(tab)
+                }
+            }
+            .pickerStyle(.segmented)
+            .onChange(of: selectedTab) { newTab in
+                // 當切換到 Stats 分頁且尚未載入統計數據時，載入統計數據
+                if newTab == .stats && albumStats == nil && !isLoadingStats {
+                    loadAlbumStats()
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 20)
+            .padding(.bottom, 20)
+            .onAppear {
+                // 設定 Segmented Control 的選中背景色為 Spotify Green 的 0.2 透明度
+                UISegmentedControl.appearance().selectedSegmentTintColor = UIColor(Color.spotifyGreen.opacity(0.2))
+                
+                // 設定選中時的文字樣式：主題色（綠色）+ Spotify Bold 字體 + 較大字號
+                let selectedFont = UIFont(name: "SpotifyMix-Bold", size: 16) ?? UIFont.systemFont(ofSize: 16, weight: .bold)
+                UISegmentedControl.appearance().setTitleTextAttributes([
+                    .foregroundColor: UIColor(Color.spotifyGreen),
+                    .font: selectedFont
+                ], for: .selected)
+                
+                // 設定未選中時的文字樣式：白色 + Spotify Bold 字體 + 較大字號
+                let normalFont = UIFont(name: "SpotifyMix-Bold", size: 16) ?? UIFont.systemFont(ofSize: 16, weight: .bold)
+                UISegmentedControl.appearance().setTitleTextAttributes([
+                    .foregroundColor: UIColor.white,
+                    .font: normalFont
+                ], for: .normal)
+            }
+        }
+    }
+    
+    // MARK: - Album Title Section
+    private func albumTitleSection(album: AlbumDetail) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(album.name)
+                .font(.custom("SpotifyMix-Bold", size: 32))
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 20)
+        }
+    }
+    
+    // MARK: - Album Info Cards Section (不含專輯名稱)
+    private func albumInfoCardsSection(album: AlbumDetail) -> some View {
+        VStack(spacing: 24) {
+            // 資訊卡片
+            VStack(spacing: 12) {
+                HStack(spacing: 12) {
+                    // Track 卡片
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("\(album.tracks.items.first?.track_number ?? 1)")
+                            .font(.custom("SpotifyMix-Bold", size: 22))
+                            .foregroundColor(.spotifyGreen)
+                        Text("detail.track")
+                            .font(.custom("SpotifyMix-Medium", size: 12))
+                            .foregroundColor(.white)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 12)
+                    .background(Color(red: 0.15, green: 0.15, blue: 0.15))
+                    .cornerRadius(12)
+                    
+                    // Popularity 卡片
+                    if let popularity = album.popularity {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(String(format: "%.1f", Double(popularity) / 10.0))
+                                .font(.custom("SpotifyMix-Bold", size: 22))
+                                .foregroundColor(.spotifyGreen)
+                            Text("detail.popularity")
+                                .font(.custom("SpotifyMix-Medium", size: 12))
+                                .foregroundColor(.white)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 12)
+                        .background(Color(red: 0.15, green: 0.15, blue: 0.15))
+                        .cornerRadius(12)
+                    }
+                }
+                
+                HStack(spacing: 12) {
+                    // Type of album 卡片
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(album.album_type.capitalized)
+                            .font(.custom("SpotifyMix-Bold", size: 22))
+                            .foregroundColor(.spotifyGreen)
+                        Text("detail.typeOfAlbum")
+                            .font(.custom("SpotifyMix-Medium", size: 12))
+                            .foregroundColor(.white)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 12)
+                    .background(Color(red: 0.15, green: 0.15, blue: 0.15))
+                    .cornerRadius(12)
+                    
+                    // Release Date 卡片
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(formatReleaseDate(album.release_date ?? ""))
+                            .font(.custom("SpotifyMix-Bold", size: 22))
+                            .foregroundColor(.spotifyGreen)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+                        Text("detail.releaseDate")
+                            .font(.custom("SpotifyMix-Medium", size: 12))
+                            .foregroundColor(.white)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 12)
+                    .background(Color(red: 0.15, green: 0.15, blue: 0.15))
+                    .cornerRadius(12)
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 24)
         }
     }
     
@@ -74,6 +241,17 @@ struct AlbumDetailView: View {
                     }
                     .frame(width: geometry.size.width, height: geometry.size.width)
                     .clipped()
+                    .overlay(
+                        // 底部漸層，讓圖片和下方資訊區塊有過渡效果
+                        LinearGradient(
+                            colors: [
+                                Color.clear,
+                                Color.spotifyText
+                            ],
+                            startPoint: .init(x: 0.5, y: 0.7),
+                            endPoint: .bottom
+                        )
+                    )
                     
                     // 頂部漸層遮罩（讓導航欄按鈕更清晰）
                     LinearGradient(
@@ -532,5 +710,99 @@ struct AlbumDetailView: View {
                     .frame(height: 100)
             }
         }
+    }
+    
+    // MARK: - Album Stats Section
+    private func albumStatsSection(stats: AlbumStats, albumName: String) -> some View {
+        VStack(spacing: 16) {
+            // 第一行：4週 + 6個月
+            HStack(spacing: 12) {
+                SmallStatCard(
+                    number: "\(stats.tracksInShortTerm)",
+                    text: "\(stats.tracksInShortTerm) \(String(localized: "stats.album.tracksOf")) \(albumName) \(String(localized: "stats.album.inTop50.4weeks"))",
+                    highlightWord: albumName
+                )
+                
+                SmallStatCard(
+                    number: "\(stats.tracksInMediumTerm)",
+                    text: "\(stats.tracksInMediumTerm) \(String(localized: "stats.album.tracksOf")) \(albumName) \(String(localized: "stats.album.inTop50.6months"))",
+                    highlightWord: albumName
+                )
+            }
+            
+            // 第二行：所有時間 + 最近50次
+            HStack(spacing: 12) {
+                SmallStatCard(
+                    number: "\(stats.tracksInLongTerm)",
+                    text: "\(stats.tracksInLongTerm) \(String(localized: "stats.album.tracksOf")) \(albumName) \(String(localized: "stats.album.inTop50.allTime"))",
+                    highlightWord: albumName
+                )
+                
+                SmallStatCard(
+                    number: "\(stats.recentPlayCount)",
+                    text: "\(stats.recentPlayCount) \(String(localized: "stats.album.tracksFrom")) \(albumName) \(String(localized: "stats.album.appearedInLast50"))",
+                    highlightWord: albumName
+                )
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 24)
+        .padding(.bottom, 24)
+    }
+    
+    // MARK: - Load Album Stats
+    private func loadAlbumStats() {
+        isLoadingStats = true
+        
+        SpotifyAuthService.ensureValidAccessToken { token in
+            guard let token = token else {
+                DispatchQueue.main.async {
+                    self.isLoadingStats = false
+                }
+                return
+            }
+            
+            StatsCalculationService.shared.calculateAlbumStats(
+                albumId: self.albumId,
+                accessToken: token
+            ) { stats in
+                DispatchQueue.main.async {
+                    self.albumStats = stats
+                    self.isLoadingStats = false
+                }
+            }
+        }
+    }
+    
+    // MARK: - Stats Loading Placeholder
+    private func statsLoadingPlaceholder() -> some View {
+        VStack(spacing: 16) {
+            HStack(spacing: 12) {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.gray.opacity(0.3))
+                    .frame(height: 100)
+                    .shimmer()
+                
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.gray.opacity(0.3))
+                    .frame(height: 100)
+                    .shimmer()
+            }
+            
+            HStack(spacing: 12) {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.gray.opacity(0.3))
+                    .frame(height: 100)
+                    .shimmer()
+                
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.gray.opacity(0.3))
+                    .frame(height: 100)
+                    .shimmer()
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 24)
+        .padding(.bottom, 24)
     }
 }
