@@ -13,6 +13,7 @@ struct TrackDetailView: View {
     @State private var selectedTab: DetailTab = .info
     @State private var trackStats: TrackStats?
     @State private var isLoadingStats = false
+    @State private var canPlayPreview = true  // 預設可以播放，檢查後如果不行再改
     
     struct TrackStats {
         var rankShortTerm: Int?      // 4週排名
@@ -100,6 +101,36 @@ struct TrackDetailView: View {
         .toolbarBackground(.visible, for: .navigationBar)
         .toolbarBackground(Color.clear, for: .navigationBar)
         .toolbarColorScheme(.light, for: .navigationBar)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: {
+                    guard canPlayPreview, let track = trackDetail else { return }
+                    Task {
+                        let artistNames = track.artists.map { $0.name }.joined(separator: ", ")
+                        await audioPlayer.playTrack(
+                            trackName: track.name,
+                            artistName: artistNames,
+                            spotifyPreviewUrl: track.preview_url,
+                            trackId: track.id
+                        )
+                    }
+                }) {
+                    if !canPlayPreview {
+                        Image(systemName: "music.note.slash")
+                            .font(.system(size: 14))
+                    } else if let track = trackDetail, audioPlayer.isPlaying && audioPlayer.currentTrackId == track.id {
+                        Image(systemName: "pause.fill")
+                            .font(.system(size: 14))
+                    } else {
+                        Image(systemName: "play.fill")
+                            .font(.system(size: 14))
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(canPlayPreview ? Color.spotifyGreen : Color.gray)
+                .disabled(!canPlayPreview)
+            }
+        }
         .onAppear {
             refreshAccessTokenAndLoad()
         }
@@ -238,33 +269,6 @@ struct TrackDetailView: View {
             }
             .padding(.horizontal, 20)
             .padding(.top, 24)
-            
-            // 試聽區塊
-            if let previewUrl = track.preview_url {
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        Text("home.preview")
-                            .font(.custom("SpotifyMix-Bold", size: 20))
-                            .foregroundColor(.white)
-                        Image(systemName: "music.note")
-                            .foregroundColor(.spotifyGreen)
-                            .font(.system(size: 20))
-                    }
-                    
-                    Button(action: {
-                        audioPlayer.playPreview(from: previewUrl)
-                    }) {
-                        HStack {
-                            Spacer()
-                            Image(systemName: audioPlayer.isPlaying && audioPlayer.currentPreviewUrl == previewUrl ? "pause.circle.fill" : "play.circle.fill")
-                                .font(.system(size: 50))
-                                .foregroundColor(.white)
-                            Spacer()
-                        }
-                    }
-                }
-                .padding(.horizontal, 20)
-            }
             
             // 專輯區塊
             VStack(alignment: .leading, spacing: 12) {
@@ -515,6 +519,54 @@ struct TrackDetailView: View {
         
         group.notify(queue: .main) {
             self.isLoading = false
+            // 檢查預覽是否可用
+            self.checkPreviewAvailability()
+        }
+    }
+    
+    // MARK: - Preview Availability Check
+    
+    /// 檢查預覽是否可用（Spotify 或 Apple Music）
+    /// 預設為可播放，只在確定不能播放時才更新狀態
+    private func checkPreviewAvailability() {
+        guard let track = trackDetail else {
+            return
+        }
+        
+        // 先檢查 Spotify preview URL
+        if track.preview_url != nil && !track.preview_url!.isEmpty {
+            // Spotify 可用，保持預設的可播放狀態
+            print("✅ Spotify preview 可用")
+            return
+        }
+        
+        // 沒有 Spotify preview，在背景檢查 Apple Music
+        print("⏳ Spotify preview 不可用，檢查 Apple Music...")
+        
+        Task {
+            let artistNames = track.artists.map { $0.name }.joined(separator: ", ")
+            let appleMusicService = AppleMusicService()
+            
+            // 確保已授權
+            if !appleMusicService.isAuthorized {
+                _ = await appleMusicService.requestAuthorization()
+            }
+            
+            // 搜尋 Apple Music
+            if let song = await appleMusicService.searchTrack(trackName: track.name, artistName: artistNames) {
+                // 檢查是否有預覽
+                if song.previewAssets?.first != nil {
+                    print("✅ Apple Music preview 可用")
+                    // 保持預設的可播放狀態
+                    return
+                }
+            }
+            
+            // 兩者都沒有，更新為不可播放
+            await MainActor.run {
+                canPlayPreview = false
+                print("❌ 無可用預覽")
+            }
         }
     }
     

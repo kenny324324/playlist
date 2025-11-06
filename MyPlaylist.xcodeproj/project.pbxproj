@@ -10,6 +10,7 @@
 		317121AD2EB9EDF100FD61E2 /* glass_icon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 317121AC2EB9EDF000FD61E2 /* glass_icon.icon */; };
 		317121AE2EB9EDF100FD61E2 /* glass_icon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 317121AC2EB9EDF000FD61E2 /* glass_icon.icon */; };
 		317121AF2EB9EDF100FD61E2 /* glass_icon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 317121AC2EB9EDF000FD61E2 /* glass_icon.icon */; };
+		31A2470F2EBC888100914590 /* MusicKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 31A2470E2EBC888100914590 /* MusicKit.framework */; };
 		31F0D3A82CCF243B00104662 /* BackupCode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31F0D3A72CCF243500104662 /* BackupCode.swift */; };
 /* End PBXBuildFile section */
 
@@ -32,6 +33,7 @@
 
 /* Begin PBXFileReference section */
 		317121AC2EB9EDF000FD61E2 /* glass_icon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = glass_icon.icon; sourceTree = "<group>"; };
+		31A2470E2EBC888100914590 /* MusicKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MusicKit.framework; path = System/Library/Frameworks/MusicKit.framework; sourceTree = SDKROOT; };
 		31F0D34D2CCA412100104662 /* MyPlaylist.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MyPlaylist.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		31F0D35D2CCA412300104662 /* MyPlaylistTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MyPlaylistTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		31F0D3672CCA412300104662 /* MyPlaylistUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MyPlaylistUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -272,6 +274,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				31A2470F2EBC888100914590 /* MusicKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -292,6 +295,14 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		31A2470D2EBC888100914590 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				31A2470E2EBC888100914590 /* MusicKit.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		31F0D3442CCA412100104662 = {
 			isa = PBXGroup;
 			children = (
@@ -302,6 +313,7 @@
 				31B2EF452EB1B38C0091004A /* 2024-spotify-full-logo */,
 				317121AC2EB9EDF000FD61E2 /* glass_icon.icon */,
 				31B2EF602EB1B38C0091004A /* 2024-spotify-logo-icon */,
+				31A2470D2EBC888100914590 /* Frameworks */,
 				31F0D34E2CCA412100104662 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -633,10 +645,12 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_ENTITLEMENTS = MyPlaylist/MyPlaylist.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 251105;
 				DEVELOPMENT_ASSET_PATHS = "\"MyPlaylist/Preview Content\"";
-				DEVELOPMENT_TEAM = 5353WH6FVX;
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = 5353WH6FVX;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = MyPlaylist/Info.plist;
@@ -655,6 +669,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.kenny.spostats;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = SpostatsMusic1106;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -670,10 +685,12 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_ENTITLEMENTS = MyPlaylist/MyPlaylist.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 251105;
 				DEVELOPMENT_ASSET_PATHS = "\"MyPlaylist/Preview Content\"";
-				DEVELOPMENT_TEAM = 5353WH6FVX;
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = 5353WH6FVX;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = MyPlaylist/Info.plist;
@@ -692,6 +709,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.kenny.spostats;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = SpostatsMusic1106;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;

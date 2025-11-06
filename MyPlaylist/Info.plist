@@ -13,6 +13,8 @@
 			</array>
 		</dict>
 	</array>
+	<key>NSAppleMusicUsageDescription</key>
+	<string>此 App 使用 Apple Music 來提供音樂預覽功能，當 Spotify 預覽不可用時作為備援。</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>SpotifyMix-Medium.ttf</string>
