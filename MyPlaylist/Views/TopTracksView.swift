@@ -70,7 +70,7 @@ struct TopTracksView: View {
                                 }
                                 .sheet(isPresented: $showUserProfile) {
                                     UserProfileView(userProfile: user, accessToken: accessToken, logout: logout)
-                                        .presentationDetents([.medium])  // 設置固定的中等高度
+                                        .presentationDetents(PresentationDetent.adaptiveDetents)
                                 }
                             }
                         }

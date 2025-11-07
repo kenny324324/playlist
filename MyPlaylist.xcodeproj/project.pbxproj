@@ -207,6 +207,7 @@
 		31B2F00F2EB1C5750091004A /* Exceptions for "MyPlaylist" folder in "MyPlaylistTests" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Extensions/DeviceAdaptive.swift,
 				Localizable.xcstrings,
 			);
 			target = 31F0D35C2CCA412300104662 /* MyPlaylistTests */;
@@ -214,6 +215,7 @@
 		31B2F0102EB1C5750091004A /* Exceptions for "MyPlaylist" folder in "MyPlaylistUITests" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Extensions/DeviceAdaptive.swift,
 				Localizable.xcstrings,
 			);
 			target = 31F0D3662CCA412300104662 /* MyPlaylistUITests */;

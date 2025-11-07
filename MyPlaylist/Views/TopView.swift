@@ -337,7 +337,7 @@ struct TopView: View {
                             accessToken: accessToken,
                             logout: logout
                         )
-                        .presentationDetents([.medium])
+                        .presentationDetents(PresentationDetent.adaptiveDetents)
                     }
                 }
             } else {

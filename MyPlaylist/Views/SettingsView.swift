@@ -61,13 +61,13 @@ struct SettingsView: View {
                                           } placeholder: {
                                               ProgressView()
                                           }
-                                          .frame(width: 30, height: 30)
+                                          .frame(width: AdaptiveSize.toolbarAvatarSize, height: AdaptiveSize.toolbarAvatarSize)
                                       }
-                                      .frame(width: 30, height: 30)
+                                      .frame(width: AdaptiveSize.toolbarAvatarSize, height: AdaptiveSize.toolbarAvatarSize)
                                       .contentShape(Rectangle())
                                       .sheet(isPresented: $showUserProfile) {
                                           UserProfileView(userProfile: user, accessToken: accessToken, logout: logout)
-                                              .presentationDetents([.medium])
+                                              .presentationDetents(PresentationDetent.adaptiveDetents)
                                       }
                                   }
                               }

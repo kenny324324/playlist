@@ -191,6 +191,9 @@ struct ContentView: View {
             handleSpotifyCallback(url: url)  // 監聽 Spotify 回調 URL
         }
         .onAppear {
+            // 檢查編譯標誌（用於調試）
+            DebugHelper.checkCompilationFlags()
+            
             checkIfLoggedIn()  // 每次顯示時檢查登入狀態
         }
         .onChange(of: scenePhase) { newPhase in

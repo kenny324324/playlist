@@ -202,6 +202,26 @@ struct HomeView: View {
                         Text("login.prompt.message")
                             .font(.custom("SpotifyMix-Medium", size: 16))
                             .foregroundColor(.gray)
+                        
+                        #if APPSTORE_REVIEW
+                        // Demo 模式按鈕（僅在審核版本顯示）
+                        if let enterDemo = enterDemoMode {
+                            Button(action: enterDemo) {
+                                HStack {
+                                    Image(systemName: "theatermasks")
+                                    Text("Demo Mode (For Review)")
+                                }
+                                .font(.custom("SpotifyMix-Medium", size: 18))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 24)
+                                .padding(.vertical, 12)
+                                .background(Color.orange)
+                                .cornerRadius(25)
+                            }
+                            .padding(.top, 10)
+                        }
+                        #endif
+                        
                         Spacer()
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -226,13 +246,13 @@ struct HomeView: View {
                                 } placeholder: {
                                     ProgressView()
                                 }
-                                .frame(width: 30, height: 30)
+                                .frame(width: AdaptiveSize.toolbarAvatarSize, height: AdaptiveSize.toolbarAvatarSize)
                             }
-                            .frame(width: 30, height: 30)
+                            .frame(width: AdaptiveSize.toolbarAvatarSize, height: AdaptiveSize.toolbarAvatarSize)
                             .contentShape(Rectangle())
                             .sheet(isPresented: $showUserProfile) {
                                 UserProfileView(userProfile: user, accessToken: accessToken, logout: logout)
-                                    .presentationDetents([.medium])
+                                    .presentationDetents(PresentationDetent.adaptiveDetents)
                             }
                         }
                     } else {
@@ -240,20 +260,20 @@ struct HomeView: View {
                         if #available(iOS 26.0, *) {
                             Button(action: login) {
                                 Text("login.title")
-                                    .font(.custom("SpotifyMix-Bold", size: 18))
+                                    .adaptiveFont(name: "SpotifyMix-Bold", phoneSize: 18, padSize: 22)
                                     .foregroundColor(.white)
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 4)
+                                    .padding(.horizontal, AdaptiveSize.size(phone: 16, pad: 24))
+                                    .padding(.vertical, AdaptiveSize.size(phone: 8, pad: 12))
                             }
                             .buttonStyle(.glassProminent)
                             .tint(Color.spotifyGreen)
                         } else if #available(iOS 17.0, *) {
                             Button(action: login) {
                                 Text("login.title")
-                                    .font(.custom("SpotifyMix-Bold", size: 18))
+                                    .adaptiveFont(name: "SpotifyMix-Bold", phoneSize: 18, padSize: 22)
                                     .foregroundColor(.white)
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 4)
+                                    .padding(.horizontal, AdaptiveSize.size(phone: 16, pad: 24))
+                                    .padding(.vertical, AdaptiveSize.size(phone: 8, pad: 12))
                             }
                             .buttonStyle(.borderedProminent)
                             .controlSize(.large)
@@ -261,10 +281,10 @@ struct HomeView: View {
                         } else {
                             Button(action: login) {
                                 Text("login.title")
-                                    .font(.custom("SpotifyMix-Bold", size: 18))
+                                    .adaptiveFont(name: "SpotifyMix-Bold", phoneSize: 18, padSize: 22)
                                     .foregroundColor(.white)
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 4)
+                                    .padding(.horizontal, AdaptiveSize.size(phone: 16, pad: 24))
+                                    .padding(.vertical, AdaptiveSize.size(phone: 8, pad: 12))
                             }
                             .buttonStyle(.borderedProminent)
                             .tint(Color.spotifyGreen)
@@ -281,9 +301,9 @@ struct HomeView: View {
                         loadData()
                     }) {
                         Image(systemName: "arrow.clockwise")
-                            .font(.system(size: 16, weight: .medium))
+                            .font(.system(size: UIDevice.isPad ? 20 : 16, weight: .medium))
                             .foregroundColor(.white)
-                            .frame(width: 30, height: 30)
+                            .frame(width: AdaptiveSize.toolbarAvatarSize, height: AdaptiveSize.toolbarAvatarSize)
                             .rotationEffect(.degrees(refreshRotation))
                     }
                     .simultaneousGesture(
@@ -987,9 +1007,9 @@ struct RecentlyPlayedRow: View {
                     audioPlayer.playPreview(from: previewUrl)
                 }) {
                     Image(systemName: audioPlayer.isPlaying && audioPlayer.currentPreviewUrl == previewUrl ? "pause.fill" : "play.fill")
-                        .font(.system(size: 16))
+                        .font(.system(size: UIDevice.isPad ? 20 : 16))
                         .foregroundColor(.white)
-                        .frame(width: 30, height: 30)
+                        .frame(width: AdaptiveSize.playButtonSize, height: AdaptiveSize.playButtonSize)
                         .background(Color.spotifyGreen)
                         .clipShape(Circle())
                 }
@@ -1163,9 +1183,9 @@ struct SavedTrackRow: View {
                     audioPlayer.playPreview(from: previewUrl)
                 }) {
                     Image(systemName: audioPlayer.isPlaying && audioPlayer.currentPreviewUrl == previewUrl ? "pause.fill" : "play.fill")
-                        .font(.system(size: 16))
+                        .font(.system(size: UIDevice.isPad ? 20 : 16))
                         .foregroundColor(.white)
-                        .frame(width: 30, height: 30)
+                        .frame(width: AdaptiveSize.playButtonSize, height: AdaptiveSize.playButtonSize)
                         .background(Color.spotifyGreen)
                         .clipShape(Circle())
                 }

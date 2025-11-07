@@ -11,35 +11,49 @@ struct UserProfileView: View {
     @State private var showingLogoutAlert = false
     
     var body: some View {
-        VStack(spacing: 0) {
-            // 用戶資訊區域，包含登出按鈕
-            userInfoSection
-                .padding(.top, 20)
-                .padding(.horizontal, 20)
-
-            // 播放清單標題和滾動區域
-            VStack(alignment: .leading, spacing: 10) {
-                Text("profile.playlists")
-                    .font(.custom("SpotifyMix-Bold", size: 20))
-                    .fontWeight(.bold)
-                    .foregroundColor(.white)
-
-                playlistSection
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 20)
-
-            Spacer()  // 使登出按鈕靠近底部
+        GeometryReader { geometry in
+            // 使用更穩健的判斷方式：結合寬度和高度
+            // iPad Sheet 的寬度通常 > 500pt
+            let screenWidth = geometry.size.width
+            let isLargeScreen = screenWidth > 500 || UIDevice.current.userInterfaceIdiom == .pad
+            let scale: CGFloat = isLargeScreen ? 1.5 : 1.0
             
-            // Made by Kenny 標籤
-            Text("settings.madeBy")
-                .font(.custom("SpotifyMix-Medium", size: 14))
-                .foregroundColor(.gray)
-                .opacity(0.7)
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.horizontal, 20)
-                .padding(.bottom, 20)
+            // 計算可用高度，決定每列顯示幾個項目
+            let availableHeight = geometry.size.height
+            let itemsPerColumn = calculateItemsPerColumn(availableHeight: availableHeight, scale: scale)
+            
+            let _ = print("🔍 Width: \(Int(screenWidth))pt, Height: \(Int(availableHeight))pt, Scale: \(scale)x, Items: \(itemsPerColumn)")
+            
+            VStack(spacing: 0) {
+                // 用戶資訊區域，包含登出按鈕
+                userInfoSection(scale: scale)
+                    .padding(.top, 20 * scale)
+                    .padding(.horizontal, 20 * scale)
 
+                // 播放清單標題和滾動區域
+                VStack(alignment: .leading, spacing: 10 * scale) {
+                    Text("profile.playlists")
+                        .font(.custom("SpotifyMix-Bold", size: 20 * scale))
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+
+                    playlistSection(scale: scale, itemsPerColumn: itemsPerColumn)
+                }
+                .padding(.horizontal, 20 * scale)
+                .padding(.top, 20 * scale)
+
+                Spacer()  // 使登出按鈕靠近底部
+                
+                // Made by Kenny 標籤
+                Text("settings.madeBy")
+                    .font(.custom("SpotifyMix-Medium", size: 14 * scale))
+                    .foregroundColor(.gray)
+                    .opacity(0.7)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 20)
+
+            }
         }
         .onAppear {
             fetchPlaylists()
@@ -59,28 +73,34 @@ struct UserProfileView: View {
         }
     }
     
-    private var userInfoSection: some View {
-        HStack(spacing: 20) {
-            userImageView
-            VStack(alignment: .leading, spacing: 5) {
+    private func userInfoSection(scale: CGFloat) -> some View {
+        HStack(spacing: 12 * scale) {  // 從 20 * scale 改為 12 * scale
+            userImageView(scale: scale)
+            
+            VStack(alignment: .leading, spacing: 5 * scale) {
                 Text(userProfile.display_name ?? String(localized: "profile.unknownUser"))
-                    .font(.custom("SpotifyMix-Bold", size: 18))
+                    .font(.custom("SpotifyMix-Bold", size: 18 * scale))
                     .foregroundColor(.white)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
 
                 Text(String(localized: "profile.followers", defaultValue: "Followers: \(userProfile.followers?.total ?? 0)"))
-                    .font(.custom("SpotifyMix-Medium", size: 16))
+                    .font(.custom("SpotifyMix-Medium", size: 16 * scale))
                     .foregroundColor(.white.opacity(0.7))
+                    .lineLimit(1)
             }
-            Spacer()
-            logoutButton // 把登出按鈕放在最右邊
+            .frame(maxWidth: .infinity, alignment: .leading)  // 讓文字區域佔用更多空間
+            
+            logoutButton(scale: scale)
         }
-        .padding(15)
+        .padding(15 * scale)
         .background(Color.white.opacity(0.1))
-        .cornerRadius(25)
+        .cornerRadius(25 * scale)
     }
     
-    private var userImageView: some View {
+    private func userImageView(scale: CGFloat) -> some View {
         Group {
+            let imageSize = 60.0 * scale
             if let imageUrl = userProfile.images?.first?.url,
                let url = URL(string: imageUrl) {
                 AsyncImage(url: url) { image in
@@ -89,70 +109,97 @@ struct UserProfileView: View {
                 } placeholder: {
                     Circle().fill(Color.gray)
                 }
-                .frame(width: 60, height: 60)
+                .frame(width: imageSize, height: imageSize)
                 .clipShape(Circle())
             } else {
                 Circle()
                     .fill(Color.gray)
-                    .frame(width: 60, height: 60)
+                    .frame(width: imageSize, height: imageSize)
             }
         }
     }
 
-    private var playlistSection: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(alignment: .top, spacing: 20) {
-                ForEach(0..<Int(ceil(Double(playlists.count) / 3.0)), id: \.self) { pageIndex in
-                    VStack(alignment: .leading, spacing: 10) {
-                        ForEach(getPlaylistsForPage(pageIndex)) { playlist in
-                            HStack(alignment: .center, spacing: 10) {
+    private func playlistSection(scale: CGFloat, itemsPerColumn: Int) -> some View {
+        let itemHeight = 60 * scale
+        let spacing = 10 * scale
+        let totalHeight = CGFloat(itemsPerColumn) * itemHeight + CGFloat(itemsPerColumn - 1) * spacing
+        
+        return ScrollView(.horizontal, showsIndicators: false) {
+            HStack(alignment: .top, spacing: 20 * scale) {
+                ForEach(0..<Int(ceil(Double(playlists.count) / Double(itemsPerColumn))), id: \.self) { pageIndex in
+                    VStack(alignment: .leading, spacing: spacing) {
+                        ForEach(getPlaylistsForPage(pageIndex, itemsPerColumn: itemsPerColumn)) { playlist in
+                            HStack(alignment: .center, spacing: 10 * scale) {
                                 playlistImageView(for: playlist)
-                                    .frame(width: 50, height: 50)
-                                    .clipShape(RoundedRectangle(cornerRadius: 5))
+                                    .frame(width: 50 * scale, height: 50 * scale)
+                                    .clipShape(RoundedRectangle(cornerRadius: 5 * scale))
 
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text(playlist.name)
-                                            .font(.custom("SpotifyMix-Medium", size: 16))
-                                            .foregroundColor(.white)
-                                            .lineLimit(1)
-                                        
-                                        Text(playlist.owner.display_name ?? String(localized: "profile.unknownOwner"))
-                                            .font(.custom("SpotifyMix-Medium", size: 14))
-                                            .foregroundColor(.white.opacity(0.6))
-                                            .lineLimit(1)
-                                    }
+                                VStack(alignment: .leading, spacing: 4 * scale) {
+                                    Text(playlist.name)
+                                        .font(.custom("SpotifyMix-Medium", size: 16 * scale))
+                                        .foregroundColor(.white)
+                                        .lineLimit(1)
+                                    
+                                    Text(playlist.owner.display_name ?? String(localized: "profile.unknownOwner"))
+                                        .font(.custom("SpotifyMix-Medium", size: 14 * scale))
+                                        .foregroundColor(.white.opacity(0.6))
+                                        .lineLimit(1)
+                                }
                                 Spacer()
                             }
-                            .frame(width: 300, height: 60)
+                            .frame(width: 300 * scale, height: itemHeight)
                         }
                         
                         Spacer(minLength: 0)
                     }
-                    .frame(height: 200)
+                    .frame(height: totalHeight)
                 }
             }
         }
-        .frame(height: 200)
+        .frame(height: totalHeight)
     }
     
-    private func getPlaylistsForPage(_ pageIndex: Int) -> [Playlist] {
-        let startIndex = pageIndex * 3
-        let endIndex = min(startIndex + 3, playlists.count)
+    private func getPlaylistsForPage(_ pageIndex: Int, itemsPerColumn: Int) -> [Playlist] {
+        let startIndex = pageIndex * itemsPerColumn
+        let endIndex = min(startIndex + itemsPerColumn, playlists.count)
         return Array(playlists[startIndex..<endIndex])
     }
+    
+    /// 根據 Sheet detent 判斷每列應該顯示幾個項目
+    /// - Medium detent (較小) → 2 個項目
+    /// - Large detent (較大) → 3 個項目
+    private func calculateItemsPerColumn(availableHeight: CGFloat, scale: CGFloat) -> Int {
+        // 根據實際測試的高度值設定臨界值：
+        // 469pt (Large) → 3 個項目
+        // 367pt (Medium) → 2 個項目
+        // 臨界值設為中間值：420pt
+        
+        let mediumDetentThreshold: CGFloat = 420  // 臨界值
+        
+        if availableHeight >= mediumDetentThreshold {
+            // Large detent (≥ 420pt) - 顯示 3 個項目
+            return 3
+        } else {
+            // Medium detent (< 420pt) - 顯示 2 個項目
+            return 2
+        }
+    }
 
-    private var logoutButton: some View {
+    private func logoutButton(scale: CGFloat) -> some View {
         Button(action: {
             showingLogoutAlert = true // 顯示 Alert
         }) {
             Text("profile.logout")
-                .font(.custom("SpotifyMix-Bold", size: 16))
+                .font(.custom("SpotifyMix-Bold", size: 16 * scale))
                 .foregroundColor(Color.spotifyText)
-                .padding(.vertical, 8)
-                .padding(.horizontal, 16)
+                .padding(.vertical, 8 * scale)
+                .padding(.horizontal, 16 * scale)
                 .background(Color.white)
-                .cornerRadius(20)
+                .cornerRadius(20 * scale)
         }
+        .buttonStyle(PlainButtonStyle())
+        // 確保按鈕有足夠的點擊區域
+        .frame(minWidth: 90 * scale, minHeight: 40 * scale)
     }
 
     private func fetchPlaylists() {
