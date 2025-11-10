@@ -250,6 +250,34 @@
         }
       }
     },
+    "common.done" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完了"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "완료"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完成"
+          }
+        }
+      }
+    },
     "component.followers" : {
       "localizations" : {
         "en" : {
@@ -4753,6 +4781,518 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "首歌曲來自"
+          }
+        }
+      }
+    },
+    "stats.detail.noTracks" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Tracks"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "トラックなし"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "트랙 없음"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "沒有歌曲"
+          }
+        }
+      }
+    },
+    "stats.detail.noTracksDescription" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No tracks found for this selection"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この選択に該当するトラックはありません"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 선택에 해당하는 트랙이 없습니다"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此選擇沒有找到歌曲"
+          }
+        }
+      }
+    },
+    "stats.detail.subtitle.album.longTerm %lld %@" : {
+      "comment" : "Album long term stats detail subtitle",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld tracks from %2$@ in your Top 50 of all time"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全期間のトップ50に%2$@からの%1$lld曲"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "전체 기간 상위 50곡 중 %2$@의 %1$lld곡"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所有時間前 50 名中有 %1$lld 首來自 %2$@ 的歌曲"
+          }
+        }
+      }
+    },
+    "stats.detail.subtitle.album.mediumTerm %lld %@" : {
+      "comment" : "Album medium term stats detail subtitle",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld tracks from %2$@ in your Top 50 over the past 6 months"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "過去6ヶ月のトップ50に%2$@からの%1$lld曲"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "지난 6개월간 상위 50곡 중 %2$@의 %1$lld곡"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "過去 6 個月前 50 名中有 %1$lld 首來自 %2$@ 的歌曲"
+          }
+        }
+      }
+    },
+    "stats.detail.subtitle.album.recent %lld %@" : {
+      "comment" : "Album recent plays stats detail subtitle",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld tracks from %2$@ appeared in your last 50 plays"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最近の50曲に%2$@からの%1$lld曲が登場"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "최근 50곡 중 %2$@의 %1$lld곡 재생"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最近 50 次播放中有 %1$lld 首來自 %2$@ 的歌曲"
+          }
+        }
+      }
+    },
+    "stats.detail.subtitle.album.shortTerm %lld %@" : {
+      "comment" : "Album short term stats detail subtitle",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld tracks from %2$@ in your Top 50 over the past 4 weeks"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "過去4週間のトップ50に%2$@からの%1$lld曲"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "지난 4주간 상위 50곡 중 %2$@의 %1$lld곡"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "過去 4 週前 50 名中有 %1$lld 首來自 %2$@ 的歌曲"
+          }
+        }
+      }
+    },
+    "stats.detail.subtitle.artist.longTerm %lld %@" : {
+      "comment" : "Artist long term stats detail subtitle",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld tracks by %2$@ in your Top 50 of all time"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全期間のトップ50に%2$@の%1$lld曲"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "전체 기간 상위 50곡 중 %2$@의 %1$lld곡"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所有時間前 50 名中有 %1$lld 首 %2$@ 的歌曲"
+          }
+        }
+      }
+    },
+    "stats.detail.subtitle.artist.mediumTerm %lld %@" : {
+      "comment" : "Artist medium term stats detail subtitle",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld tracks by %2$@ in your Top 50 over the past 6 months"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "過去6ヶ月のトップ50に%2$@の%1$lld曲"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "지난 6개월간 상위 50곡 중 %2$@의 %1$lld곡"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "過去 6 個月前 50 名中有 %1$lld 首 %2$@ 的歌曲"
+          }
+        }
+      }
+    },
+    "stats.detail.subtitle.artist.recent %lld %@" : {
+      "comment" : "Artist recent plays stats detail subtitle",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld tracks by %2$@ appeared in your last 50 plays"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最近の50曲に%2$@の%1$lld曲が登場"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "최근 50곡 중 %2$@의 %1$lld곡 재생"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最近 50 次播放中有 %1$lld 首 %2$@ 的歌曲"
+          }
+        }
+      }
+    },
+    "stats.detail.subtitle.artist.shortTerm %lld %@" : {
+      "comment" : "Artist short term stats detail subtitle",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld tracks by %2$@ in your Top 50 over the past 4 weeks"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "過去4週間のトップ50に%2$@の%1$lld曲"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "지난 4주간 상위 50곡 중 %2$@의 %1$lld곡"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "過去 4 週前 50 名中有 %1$lld 首 %2$@ 的歌曲"
+          }
+        }
+      }
+    },
+    "stats.detail.title.album.longTerm" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Top 50 - All Time"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "トップ50 - 全期間"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "상위 50 - 전체 기간"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前 50 名 - 所有時間"
+          }
+        }
+      }
+    },
+    "stats.detail.title.album.mediumTerm" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Top 50 - Past 6 Months"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "トップ50 - 過去6ヶ月"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "상위 50 - 지난 6개월"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前 50 名 - 過去 6 個月"
+          }
+        }
+      }
+    },
+    "stats.detail.title.album.recent" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recently Played"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最近再生した曲"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "최근 재생"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最近播放"
+          }
+        }
+      }
+    },
+    "stats.detail.title.album.shortTerm" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Top 50 - Past 4 Weeks"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "トップ50 - 過去4週間"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "상위 50 - 지난 4주"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前 50 名 - 過去 4 週"
+          }
+        }
+      }
+    },
+    "stats.detail.title.artist.longTerm" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Top 50 - All Time"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "トップ50 - 全期間"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "상위 50 - 전체 기간"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前 50 名 - 所有時間"
+          }
+        }
+      }
+    },
+    "stats.detail.title.artist.mediumTerm" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Top 50 - Past 6 Months"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "トップ50 - 過去6ヶ月"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "상위 50 - 지난 6개월"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前 50 名 - 過去 6 個月"
+          }
+        }
+      }
+    },
+    "stats.detail.title.artist.recent" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recently Played"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最近再生した曲"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "최근 재생"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最近播放"
+          }
+        }
+      }
+    },
+    "stats.detail.title.artist.shortTerm" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Top 50 - Past 4 Weeks"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "トップ50 - 過去4週間"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "상위 50 - 지난 4주"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前 50 名 - 過去 4 週"
           }
         }
       }

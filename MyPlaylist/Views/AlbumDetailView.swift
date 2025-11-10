@@ -13,6 +13,9 @@ struct AlbumDetailView: View {
     @State private var albumStats: AlbumStats?
     @State private var isLoadingStats = false
     
+    // Sheet 控制狀態
+    @State private var selectedStatsType: StatsCardType?
+    
     enum DetailTab: String, CaseIterable {
         case info
         case stats
@@ -369,6 +372,7 @@ struct AlbumDetailView: View {
                 }
             }
         }
+        .padding(.top, 24)
         .padding(.bottom, 30)
     }
     
@@ -720,13 +724,19 @@ struct AlbumDetailView: View {
                 SmallStatCard(
                     number: "\(stats.tracksInShortTerm)",
                     text: "\(stats.tracksInShortTerm) \(String(localized: "stats.album.tracksOf")) \(albumName) \(String(localized: "stats.album.inTop50.4weeks"))",
-                    highlightWord: albumName
+                    highlightWord: albumName,
+                    onTap: {
+                        presentAlbumStats(type: .albumShortTerm)
+                    }
                 )
                 
                 SmallStatCard(
                     number: "\(stats.tracksInMediumTerm)",
                     text: "\(stats.tracksInMediumTerm) \(String(localized: "stats.album.tracksOf")) \(albumName) \(String(localized: "stats.album.inTop50.6months"))",
-                    highlightWord: albumName
+                    highlightWord: albumName,
+                    onTap: {
+                        presentAlbumStats(type: .albumMediumTerm)
+                    }
                 )
             }
             
@@ -735,19 +745,77 @@ struct AlbumDetailView: View {
                 SmallStatCard(
                     number: "\(stats.tracksInLongTerm)",
                     text: "\(stats.tracksInLongTerm) \(String(localized: "stats.album.tracksOf")) \(albumName) \(String(localized: "stats.album.inTop50.allTime"))",
-                    highlightWord: albumName
+                    highlightWord: albumName,
+                    onTap: {
+                        presentAlbumStats(type: .albumLongTerm)
+                    }
                 )
                 
                 SmallStatCard(
                     number: "\(stats.recentPlayCount)",
                     text: "\(stats.recentPlayCount) \(String(localized: "stats.album.tracksFrom")) \(albumName) \(String(localized: "stats.album.appearedInLast50"))",
-                    highlightWord: albumName
+                    highlightWord: albumName,
+                    onTap: {
+                        presentAlbumStats(type: .albumRecent)
+                    }
                 )
             }
         }
         .padding(.horizontal, 20)
         .padding(.top, 24)
         .padding(.bottom, 24)
+        .sheet(item: $selectedStatsType) { statsType in
+            if let stats = albumStats, let album = albumDetail {
+                StatsDetailSheet(
+                    title: statsType.getTitle(name: album.name),
+                    subtitle: statsType.getSubtitle(name: album.name, count: getTrackCount(for: statsType, stats: stats)),
+                    tracks: getTracks(for: statsType, stats: stats),
+                    accessToken: accessToken,
+                    isRecentlyPlayed: statsType.isRecentlyPlayed,
+                    audioPlayer: audioPlayer
+                )
+            } else {
+                StatsDetailLoadingView()
+            }
+        }
+    }
+    
+    private func presentAlbumStats(type: StatsCardType) {
+        guard albumStats != nil, albumDetail != nil else {
+            return
+        }
+        selectedStatsType = type
+    }
+    
+    // MARK: - Helper Functions for Stats
+    private func getTracks(for type: StatsCardType, stats: AlbumStats) -> [RankedTrack] {
+        switch type {
+        case .albumShortTerm:
+            return stats.shortTermTracks
+        case .albumMediumTerm:
+            return stats.mediumTermTracks
+        case .albumLongTerm:
+            return stats.longTermTracks
+        case .albumRecent:
+            return stats.recentTracks
+        default:
+            return []
+        }
+    }
+    
+    private func getTrackCount(for type: StatsCardType, stats: AlbumStats) -> Int {
+        switch type {
+        case .albumShortTerm:
+            return stats.tracksInShortTerm
+        case .albumMediumTerm:
+            return stats.tracksInMediumTerm
+        case .albumLongTerm:
+            return stats.tracksInLongTerm
+        case .albumRecent:
+            return stats.recentPlayCount
+        default:
+            return 0
+        }
     }
     
     // MARK: - Load Album Stats

@@ -15,8 +15,7 @@ struct ContentView: View {
     @State private var currentlyPlaying: CurrentlyPlayingTrack? = nil
     @State private var currentlyPlayingProgressMs: Int = 0
     @State private var isSpotifyPlaying: Bool = false
-    @State private var showTrackDetailFromPlayer = false
-    @State private var selectedTrackIdFromPlayer: String? = nil
+    @State private var trackDetailSheetItem: TrackDetailSheetItem? = nil
     
     // 用於 ASWebAuthenticationSession
     @StateObject private var presentationContextProvider = WebAuthenticationPresentationContextProvider()
@@ -120,8 +119,7 @@ struct ContentView: View {
                             track: currentlyPlaying,
                             audioPlayer: audioPlayer,
                             onTapTrack: { trackId in
-                                selectedTrackIdFromPlayer = trackId
-                                showTrackDetailFromPlayer = true
+                                trackDetailSheetItem = TrackDetailSheetItem(id: trackId)
                             }
                         )
                     }
@@ -216,11 +214,9 @@ struct ContentView: View {
                 }
             }
         }
-        .sheet(isPresented: $showTrackDetailFromPlayer) {
-            if let trackId = selectedTrackIdFromPlayer {
-                NavigationView {
-                    TrackDetailView(trackId: trackId, accessToken: accessToken ?? "", audioPlayer: audioPlayer)
-                }
+        .sheet(item: $trackDetailSheetItem) { item in
+            NavigationStack {
+                TrackDetailView(trackId: item.id, accessToken: accessToken ?? "", audioPlayer: audioPlayer)
             }
         }
     }
@@ -348,6 +344,10 @@ struct ContentView: View {
             }
         }
     }
+}
+
+private struct TrackDetailSheetItem: Identifiable {
+    let id: String
 }
 
 enum TimeRange: String, CaseIterable {
