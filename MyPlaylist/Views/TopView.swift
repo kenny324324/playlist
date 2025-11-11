@@ -22,6 +22,7 @@ struct TopView: View {
     @State private var showUserProfile = false
     @State private var isLoading = false
     @State private var rankChanges: [String: RankChange] = [:]  // 排名變化記錄
+    @State private var forceRefresh = false  // 強制刷新標記
     
     enum ContentType: String, CaseIterable {
         case tracks = "Tracks"
@@ -171,6 +172,10 @@ struct TopView: View {
                     }
                     .padding(.top, 20)
                     .padding(.bottom, 30)
+                }
+                .refreshable {
+                    // 下拉刷新
+                    await performRefresh()
                 }
             }
         }
@@ -368,19 +373,89 @@ struct TopView: View {
         }
     }
     
+    // MARK: - 下拉刷新
+    @MainActor
+    private func performRefresh() async {
+        PerformanceLogger.shared.logUserAction(action: "下拉刷新", details: selectedContentType.title)
+        
+        forceRefresh = true
+        loadData()
+        
+        // 簡單等待載入完成（最多 3 秒）
+        for _ in 0..<30 {
+            if !isLoading {
+                break
+            }
+            try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 秒
+        }
+    }
+    
     private func loadTracks() {
+        // 取得當前用戶 ID
+        guard let userId = self.userProfile?.id else {
+            isLoading = false
+            return
+        }
+        
+        // 1. 先檢查快取（除非強制刷新）
+        if forceRefresh {
+            PerformanceLogger.shared.logForceRefresh(type: "Top Tracks")
+        }
+        
+        if !forceRefresh, let cachedTracks = APIResponseCache.shared.getTopTracks(
+            userId: userId,
+            timeRange: selectedTimeRange.rawValue
+        ) {
+            self.tracks = cachedTracks
+                
+                // 預載圖片
+                ImagePreloader.shared.preloadTracks(cachedTracks)
+                
+                // 仍然計算排名變化
+                CloudKitRankingService.shared.calculateRankChanges(
+                userId: userId,
+                currentTracks: cachedTracks,
+                timeRange: self.selectedTimeRange.rawValue
+            ) { rankChanges in
+                DispatchQueue.main.async {
+                    self.rankChanges = rankChanges
+                }
+            }
+            
+            self.isLoading = false
+            return
+        }
+        
+        // 2. 快取不存在、已過期，或強制刷新
+        let startTime = Date()
+        PerformanceLogger.shared.logAPIRequest(
+            endpoint: "Top Tracks",
+            params: ["timeRange": selectedTimeRange.rawValue]
+        )
+        
         SpotifyAPIService.fetchTopTracks(
             accessToken: accessToken,
             timeRange: selectedTimeRange.rawValue
         ) { fetchedTracks in
+            let duration = Date().timeIntervalSince(startTime)
+            PerformanceLogger.shared.logAPISuccess(
+                endpoint: "Top Tracks",
+                duration: duration,
+                itemCount: fetchedTracks.count
+            )
+            
             DispatchQueue.main.async {
                 self.tracks = fetchedTracks
                 
-                // 取得當前用戶 ID（如果有的話）
-                guard let userId = self.userProfile?.id else {
-                    self.isLoading = false
-                    return
-                }
+                // 預載圖片
+                ImagePreloader.shared.preloadTracks(fetchedTracks)
+                
+                // 儲存到快取
+                APIResponseCache.shared.setTopTracks(
+                    fetchedTracks,
+                    userId: userId,
+                    timeRange: self.selectedTimeRange.rawValue
+                )
                 
                 // 使用 CloudKit 計算排名變化（支援跨裝置同步）
                 CloudKitRankingService.shared.calculateRankChanges(
@@ -406,18 +481,69 @@ struct TopView: View {
                 }
                 
                 self.isLoading = false
+                self.forceRefresh = false  // 重置強制刷新標記
             }
         }
     }
     
     private func loadArtists() {
+        // 取得當前用戶 ID
+        guard let userId = self.userProfile?.id else {
+            isLoading = false
+            return
+        }
+        
+        // 1. 先檢查快取（除非強制刷新）
+        if forceRefresh {
+            PerformanceLogger.shared.logForceRefresh(type: "Top Artists")
+        }
+        
+        if !forceRefresh, let cachedArtists = APIResponseCache.shared.getTopArtists(
+            userId: userId,
+            timeRange: selectedTimeRange.rawValue
+        ) {
+            self.artists = cachedArtists
+            
+            // 預載圖片
+            ImagePreloader.shared.preloadArtists(cachedArtists)
+            
+            self.isLoading = false
+            return
+        }
+        
+        // 2. 快取不存在、已過期，或強制刷新
+        let startTime = Date()
+        PerformanceLogger.shared.logAPIRequest(
+            endpoint: "Top Artists",
+            params: ["timeRange": selectedTimeRange.rawValue]
+        )
+        
         SpotifyAPIService.fetchTopArtists(
             accessToken: accessToken,
             timeRange: selectedTimeRange.rawValue
         ) { fetchedArtists in
+            let duration = Date().timeIntervalSince(startTime)
+            PerformanceLogger.shared.logAPISuccess(
+                endpoint: "Top Artists",
+                duration: duration,
+                itemCount: fetchedArtists.count
+            )
+            
             DispatchQueue.main.async {
                 self.artists = fetchedArtists
+                
+                // 預載圖片
+                ImagePreloader.shared.preloadArtists(fetchedArtists)
+                
+                // 儲存到快取
+                APIResponseCache.shared.setTopArtists(
+                    fetchedArtists,
+                    userId: userId,
+                    timeRange: self.selectedTimeRange.rawValue
+                )
+                
                 self.isLoading = false
+                self.forceRefresh = false  // 重置強制刷新標記
             }
         }
     }

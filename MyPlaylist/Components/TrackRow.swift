@@ -45,6 +45,9 @@ struct TrackRow: View {
     @Binding var showPlayer: Bool
     var rankChange: RankChange?  // 新增：排名變化參數
 
+    // 優化：使用 @State 避免每次重繪時重新計算
+    @State private var artistNames: String = ""
+
     var body: some View {
         HStack(alignment: .center, spacing: 8) {
             // 排名和變化指示器（在框框外面）
@@ -61,34 +64,14 @@ struct TrackRow: View {
             
             // 灰色框框內容
             HStack(spacing: 6) {
-                // 專輯封面
-                AsyncImage(url: URL(string: track.album.images.first?.url ?? "")) { phase in
-                    switch phase {
-                    case .empty:
-                        ZStack {
-                            Color.gray.opacity(0.3)
-                            Image(systemName: "music.note")
-                                .foregroundColor(.gray)
-                                .font(.system(size: 16))
-                        }
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                    case .failure:
-                        ZStack {
-                            Color.gray.opacity(0.3)
-                            Image(systemName: "music.note")
-                                .foregroundColor(.gray)
-                                .font(.system(size: 16))
-                        }
-                    @unknown default:
-                        EmptyView()
-                    }
-                }
-                .aspectRatio(1, contentMode: .fit)
-                .cornerRadius(6)
-                .clipped()
+                // 專輯封面 - 使用優化的 AsyncImageView（支援快取）
+                AsyncImageView(
+                    url: track.album.images.first?.url,
+                    placeholder: "music.note",
+                    size: CGSize(width: 45, height: 45),
+                    cornerRadius: 6,
+                    isCircle: false
+                )
 
                 // 歌曲資訊
                 VStack(alignment: .leading, spacing: 4) {
@@ -100,7 +83,7 @@ struct TrackRow: View {
                     )
 
                     FadingText(
-                        text: track.artists.map(\.name).joined(separator: ", "),
+                        text: artistNames,
                         font: .custom("SpotifyMix-Medium", size: 15),
                         foregroundColor: .gray,
                         backgroundColor: Color(red: 0.12, green: 0.12, blue: 0.12)
@@ -121,6 +104,12 @@ struct TrackRow: View {
             .cornerRadius(10)
         }
         .frame(maxWidth: .infinity)
+        .onAppear {
+            // 只在首次出現時計算藝人名稱
+            if artistNames.isEmpty {
+                artistNames = track.artists.map(\.name).joined(separator: ", ")
+            }
+        }
     }
     
     // MARK: - 排名變化指示器

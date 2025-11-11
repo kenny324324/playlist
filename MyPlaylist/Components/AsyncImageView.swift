@@ -144,29 +144,191 @@ struct AsyncImageView: View {
     }
 }
 
-// 圖片快取類別
+// 圖片快取類別 - 優化版本（記憶體 + 磁碟快取）
 class ImageCache {
     static let shared = ImageCache()
-    private let cache = NSCache<NSString, UIImage>()
+    
+    // 記憶體快取
+    private let memoryCache = NSCache<NSString, UIImage>()
+    
+    // 磁碟快取目錄
+    private let diskCacheURL: URL
+    
+    // 快取隊列（避免競態條件）
+    private let cacheQueue = DispatchQueue(label: "com.myplaylist.imagecache", attributes: .concurrent)
     
     private init() {
-        cache.countLimit = 100 // 最多快取 100 張圖片
-        cache.totalCostLimit = 1024 * 1024 * 50 // 50MB
+        // 設定記憶體快取限制
+        memoryCache.countLimit = 150 // 最多快取 150 張圖片（原本 100）
+        memoryCache.totalCostLimit = 1024 * 1024 * 100 // 100MB（原本 50MB）
+        
+        // 設定磁碟快取目錄
+        let cacheDir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+        diskCacheURL = cacheDir.appendingPathComponent("ImageCache", isDirectory: true)
+        
+        // 創建磁碟快取目錄
+        try? FileManager.default.createDirectory(at: diskCacheURL, withIntermediateDirectories: true)
+        
+        // 監聽記憶體警告，清理快取
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleMemoryWarning),
+            name: UIApplication.didReceiveMemoryWarningNotification,
+            object: nil
+        )
+        
+        // 定期清理過期的磁碟快取（7天）
+        Task {
+            await cleanExpiredDiskCache()
+        }
     }
     
-    func set(_ image: UIImage, forKey key: String) {
-        cache.setObject(image, forKey: key as NSString)
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
     
+    // MARK: - 讀取快取（記憶體 -> 磁碟）
     func get(forKey key: String) -> UIImage? {
-        return cache.object(forKey: key as NSString)
+        // 1. 先查記憶體快取
+        if let cachedImage = memoryCache.object(forKey: key as NSString) {
+            return cachedImage
+        }
+        
+        // 2. 查磁碟快取
+        if let diskImage = getDiskCache(forKey: key) {
+            // 將磁碟圖片加載回記憶體快取
+            let cost = diskImage.pngData()?.count ?? 0
+            memoryCache.setObject(diskImage, forKey: key as NSString, cost: cost)
+            return diskImage
+        }
+        
+        return nil
     }
     
+    // MARK: - 儲存快取（記憶體 + 磁碟）
+    func set(_ image: UIImage, forKey key: String) {
+        // 計算圖片大小（用於記憶體快取限制）
+        let cost = image.pngData()?.count ?? 0
+        
+        // 1. 儲存到記憶體快取
+        memoryCache.setObject(image, forKey: key as NSString, cost: cost)
+        
+        // 2. 非同步儲存到磁碟快取
+        cacheQueue.async(flags: .barrier) { [weak self] in
+            self?.setDiskCache(image, forKey: key)
+        }
+    }
+    
+    // MARK: - 移除快取
     func remove(forKey key: String) {
-        cache.removeObject(forKey: key as NSString)
+        memoryCache.removeObject(forKey: key as NSString)
+        
+        cacheQueue.async(flags: .barrier) { [weak self] in
+            self?.removeDiskCache(forKey: key)
+        }
     }
     
+    // MARK: - 清空所有快取
     func removeAll() {
-        cache.removeAllObjects()
+        memoryCache.removeAllObjects()
+        
+        cacheQueue.async(flags: .barrier) { [weak self] in
+            guard let self = self else { return }
+            try? FileManager.default.removeItem(at: self.diskCacheURL)
+            try? FileManager.default.createDirectory(at: self.diskCacheURL, withIntermediateDirectories: true)
+        }
+    }
+    
+    // MARK: - 記憶體警告處理
+    @objc private func handleMemoryWarning() {
+        PerformanceLogger.shared.logMemoryWarning()
+        PerformanceLogger.shared.log("清理圖片快取", icon: "🧹")
+        memoryCache.removeAllObjects()
+    }
+    
+    // MARK: - 磁碟快取操作
+    private func getDiskCache(forKey key: String) -> UIImage? {
+        let fileURL = diskCacheURL.appendingPathComponent(key.md5Hash)
+        
+        guard FileManager.default.fileExists(atPath: fileURL.path),
+              let data = try? Data(contentsOf: fileURL),
+              let image = UIImage(data: data) else {
+            return nil
+        }
+        
+        // 更新最後訪問時間（用於 LRU 清理）
+        try? FileManager.default.setAttributes(
+            [.modificationDate: Date()],
+            ofItemAtPath: fileURL.path
+        )
+        
+        return image
+    }
+    
+    private func setDiskCache(_ image: UIImage, forKey key: String) {
+        guard let data = image.jpegData(compressionQuality: 0.8) else { return }
+        
+        let fileURL = diskCacheURL.appendingPathComponent(key.md5Hash)
+        try? data.write(to: fileURL)
+    }
+    
+    private func removeDiskCache(forKey key: String) {
+        let fileURL = diskCacheURL.appendingPathComponent(key.md5Hash)
+        try? FileManager.default.removeItem(at: fileURL)
+    }
+    
+    // MARK: - 清理過期快取（7天前的）
+    private func cleanExpiredDiskCache() async {
+        let fileManager = FileManager.default
+        guard let files = try? fileManager.contentsOfDirectory(at: diskCacheURL, includingPropertiesForKeys: [.contentModificationDateKey]) else {
+            return
+        }
+        
+        let expirationDate = Date().addingTimeInterval(-7 * 24 * 60 * 60) // 7天前
+        var removedCount = 0
+        
+        for fileURL in files {
+            guard let attributes = try? fileManager.attributesOfItem(atPath: fileURL.path),
+                  let modificationDate = attributes[.modificationDate] as? Date else {
+                continue
+            }
+            
+            if modificationDate < expirationDate {
+                try? fileManager.removeItem(at: fileURL)
+                removedCount += 1
+            }
+        }
+        
+        if removedCount > 0 {
+            PerformanceLogger.shared.logImageCacheCleaned(count: removedCount)
+        }
+    }
+    
+    // MARK: - 獲取快取大小
+    func getCacheSize() -> String {
+        var totalSize: Int64 = 0
+        
+        guard let files = try? FileManager.default.contentsOfDirectory(at: diskCacheURL, includingPropertiesForKeys: [.fileSizeKey]) else {
+            return "0 MB"
+        }
+        
+        for fileURL in files {
+            if let attributes = try? FileManager.default.attributesOfItem(atPath: fileURL.path),
+               let fileSize = attributes[.size] as? Int64 {
+                totalSize += fileSize
+            }
+        }
+        
+        let sizeInMB = Double(totalSize) / (1024 * 1024)
+        return String(format: "%.2f MB", sizeInMB)
+    }
+}
+
+// MARK: - String MD5 擴充（用於生成快取檔案名稱）
+extension String {
+    var md5Hash: String {
+        let data = Data(self.utf8)
+        let hash = data.reduce(0) { ($0 << 5) &- $0 &+ Int($1) }
+        return "\(abs(hash))"
     }
 } 

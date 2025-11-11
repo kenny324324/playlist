@@ -13,6 +13,8 @@ struct TrackDetailView: View {
     @State private var selectedTab: DetailTab = .info
     @State private var trackStats: TrackStats?
     @State private var isLoadingStats = false
+    @State private var rankingTrend: RankingTrend?
+    @State private var isLoadingTrend = false
     @State private var canPlayPreview = true  // 預設可以播放，檢查後如果不行再改
     
     struct TrackStats {
@@ -674,6 +676,43 @@ struct TrackDetailView: View {
             group.notify(queue: .main) {
                 self.trackStats = stats
                 self.isLoadingStats = false
+                
+                // 載入排名趨勢（使用 short_term）
+                self.loadRankingTrend(for: "short_term")
+            }
+        }
+    }
+    
+    // MARK: - Ranking Trend Loading
+    
+    private func loadRankingTrend(for timeRange: String) {
+        guard let trackName = trackDetail?.name else {
+            return
+        }
+        
+        isLoadingTrend = true
+        
+        // 先獲取用戶資料以取得 userId
+        SpotifyAPIService.fetchCurrentUserProfile(accessToken: accessToken) { userProfile in
+            guard let userId = userProfile?.id else {
+                DispatchQueue.main.async {
+                    self.isLoadingTrend = false
+                }
+                return
+            }
+            
+            CloudKitRankingService.shared.fetchTrackRankingHistory(
+                userId: userId,
+                trackId: self.trackId,
+                timeRange: timeRange
+            ) { histories in
+                DispatchQueue.main.async {
+                    self.rankingTrend = RankingTrend.from(
+                        histories: histories,
+                        trackName: trackName
+                    )
+                    self.isLoadingTrend = false
+                }
             }
         }
     }
@@ -681,37 +720,110 @@ struct TrackDetailView: View {
     // MARK: - Track Stats Section
     
     private func trackStatsSection(stats: TrackStats, trackName: String) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // 第一行：4週排名 + 6個月排名
-            HStack(spacing: 12) {
-                SmallStatCard(
-                    number: stats.rankShortTerm != nil ? "#\(stats.rankShortTerm!)" : "-",
-                    text: String(localized: "stats.ofYourMostStreamed.4weeks")
-                )
+        VStack(alignment: .leading, spacing: 24) {
+            // 統計卡片
+            VStack(alignment: .leading, spacing: 12) {
+                // 第一行：4週排名 + 6個月排名
+                HStack(spacing: 12) {
+                    SmallStatCard(
+                        number: stats.rankShortTerm != nil ? "#\(stats.rankShortTerm!)" : "-",
+                        text: String(localized: "stats.ofYourMostStreamed.4weeks")
+                    )
+                    
+                    SmallStatCard(
+                        number: stats.rankMediumTerm != nil ? "#\(stats.rankMediumTerm!)" : "-",
+                        text: String(localized: "stats.ofYourMostStreamed.6months")
+                    )
+                }
                 
-                SmallStatCard(
-                    number: stats.rankMediumTerm != nil ? "#\(stats.rankMediumTerm!)" : "-",
-                    text: String(localized: "stats.ofYourMostStreamed.6months")
-                )
+                // 第二行：所有時間排名 + 最近播放次數
+                HStack(spacing: 12) {
+                    SmallStatCard(
+                        number: stats.rankLongTerm != nil ? "#\(stats.rankLongTerm!)" : "-",
+                        text: String(localized: "stats.ofYourMostStreamed.allTime")
+                    )
+                    
+                    SmallStatCard(
+                        number: "\(stats.recentPlayCount)",
+                        text: String(localized: "stats.times") + " \(trackName) " + String(localized: "stats.appearedInLast50"),
+                        highlightWord: trackName
+                    )
+                }
             }
+            .padding(.horizontal, 20)
             
-            // 第二行：所有時間排名 + 最近播放次數
-            HStack(spacing: 12) {
-                SmallStatCard(
-                    number: stats.rankLongTerm != nil ? "#\(stats.rankLongTerm!)" : "-",
-                    text: String(localized: "stats.ofYourMostStreamed.allTime")
-                )
-                
-                SmallStatCard(
-                    number: "\(stats.recentPlayCount)",
-                    text: String(localized: "stats.times") + " \(trackName) " + String(localized: "stats.appearedInLast50"),
-                    highlightWord: trackName
-                )
+            // 排名趨勢圖
+            if isLoadingTrend {
+                trendChartLoadingPlaceholder()
+            } else if let trend = rankingTrend {
+                if trend.hasData {
+                    trendChartSection(trend: trend)
+                } else {
+                    trendChartEmptyState()
+                }
             }
         }
-        .padding(.horizontal, 20)
         .padding(.top, 24)
         .padding(.bottom, 30)
+    }
+    
+    // MARK: - Trend Chart Section
+    
+    private func trendChartSection(trend: RankingTrend) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("rankingTrend.title")
+                .font(.custom("SpotifyMix-Bold", size: 20))
+                .foregroundColor(.white)
+            
+            RankingTrendChart(trend: trend)
+                .padding(16)
+                .background(Color(red: 0.15, green: 0.15, blue: 0.15))
+                .cornerRadius(12)
+        }
+        .padding(.horizontal, 20)
+    }
+    
+    private func trendChartLoadingPlaceholder() -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            RoundedRectangle(cornerRadius: 4)
+                .fill(Color.gray.opacity(0.3))
+                .frame(width: 150, height: 20)
+                .shimmer()
+            
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.gray.opacity(0.3))
+                .frame(height: 280)
+                .shimmer()
+        }
+        .padding(.horizontal, 20)
+    }
+    
+    private func trendChartEmptyState() -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("rankingTrend.title")
+                .font(.custom("SpotifyMix-Bold", size: 20))
+                .foregroundColor(.white)
+            
+            VStack(spacing: 12) {
+                Image(systemName: "chart.line.uptrend.xyaxis")
+                    .font(.system(size: 40))
+                    .foregroundColor(.gray)
+                
+                Text("rankingTrend.noHistory")
+                    .font(.custom("SpotifyMix-Medium", size: 16))
+                    .foregroundColor(.gray)
+                
+                Text("rankingTrend.keepListening")
+                    .font(.custom("SpotifyMix-Medium", size: 14))
+                    .foregroundColor(.gray.opacity(0.7))
+                    .multilineTextAlignment(.center)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 40)
+            .background(Color(red: 0.15, green: 0.15, blue: 0.15))
+            .cornerRadius(12)
+        }
+        .padding(.horizontal, 20)
     }
     
     private func statsLoadingPlaceholder() -> some View {

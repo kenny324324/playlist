@@ -499,6 +499,102 @@ class CloudKitRankingService: ObservableObject {
         }
     }
     
+    // MARK: - 查詢特定歌曲的排名歷史
+    /// 獲取特定歌曲在過去 7 天的排名歷史
+    func fetchTrackRankingHistory(
+        userId: String,
+        trackId: String,
+        timeRange: String,
+        completion: @escaping ([RankingHistory]) -> Void
+    ) {
+        let sevenDaysAgo = Calendar.current.date(byAdding: .day, value: -7, to: Date())!
+        
+        print("📊 [CloudKit] 查詢排名歷史")
+        print("  - userId: \(userId)")
+        print("  - trackId: \(trackId)")
+        print("  - timeRange: \(timeRange)")
+        print("  - 從 \(sevenDaysAgo) 到現在")
+        
+        // 如果 CloudKit 可用，從雲端查詢
+        guard isCloudKitAvailable, let db = database else {
+            print("⚠️ CloudKit 不可用，使用本地快取")
+            let filtered = self.filterLocalCache(userId: userId, trackId: trackId, timeRange: timeRange, since: sevenDaysAgo)
+            completion(filtered)
+            return
+        }
+        
+        // 建立查詢條件（需要在 CloudKit Dashboard 設定 trackId 為 queryable）
+        let userPredicate = NSPredicate(format: "userId == %@", userId)
+        let trackPredicate = NSPredicate(format: "trackId == %@", trackId)
+        let timeRangePredicate = NSPredicate(format: "timeRange == %@", timeRange)
+        let datePredicate = NSPredicate(format: "recordedDate >= %@", sevenDaysAgo as NSDate)
+        let compoundPredicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            userPredicate, trackPredicate, timeRangePredicate, datePredicate
+        ])
+        
+        let query = CKQuery(recordType: recordType, predicate: compoundPredicate)
+        query.sortDescriptors = [NSSortDescriptor(key: "recordedDate", ascending: true)]
+        
+        print("☁️ 從 CloudKit 查詢歷史資料（trackId: \(trackId)）...")
+        
+        db.fetch(withQuery: query, inZoneWith: nil, desiredKeys: nil, resultsLimit: CKQueryOperation.maximumResults) { result in
+            switch result {
+            case .success(let queryResult):
+                let histories = queryResult.matchResults.compactMap { (recordID, recordResult) -> RankingHistory? in
+                    switch recordResult {
+                    case .success(let record):
+                        return self.convertToRankingHistory(record: record)
+                    case .failure(let error):
+                        print("❌ 解析記錄失敗: \(error.localizedDescription)")
+                        return nil
+                    }
+                }
+                
+                print("✅ 從 CloudKit 查詢到 \(histories.count) 筆歷史記錄")
+                if !histories.isEmpty {
+                    print("  - 最早: \(histories.first!.recordedDate)")
+                    print("  - 最晚: \(histories.last!.recordedDate)")
+                }
+                
+                DispatchQueue.main.async {
+                    completion(histories)
+                }
+                
+            case .failure(let error):
+                print("❌ CloudKit 查詢失敗: \(error.localizedDescription)")
+                if error.localizedDescription.contains("not marked queryable") {
+                    print("⚠️ 請在 CloudKit Dashboard 將 'trackId' 欄位設定為 Queryable")
+                }
+                // 降級使用本地快取
+                let filtered = self.filterLocalCache(userId: userId, trackId: trackId, timeRange: timeRange, since: sevenDaysAgo)
+                DispatchQueue.main.async {
+                    completion(filtered)
+                }
+            }
+        }
+    }
+    
+    // MARK: - 輔助方法：從本地快取過濾
+    private func filterLocalCache(userId: String, trackId: String, timeRange: String, since: Date) -> [RankingHistory] {
+        print("  - localCache 總共有 \(localCache.count) 筆記錄")
+        
+        let filtered = localCache.filter { history in
+            history.userId == userId &&
+            history.trackId == trackId &&
+            history.timeRange == timeRange &&
+            history.recordedDate >= since
+        }
+        .sorted { $0.recordedDate < $1.recordedDate }
+        
+        print("📊 [LocalCache] 找到 \(filtered.count) 筆符合條件的記錄")
+        if !filtered.isEmpty {
+            print("  - 最早: \(filtered.first!.recordedDate)")
+            print("  - 最晚: \(filtered.last!.recordedDate)")
+        }
+        
+        return filtered
+    }
+    
     // MARK: - 清除特定用戶的資料
     /// 清除特定用戶的所有歷史記錄
     func clearHistory(for userId: String, completion: @escaping (Bool) -> Void) {
