@@ -150,6 +150,9 @@ struct HomeView: View {
     @State private var top5Trends: [TrackTrend] = []
     @State private var isLoadingTrends = false
     
+    // 追蹤上次載入時間，用於智能刷新
+    @State private var lastDataLoadTime: Date?
+    
     let accessToken: String
     let userProfile: SpotifyUser?
     let isLoggedIn: Bool
@@ -322,11 +325,28 @@ struct HomeView: View {
             }
         }
         .onAppear {
-            // onAppear 不再載入資料，因為 onChange 已經處理了
-            // 只有在特殊情況下（資料為空但已登入）才載入
-            if isLoggedIn && !accessToken.isEmpty && dashboardSummary == nil && !isLoading {
+            guard isLoggedIn && !accessToken.isEmpty else { return }
+            
+            // 如果沒有資料，首次載入
+            if dashboardSummary == nil && !isLoading {
                 print("📱 [onAppear] 資料為空，觸發首次載入")
                 loadData(using: accessToken)
+                return
+            }
+            
+            // 智能刷新：如果距離上次載入超過 30 秒，背景刷新
+            if let lastLoad = lastDataLoadTime {
+                let timeSinceLastLoad = Date().timeIntervalSince(lastLoad)
+                if timeSinceLastLoad > 30 {
+                    print("📱 [onAppear] 距離上次載入 \(Int(timeSinceLastLoad)) 秒，背景刷新資料")
+                    loadData(showLoading: false)
+                } else {
+                    print("📱 [onAppear] 距離上次載入 \(Int(timeSinceLastLoad)) 秒，無需刷新")
+                }
+            } else {
+                // 沒有記錄時間，背景刷新
+                print("📱 [onAppear] 無載入記錄，背景刷新資料")
+                loadData(showLoading: false)
             }
         }
         .onReceive(currentlyPlayingTimer) { _ in
@@ -889,6 +909,10 @@ struct HomeView: View {
                 self.isLoading = false
             }
             
+            // 記錄載入完成時間
+            self.lastDataLoadTime = Date()
+            print("📊 [loadData] 資料載入完成，記錄時間: \(Date())")
+            
             // 載入 Top 5 趨勢圖表
             self.loadTop5Trends(accessToken: authToken)
         }
@@ -1069,6 +1093,7 @@ struct HomeView: View {
         isLoading = true
         isDashboardLoading = true
         isLoadingTrends = false  // 確保重置趨勢圖載入狀態
+        lastDataLoadTime = nil  // 清除載入時間記錄
     }
 }
 
