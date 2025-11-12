@@ -447,14 +447,22 @@ struct HomeView: View {
                 )
                 
                 // Top 5 趨勢圖表（Dashboard 載入完成後）
-                if isLoadingTrends {
-                    // 趨勢圖載入中，顯示佔位符保持佈局穩定
-                    top5TrendLoadingPlaceholder
-                } else if !top5Trends.isEmpty {
-                    // 載入完成且有資料，顯示實際圖表
-                    top5TrendSection
+                ZStack {
+                    // 佔位符層
+                    if isLoadingTrends {
+                        top5TrendLoadingPlaceholder
+                            .transition(.opacity)
+                    }
+                    
+                    // 實際內容層
+                    if !isLoadingTrends && !top5Trends.isEmpty {
+                        top5TrendSection
+                            .transition(.opacity)
+                    }
                 }
-                // 如果載入完成但沒有資料，不顯示任何內容
+                .animation(.easeInOut(duration: 0.3), value: isLoadingTrends)
+                // 保持最小高度避免佈局跳動
+                .frame(minHeight: isLoadingTrends || !top5Trends.isEmpty ? nil : 0)
                 
                 // 本月熱門歌曲
                 VStack(alignment: .leading, spacing: 15) {
@@ -898,7 +906,9 @@ struct HomeView: View {
             guard let userId = userProfile?.id else {
                 print("⚠️ [Top5Trends] 無法獲取 userId")
                 DispatchQueue.main.async {
-                    self.isLoadingTrends = false
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        self.isLoadingTrends = false
+                    }
                 }
                 return
             }
@@ -914,7 +924,9 @@ struct HomeView: View {
             guard !trackIds.isEmpty else {
                 print("⚠️ [Top5Trends] 沒有找到任何歷史記錄")
                 DispatchQueue.main.async {
-                    self.isLoadingTrends = false
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        self.isLoadingTrends = false
+                    }
                 }
                 return
             }
@@ -1024,7 +1036,13 @@ struct HomeView: View {
                     }
                     
                     self.top5Trends = sortedTrends
-                    self.isLoadingTrends = false
+                    
+                    // 添加小延遲以避免閃爍
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            self.isLoadingTrends = false
+                        }
+                    }
                     
                     print("✅ [Top5Trends] 最終顯示 \(sortedTrends.count) 條趨勢線")
                 }
