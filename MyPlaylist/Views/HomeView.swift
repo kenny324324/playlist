@@ -256,7 +256,8 @@ struct HomeView: View {
                             }
                         }
                     } else {
-                        // 未登入：顯示登入按鈕
+                        // 未登入：顯示登入按鈕（審核版本不顯示，僅顯示頁面中央的 Demo Mode 按鈕）
+                        #if !APPSTORE_REVIEW
                         if #available(iOS 26.0, *) {
                             Button(action: login) {
                                 Text("login.title")
@@ -289,6 +290,7 @@ struct HomeView: View {
                             .buttonStyle(.borderedProminent)
                             .tint(Color.spotifyGreen)
                         }
+                        #endif
                     }
                 }
                 
