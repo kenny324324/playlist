@@ -325,8 +325,9 @@ struct HomeView: View {
             if isLoggedIn {
                 loadData(using: accessToken)
                 // 額外載入一次趨勢圖（確保顯示）
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    if self.top5Trends.isEmpty {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    // 只有在不在載入中且資料為空時才重新載入
+                    if self.top5Trends.isEmpty && !self.isLoadingTrends {
                         print("🔄 [Top5Trends] onAppear 時趨勢圖為空，重新載入")
                         self.loadTop5Trends(accessToken: accessToken)
                     }
@@ -899,6 +900,12 @@ struct HomeView: View {
     
     // MARK: - 載入 Top 5 趨勢
     private func loadTop5Trends(accessToken: String) {
+        // 如果已經在載入中，避免重複載入
+        guard !isLoadingTrends else {
+            print("⚠️ [Top5Trends] 已經在載入中，跳過重複載入")
+            return
+        }
+        
         isLoadingTrends = true
         
         // 先獲取用戶資料
@@ -1035,10 +1042,13 @@ struct HomeView: View {
                         print("  #\(index + 1) \(trend.trackName): 當前 #\(currentRank), 在 Top 5 出現 \(inTop5Count)/7 天")
                     }
                     
-                    self.top5Trends = sortedTrends
+                    // 使用動畫設置資料和狀態，確保平滑過渡
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        self.top5Trends = sortedTrends
+                    }
                     
-                    // 添加小延遲以避免閃爍
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                    // 添加小延遲後才結束載入狀態
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                         withAnimation(.easeInOut(duration: 0.3)) {
                             self.isLoadingTrends = false
                         }
@@ -1074,6 +1084,7 @@ struct HomeView: View {
         top5Trends = []
         isLoading = true
         isDashboardLoading = true
+        isLoadingTrends = false  // 確保重置趨勢圖載入狀態
     }
 }
 
