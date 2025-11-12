@@ -771,40 +771,40 @@ struct TrackDetailView: View {
     // MARK: - Trend Chart Section
     
     private func trendChartSection(trend: RankingTrend) -> some View {
-        RankingTrendChart(trend: trend)
-            .padding(16)
-            .background(Color(red: 0.15, green: 0.15, blue: 0.15))
-            .cornerRadius(12)
-            .padding(.horizontal, 20)
+            RankingTrendChart(trend: trend)
+                .padding(16)
+                .background(Color(red: 0.15, green: 0.15, blue: 0.15))
+                .cornerRadius(12)
+        .padding(.horizontal, 20)
     }
     
     private func trendChartLoadingPlaceholder() -> some View {
-        RoundedRectangle(cornerRadius: 12)
-            .fill(Color.gray.opacity(0.3))
-            .frame(height: 280)
-            .shimmer()
-            .padding(.horizontal, 20)
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.gray.opacity(0.3))
+                .frame(height: 280)
+                .shimmer()
+        .padding(.horizontal, 20)
     }
     
     private func trendChartEmptyState() -> some View {
-        VStack(spacing: 12) {
-            Image(systemName: "chart.line.uptrend.xyaxis")
-                .font(.system(size: 40))
-                .foregroundColor(.gray)
-            
-            Text("rankingTrend.noHistory")
-                .font(.custom("SpotifyMix-Medium", size: 16))
-                .foregroundColor(.gray)
-            
-            Text("rankingTrend.keepListening")
-                .font(.custom("SpotifyMix-Medium", size: 14))
-                .foregroundColor(.gray.opacity(0.7))
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 40)
-        .background(Color(red: 0.15, green: 0.15, blue: 0.15))
-        .cornerRadius(12)
+            VStack(spacing: 12) {
+                Image(systemName: "chart.line.uptrend.xyaxis")
+                    .font(.system(size: 40))
+                    .foregroundColor(.gray)
+                
+                Text("rankingTrend.noHistory")
+                    .font(.custom("SpotifyMix-Medium", size: 16))
+                    .foregroundColor(.gray)
+                
+                Text("rankingTrend.keepListening")
+                    .font(.custom("SpotifyMix-Medium", size: 14))
+                    .foregroundColor(.gray.opacity(0.7))
+                    .multilineTextAlignment(.center)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 40)
+            .background(Color(red: 0.15, green: 0.15, blue: 0.15))
+            .cornerRadius(12)
         .padding(.horizontal, 20)
     }
     

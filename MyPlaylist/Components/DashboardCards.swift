@@ -311,6 +311,19 @@ struct DashboardLoadingPlaceholder: View {
                     .stroke(Color.spotifyGreen.opacity(0.3), lineWidth: 1)
             )
             
+            // Top 5 趨勢圖佔位符（在今日聆聽和本月熱門之間）
+            VStack(alignment: .leading, spacing: 12) {
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(Color.gray.opacity(0.3))
+                    .frame(width: 180, height: 22)
+                    .shimmer()
+                
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.gray.opacity(0.3))
+                    .frame(height: 300)
+                    .shimmer()
+            }
+            
             // 本月熱門佔位符（與實際樣式一致）
             ForEach(0..<2) { section in
                 VStack(alignment: .leading, spacing: 15) {

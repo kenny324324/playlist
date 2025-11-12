@@ -595,6 +595,91 @@ class CloudKitRankingService: ObservableObject {
         return filtered
     }
     
+    // MARK: - 查詢過去 7 天所有進入 Top 5 的歌曲
+    /// 查詢過去 7 天所有曾經排名 <= 5 的歌曲 ID
+    func fetchAllTop5TracksInLast7Days(
+        userId: String,
+        timeRange: String,
+        completion: @escaping ([String]) -> Void
+    ) {
+        let sevenDaysAgo = Calendar.current.date(byAdding: .day, value: -7, to: Date())!
+        
+        print("📊 [CloudKit] 查詢過去 7 天所有 Top 5 歌曲")
+        
+        // 如果 CloudKit 不可用，從本地快取查詢
+        guard isCloudKitAvailable, let db = database else {
+            print("⚠️ CloudKit 不可用，使用本地快取")
+            print("  - localCache 總共有 \(localCache.count) 筆記錄")
+            
+            let filtered = localCache.filter { 
+                $0.userId == userId && 
+                $0.timeRange == timeRange && 
+                $0.recordedDate >= sevenDaysAgo && 
+                $0.rank <= 5 
+            }
+            
+            print("  - 符合條件的記錄：\(filtered.count) 筆")
+            
+            // Debug: 列出所有符合條件的記錄
+            for record in filtered.prefix(20) {
+                print("    - \(record.recordedDate): Track \(record.trackId) Rank #\(record.rank)")
+            }
+            
+            let trackIds = filtered.map { $0.trackId }
+            let uniqueTrackIds = Array(Set(trackIds))
+            
+            print("  - 去重後有 \(uniqueTrackIds.count) 首歌")
+            
+            completion(uniqueTrackIds)
+            return
+        }
+        
+        // 從 CloudKit 查詢
+        let userPredicate = NSPredicate(format: "userId == %@", userId)
+        let timeRangePredicate = NSPredicate(format: "timeRange == %@", timeRange)
+        let datePredicate = NSPredicate(format: "recordedDate >= %@", sevenDaysAgo as NSDate)
+        let rankPredicate = NSPredicate(format: "rank <= 5")
+        let compoundPredicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            userPredicate, timeRangePredicate, datePredicate, rankPredicate
+        ])
+        
+        let query = CKQuery(recordType: recordType, predicate: compoundPredicate)
+        query.sortDescriptors = [NSSortDescriptor(key: "recordedDate", ascending: false)]
+        
+        db.fetch(withQuery: query, inZoneWith: nil, desiredKeys: ["trackId"], resultsLimit: CKQueryOperation.maximumResults) { result in
+            switch result {
+            case .success(let matchResults):
+                let trackIds = matchResults.matchResults.compactMap { _, recordResult -> String? in
+                    if case .success(let record) = recordResult,
+                       let trackId = record["trackId"] as? String {
+                        return trackId
+                    }
+                    return nil
+                }
+                
+                // 去重
+                let uniqueTrackIds = Array(Set(trackIds))
+                print("✅ 找到 \(uniqueTrackIds.count) 首曾經進入 Top 5 的歌曲")
+                
+                DispatchQueue.main.async {
+                    completion(uniqueTrackIds)
+                }
+                
+            case .failure(let error):
+                print("❌ CloudKit 查詢失敗: \(error.localizedDescription)")
+                // 降級使用本地快取
+                let trackIds = self.localCache
+                    .filter { $0.userId == userId && $0.timeRange == timeRange && $0.recordedDate >= sevenDaysAgo && $0.rank <= 5 }
+                    .map { $0.trackId }
+                let uniqueTrackIds = Array(Set(trackIds))
+                
+                DispatchQueue.main.async {
+                    completion(uniqueTrackIds)
+                }
+            }
+        }
+    }
+    
     // MARK: - 清除特定用戶的資料
     /// 清除特定用戶的所有歷史記錄
     func clearHistory(for userId: String, completion: @escaping (Bool) -> Void) {

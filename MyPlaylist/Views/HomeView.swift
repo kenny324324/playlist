@@ -146,6 +146,10 @@ struct HomeView: View {
     @State private var showTodayPlayed = false
     @State private var showClearCacheAlert = false
     
+    // Top 5 趨勢圖表
+    @State private var top5Trends: [TrackTrend] = []
+    @State private var isLoadingTrends = false
+    
     let accessToken: String
     let userProfile: SpotifyUser?
     let isLoggedIn: Bool
@@ -320,6 +324,13 @@ struct HomeView: View {
         .onAppear {
             if isLoggedIn {
                 loadData(using: accessToken)
+                // 額外載入一次趨勢圖（確保顯示）
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    if self.top5Trends.isEmpty {
+                        print("🔄 [Top5Trends] onAppear 時趨勢圖為空，重新載入")
+                        self.loadTop5Trends(accessToken: accessToken)
+                    }
+                }
             }
         }
         .onReceive(currentlyPlayingTimer) { _ in
@@ -374,11 +385,27 @@ struct HomeView: View {
         }
     }
     
+    // MARK: - Top 5 Trend Section
+    private var top5TrendSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("home.top5Trends")
+                .font(.custom("SpotifyMix-Bold", size: 22))
+                .foregroundColor(.white)
+            
+            MultiTrackTrendChart(trends: top5Trends)
+                .padding(16)
+                .background(Color(red: 0.15, green: 0.15, blue: 0.15))
+                .cornerRadius(12)
+        }
+    }
+    
+    
     // MARK: - Dashboard Section
     private var dashboardSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             if isDashboardLoading {
                 DashboardLoadingPlaceholder()
+                // 趨勢圖佔位符已整合至 DashboardLoadingPlaceholder 中
             } else if let summary = dashboardSummary {
                 // 今日聆聽卡片
                 TodayListeningCard(
@@ -401,8 +428,13 @@ struct HomeView: View {
                     ) {
                         EmptyView()
                     }
-                    .opacity(0)
+                    .opacity(0                    )
                 )
+                
+                // Top 5 趨勢圖表（Dashboard 載入完成後）
+                if !top5Trends.isEmpty {
+                    top5TrendSection
+                }
                 
                 // 本月熱門歌曲
                 VStack(alignment: .leading, spacing: 15) {
@@ -831,6 +863,153 @@ struct HomeView: View {
             if showLoading {
                 self.isLoading = false
             }
+            
+            // 載入 Top 5 趨勢圖表
+            self.loadTop5Trends(accessToken: authToken)
+        }
+    }
+    
+    // MARK: - 載入 Top 5 趨勢
+    private func loadTop5Trends(accessToken: String) {
+        isLoadingTrends = true
+        
+        // 先獲取用戶資料
+        SpotifyAPIService.fetchCurrentUserProfile(accessToken: accessToken) { userProfile in
+            guard let userId = userProfile?.id else {
+                print("⚠️ [Top5Trends] 無法獲取 userId")
+                DispatchQueue.main.async {
+                    self.isLoadingTrends = false
+                }
+                return
+            }
+            
+            print("📊 [Top5Trends] 開始載入 Top 5 趨勢")
+            print("  - userId: \(userId)")
+        
+        // 第一步：查詢過去 7 天所有曾經進入 Top 5 的歌曲
+        CloudKitRankingService.shared.fetchAllTop5TracksInLast7Days(
+            userId: userId,
+            timeRange: "short_term"
+        ) { trackIds in
+            guard !trackIds.isEmpty else {
+                print("⚠️ [Top5Trends] 沒有找到任何歷史記錄")
+                DispatchQueue.main.async {
+                    self.isLoadingTrends = false
+                }
+                return
+            }
+            
+            print("📊 [Top5Trends] 找到 \(trackIds.count) 首曾經進入 Top 5 的歌曲")
+            print("  - Track IDs: \(trackIds.joined(separator: ", "))")
+            
+            // 第二步：獲取當前 Top 50 以取得歌曲資訊
+            SpotifyAPIService.fetchTopTracks(accessToken: accessToken, timeRange: "short_term") { currentTracks in
+                var trends: [TrackTrend] = []
+                let group = DispatchGroup()
+                
+                // 第三步：為每首歌獲取歷史排名和歌曲資訊
+                for trackId in trackIds {
+                    group.enter()
+                    
+                    // 找到該歌曲的詳細資訊
+                    if let track = currentTracks.first(where: { $0.id == trackId }) {
+                        let currentRank = currentTracks.firstIndex(where: { $0.id == trackId }).map { $0 + 1 }
+                        
+                        CloudKitRankingService.shared.fetchTrackRankingHistory(
+                            userId: userId,
+                            trackId: trackId,
+                            timeRange: "short_term"
+                        ) { histories in
+                            let rankingTrend = RankingTrend.from(
+                                histories: histories,
+                                trackName: track.name,
+                                currentRank: currentRank
+                            )
+                            
+                            let trackTrend = TrackTrend(
+                                track: track,
+                                dataPoints: rankingTrend.dataPoints
+                            )
+                            
+                            DispatchQueue.main.async {
+                                trends.append(trackTrend)
+                                group.leave()
+                            }
+                        }
+                    } else {
+                        // 歌曲已經不在當前 Top 50，從 CloudKit 記錄中獲取名稱
+                        CloudKitRankingService.shared.fetchTrackRankingHistory(
+                            userId: userId,
+                            trackId: trackId,
+                            timeRange: "short_term"
+                        ) { histories in
+                            guard let firstHistory = histories.first else {
+                                group.leave()
+                                return
+                            }
+                            
+                            let rankingTrend = RankingTrend.from(
+                                histories: histories,
+                                trackName: "Unknown Track",  // 無法取得名稱
+                                currentRank: nil  // 已不在榜內
+                            )
+                            
+                            // 創建臨時 Track（用於顯示）
+                            let tempTrack = Track(
+                                id: trackId,
+                                name: "Unknown Track",
+                                previewUrl: nil,
+                                artists: [Track.TrackArtist(id: nil, name: "Unknown Artist")],
+                                album: Track.TrackAlbum(id: nil, name: nil, images: [])
+                            )
+                            
+                            let trackTrend = TrackTrend(
+                                track: tempTrack,
+                                dataPoints: rankingTrend.dataPoints
+                            )
+                            
+                            DispatchQueue.main.async {
+                                trends.append(trackTrend)
+                                group.leave()
+                            }
+                        }
+                    }
+                }
+                
+                group.notify(queue: .main) {
+                    print("📊 [Top5Trends] 收到 \(trends.count) 條趨勢資料")
+                    
+                    // 按照當前排名排序（主要）+ 出現次數（次要）
+                    let sortedTrends = trends.sorted { trend1, trend2 in
+                        // 獲取當前排名（最新的排名）
+                        let currentRank1 = trend1.dataPoints.last(where: { $0.rank != nil })?.rank ?? 999
+                        let currentRank2 = trend2.dataPoints.last(where: { $0.rank != nil })?.rank ?? 999
+                        
+                        // 如果當前排名不同，按排名排序
+                        if currentRank1 != currentRank2 {
+                            return currentRank1 < currentRank2
+                        }
+                        
+                        // 如果當前排名相同，按出現次數排序
+                        let count1 = trend1.dataPoints.filter { $0.rank ?? 6 <= 5 }.count
+                        let count2 = trend2.dataPoints.filter { $0.rank ?? 6 <= 5 }.count
+                        return count1 > count2
+                    }
+                    
+                    // Debug: 輸出每首歌的資料點和當前排名
+                    for (index, trend) in sortedTrends.enumerated() {
+                        let inTop5Count = trend.dataPoints.filter { $0.rank ?? 6 <= 5 }.count
+                        let currentRank = trend.dataPoints.last(where: { $0.rank != nil })?.rank ?? 999
+                        print("  #\(index + 1) \(trend.trackName): 當前 #\(currentRank), 在 Top 5 出現 \(inTop5Count)/7 天")
+                    }
+                    
+                    self.top5Trends = sortedTrends
+                    self.isLoadingTrends = false
+                    
+                    print("✅ [Top5Trends] 最終顯示 \(sortedTrends.count) 條趨勢線")
+                }
+            }
+            }
         }
     }
     
@@ -854,6 +1033,7 @@ struct HomeView: View {
         userPlaylists = []
         followedArtists = []
         dashboardSummary = nil
+        top5Trends = []
         isLoading = true
         isDashboardLoading = true
     }

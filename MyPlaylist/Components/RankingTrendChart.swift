@@ -159,9 +159,10 @@ struct RankingTrendChart: View {
                         fillPath.addLine(to: currentPoint)
                     }
                 } else if previousWasOutOfChart && index > 0 {
-                    // 前一個點在榜外，當前點進榜：從底部畫斜線到當前點（虛線）
+                    // 前一個點在榜外，當前點進榜：從中間點畫斜線到當前點（虛線）
                     let prevX = paddingX + CGFloat(index - 1) / 6 * availableWidth
-                    let bottomPoint = CGPoint(x: prevX, y: size.height)
+                    let midX = (prevX + x) / 2  // 兩個日期的中間點
+                    let bottomPoint = CGPoint(x: midX, y: size.height)
                     
                     if isFirstSegment {
                         completePath.move(to: bottomPoint)
@@ -192,18 +193,21 @@ struct RankingTrendChart: View {
                 previousPoint = currentPoint
                 previousWasOutOfChart = false
             } else {
-                // 跌出榜外：畫斜線到底部（虛線）
-                if let prev = previousPoint {
-                    let bottomPoint = CGPoint(x: x, y: size.height)
+                // 跌出榜外：畫斜線到中間點的底部（虛線）
+                if let prev = previousPoint, index > 0 {
+                    let prevX = paddingX + CGFloat(index - 1) / 6 * availableWidth
+                    let midX = (prevX + x) / 2  // 兩個日期的中間點
+                    let bottomPoint = CGPoint(x: midX, y: size.height)
+                    
                     completePath.addLine(to: bottomPoint)
                     dashedPath.move(to: prev)
                     dashedPath.addLine(to: bottomPoint)
                     
                     // 關閉填充路徑
                     if fillStarted {
-                        fillPath.addLine(to: bottomPoint)
-                        fillPath.addLine(to: CGPoint(x: prev.x, y: size.height))
-                        fillPath.closeSubpath()
+                    fillPath.addLine(to: bottomPoint)
+                    fillPath.addLine(to: CGPoint(x: prev.x, y: size.height))
+                    fillPath.closeSubpath()
                     }
                 }
                 previousPoint = nil
@@ -222,12 +226,12 @@ struct RankingTrendChart: View {
             // 填充區域（Spotify Green 漸層）- 使用遮罩跟隨折線顯示
             fillPath
                 .fill(
-                    LinearGradient(
-                        colors: [Color.spotifyGreen.opacity(0.2), Color.clear],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
+                LinearGradient(
+                    colors: [Color.spotifyGreen.opacity(0.2), Color.clear],
+                    startPoint: .top,
+                    endPoint: .bottom
                 )
+            )
                 .mask(
                     Rectangle()
                         .frame(width: size.width * lineProgress, height: size.height)

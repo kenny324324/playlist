@@ -2241,6 +2241,34 @@
         }
       }
     },
+    "home.top5Trends" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your Top 5 Trends"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "トップ5のトレンド"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "상위 5개 트렌드"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的 Top 5 趨勢"
+          }
+        }
+      }
+    },
     "home.viewRecent" : {
       "localizations" : {
         "en" : {
