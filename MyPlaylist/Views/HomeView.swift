@@ -322,16 +322,11 @@ struct HomeView: View {
             }
         }
         .onAppear {
-            if isLoggedIn {
+            // onAppear 不再載入資料，因為 onChange 已經處理了
+            // 只有在特殊情況下（資料為空但已登入）才載入
+            if isLoggedIn && !accessToken.isEmpty && dashboardSummary == nil && !isLoading {
+                print("📱 [onAppear] 資料為空，觸發首次載入")
                 loadData(using: accessToken)
-                // 額外載入一次趨勢圖（確保顯示）
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                    // 只有在不在載入中且資料為空時才重新載入
-                    if self.top5Trends.isEmpty && !self.isLoadingTrends {
-                        print("🔄 [Top5Trends] onAppear 時趨勢圖為空，重新載入")
-                        self.loadTop5Trends(accessToken: accessToken)
-                    }
-                }
             }
         }
         .onReceive(currentlyPlayingTimer) { _ in
@@ -371,13 +366,19 @@ struct HomeView: View {
             Text("這將清除今日聆聽時間和本月熱門資料的快取，並重新從 Spotify 載入資料。")
         }
         .onChange(of: isLoggedIn) { loggedIn in
-            loggedIn ? loadData(using: accessToken) : clearData()
+            if loggedIn && !accessToken.isEmpty {
+                loadData(using: accessToken)
+            } else if !loggedIn {
+                clearData()
+            }
         }
         .onChange(of: accessToken) { token in
-            // 當 accessToken 更新時（登入成功），載入資料
-            if !token.isEmpty {
+            // 只有在已登入狀態下，token 變化時才重新載入
+            // 避免與 isLoggedIn 的 onChange 重複觸發
+            if isLoggedIn && !token.isEmpty && !isLoading {
+                print("🔑 Access token 已更新，重新載入資料")
                 loadData(using: token)
-            } else {
+            } else if token.isEmpty {
                 clearData()
             }
         }
@@ -448,22 +449,17 @@ struct HomeView: View {
                 )
                 
                 // Top 5 趨勢圖表（Dashboard 載入完成後）
-                ZStack {
-                    // 佔位符層
-                    if isLoadingTrends {
-                        top5TrendLoadingPlaceholder
-                            .transition(.opacity)
-                    }
-                    
-                    // 實際內容層
-                    if !isLoadingTrends && !top5Trends.isEmpty {
+                Group {
+                    if !top5Trends.isEmpty {
+                        // 有資料時顯示實際內容
                         top5TrendSection
-                            .transition(.opacity)
+                            .id("trend_chart")  // 穩定的標識符
+                    } else if isLoadingTrends {
+                        // 只有在載入中且沒資料時才顯示佔位符
+                        top5TrendLoadingPlaceholder
                     }
+                    // 如果不在載入中且沒資料，不顯示任何內容
                 }
-                .animation(.easeInOut(duration: 0.3), value: isLoadingTrends)
-                // 保持最小高度避免佈局跳動
-                .frame(minHeight: isLoadingTrends || !top5Trends.isEmpty ? nil : 0)
                 
                 // 本月熱門歌曲
                 VStack(alignment: .leading, spacing: 15) {
@@ -913,9 +909,7 @@ struct HomeView: View {
             guard let userId = userProfile?.id else {
                 print("⚠️ [Top5Trends] 無法獲取 userId")
                 DispatchQueue.main.async {
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        self.isLoadingTrends = false
-                    }
+                    self.isLoadingTrends = false
                 }
                 return
             }
@@ -931,9 +925,7 @@ struct HomeView: View {
             guard !trackIds.isEmpty else {
                 print("⚠️ [Top5Trends] 沒有找到任何歷史記錄")
                 DispatchQueue.main.async {
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        self.isLoadingTrends = false
-                    }
+                    self.isLoadingTrends = false
                 }
                 return
             }
@@ -1042,17 +1034,9 @@ struct HomeView: View {
                         print("  #\(index + 1) \(trend.trackName): 當前 #\(currentRank), 在 Top 5 出現 \(inTop5Count)/7 天")
                     }
                     
-                    // 使用動畫設置資料和狀態，確保平滑過渡
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        self.top5Trends = sortedTrends
-                    }
-                    
-                    // 添加小延遲後才結束載入狀態
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            self.isLoadingTrends = false
-                        }
-                    }
+                    // 先設置資料，再結束載入狀態，避免閃爍
+                    self.top5Trends = sortedTrends
+                    self.isLoadingTrends = false
                     
                     print("✅ [Top5Trends] 最終顯示 \(sortedTrends.count) 條趨勢線")
                 }
