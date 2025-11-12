@@ -148,12 +148,6 @@ struct TrackDetailView: View {
                 }
             }
             .pickerStyle(.segmented)
-            .onChange(of: selectedTab) { newTab in
-                // 當切換到 Stats 分頁且尚未載入統計數據時，載入統計數據
-                if newTab == .stats && trackStats == nil && !isLoadingStats {
-                    loadTrackStats()
-                }
-            }
             .padding(.horizontal, 20)
             .padding(.top, 20)
             .padding(.bottom, 20)
@@ -523,6 +517,9 @@ struct TrackDetailView: View {
             self.isLoading = false
             // 檢查預覽是否可用
             self.checkPreviewAvailability()
+            
+            // 預先載入統計數據和排名趨勢
+            self.loadTrackStats()
         }
     }
     
@@ -707,9 +704,13 @@ struct TrackDetailView: View {
                 timeRange: timeRange
             ) { histories in
                 DispatchQueue.main.async {
+                    // 使用當前的即時排名（如果有的話）
+                    let currentRank = self.trackStats?.rankShortTerm
+                    
                     self.rankingTrend = RankingTrend.from(
                         histories: histories,
-                        trackName: trackName
+                        trackName: trackName,
+                        currentRank: currentRank
                     )
                     self.isLoadingTrend = false
                 }
@@ -720,8 +721,19 @@ struct TrackDetailView: View {
     // MARK: - Track Stats Section
     
     private func trackStatsSection(stats: TrackStats, trackName: String) -> some View {
-        VStack(alignment: .leading, spacing: 24) {
-            // 統計卡片
+        VStack(alignment: .leading, spacing: 12) {
+            // 排名趨勢圖（移到上面）
+            if isLoadingTrend {
+                trendChartLoadingPlaceholder()
+            } else if let trend = rankingTrend {
+                if trend.hasData {
+                    trendChartSection(trend: trend)
+                } else {
+                    trendChartEmptyState()
+                }
+            }
+            
+            // 統計卡片（移到下面）
             VStack(alignment: .leading, spacing: 12) {
                 // 第一行：4週排名 + 6個月排名
                 HStack(spacing: 12) {
@@ -751,17 +763,6 @@ struct TrackDetailView: View {
                 }
             }
             .padding(.horizontal, 20)
-            
-            // 排名趨勢圖
-            if isLoadingTrend {
-                trendChartLoadingPlaceholder()
-            } else if let trend = rankingTrend {
-                if trend.hasData {
-                    trendChartSection(trend: trend)
-                } else {
-                    trendChartEmptyState()
-                }
-            }
         }
         .padding(.top, 24)
         .padding(.bottom, 30)
@@ -770,59 +771,40 @@ struct TrackDetailView: View {
     // MARK: - Trend Chart Section
     
     private func trendChartSection(trend: RankingTrend) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("rankingTrend.title")
-                .font(.custom("SpotifyMix-Bold", size: 20))
-                .foregroundColor(.white)
-            
-            RankingTrendChart(trend: trend)
-                .padding(16)
-                .background(Color(red: 0.15, green: 0.15, blue: 0.15))
-                .cornerRadius(12)
-        }
-        .padding(.horizontal, 20)
+        RankingTrendChart(trend: trend)
+            .padding(16)
+            .background(Color(red: 0.15, green: 0.15, blue: 0.15))
+            .cornerRadius(12)
+            .padding(.horizontal, 20)
     }
     
     private func trendChartLoadingPlaceholder() -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            RoundedRectangle(cornerRadius: 4)
-                .fill(Color.gray.opacity(0.3))
-                .frame(width: 150, height: 20)
-                .shimmer()
-            
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color.gray.opacity(0.3))
-                .frame(height: 280)
-                .shimmer()
-        }
-        .padding(.horizontal, 20)
+        RoundedRectangle(cornerRadius: 12)
+            .fill(Color.gray.opacity(0.3))
+            .frame(height: 280)
+            .shimmer()
+            .padding(.horizontal, 20)
     }
     
     private func trendChartEmptyState() -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("rankingTrend.title")
-                .font(.custom("SpotifyMix-Bold", size: 20))
-                .foregroundColor(.white)
+        VStack(spacing: 12) {
+            Image(systemName: "chart.line.uptrend.xyaxis")
+                .font(.system(size: 40))
+                .foregroundColor(.gray)
             
-            VStack(spacing: 12) {
-                Image(systemName: "chart.line.uptrend.xyaxis")
-                    .font(.system(size: 40))
-                    .foregroundColor(.gray)
-                
-                Text("rankingTrend.noHistory")
-                    .font(.custom("SpotifyMix-Medium", size: 16))
-                    .foregroundColor(.gray)
-                
-                Text("rankingTrend.keepListening")
-                    .font(.custom("SpotifyMix-Medium", size: 14))
-                    .foregroundColor(.gray.opacity(0.7))
-                    .multilineTextAlignment(.center)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 40)
-            .background(Color(red: 0.15, green: 0.15, blue: 0.15))
-            .cornerRadius(12)
+            Text("rankingTrend.noHistory")
+                .font(.custom("SpotifyMix-Medium", size: 16))
+                .foregroundColor(.gray)
+            
+            Text("rankingTrend.keepListening")
+                .font(.custom("SpotifyMix-Medium", size: 14))
+                .foregroundColor(.gray.opacity(0.7))
+                .multilineTextAlignment(.center)
         }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 40)
+        .background(Color(red: 0.15, green: 0.15, blue: 0.15))
+        .cornerRadius(12)
         .padding(.horizontal, 20)
     }
     

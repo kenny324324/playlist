@@ -5,6 +5,8 @@ import SwiftUI
 struct RankingTrendChart: View {
     let trend: RankingTrend
     @State private var selectedPoint: RankingDataPoint? = nil
+    @State private var pulseAnimation: Bool = false
+    @State private var lineProgress: CGFloat = 0.0  // 折線繪製進度
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -22,6 +24,19 @@ struct RankingTrendChart: View {
             .padding(.top, 20)  // 頂部留白，避免標籤碰到上方文字
             
             dateLabels
+        }
+        .onAppear {
+            // 啟動折線繪製動畫（從左到右，勻速）
+            withAnimation(Animation.linear(duration: 0.5)) {
+                lineProgress = 1.0
+            }
+            
+            // 啟動波紋動畫（延遲啟動，等折線繪製完成）
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                withAnimation(Animation.easeInOut(duration: 1.5).repeatForever(autoreverses: false)) {
+                    pulseAnimation = true
+                }
+            }
         }
     }
     
@@ -120,45 +135,79 @@ struct RankingTrendChart: View {
         let paddingX: CGFloat = 10  // 左右留白
         let availableWidth = size.width - 2 * paddingX
         
-        var path = Path()
+        var completePath = Path()  // 完整的連續路徑（實線）
+        var dashedPath = Path()  // 虛線路徑（進榜/出榜，疊加在完整路徑上）
         var fillPath = Path()
         var previousPoint: CGPoint? = nil
+        var previousWasOutOfChart = false  // 追蹤前一個點是否在榜外
         var fillStarted = false
+        var isFirstSegment = true
         
         for (index, point) in trend.dataPoints.enumerated() {
             let x = paddingX + CGFloat(index) / 6 * availableWidth
             
             if let rank = point.rank {
                 // 有排名：正常曲線
-                // rankInRange: 0 = 最好排名（在上方 y=0），1 = 最差排名（在下方 y=size.height）
                 let rankInRange = CGFloat(rank - yRange.min) / CGFloat(yRange.max - yRange.min)
-                let y = rankInRange * size.height  // 修正：移除 (1 - ...)
+                let y = rankInRange * size.height
                 let currentPoint = CGPoint(x: x, y: y)
                 
                 if let prev = previousPoint {
-                    path.addLine(to: currentPoint)
+                    // 前一個點存在且在榜內：正常連線（實線）
+                    completePath.addLine(to: currentPoint)
                     if fillStarted {
                         fillPath.addLine(to: currentPoint)
                     }
+                } else if previousWasOutOfChart && index > 0 {
+                    // 前一個點在榜外，當前點進榜：從底部畫斜線到當前點（虛線）
+                    let prevX = paddingX + CGFloat(index - 1) / 6 * availableWidth
+                    let bottomPoint = CGPoint(x: prevX, y: size.height)
+                    
+                    if isFirstSegment {
+                        completePath.move(to: bottomPoint)
+                        dashedPath.move(to: bottomPoint)
+                        isFirstSegment = false
+                    } else {
+                        completePath.addLine(to: bottomPoint)
+                        dashedPath.move(to: bottomPoint)
+                    }
+                    completePath.addLine(to: currentPoint)
+                    dashedPath.addLine(to: currentPoint)
+                    
+                    // 填充也從底部開始
+                    fillPath.move(to: bottomPoint)
+                    fillPath.addLine(to: currentPoint)
+                    fillStarted = true
                 } else {
-                    // 開始新的曲線段
-                    path.move(to: currentPoint)
+                    // 第一個點：開始新的曲線段
+                    if isFirstSegment {
+                        completePath.move(to: currentPoint)
+                        isFirstSegment = false
+                    }
                     fillPath.move(to: CGPoint(x: x, y: size.height))
                     fillPath.addLine(to: currentPoint)
                     fillStarted = true
                 }
                 
                 previousPoint = currentPoint
+                previousWasOutOfChart = false
             } else {
-                // 跌出榜外：畫斜線到底部
+                // 跌出榜外：畫斜線到底部（虛線）
                 if let prev = previousPoint {
                     let bottomPoint = CGPoint(x: x, y: size.height)
-                    path.addLine(to: bottomPoint)
-                    fillPath.addLine(to: bottomPoint)
-                    fillPath.addLine(to: CGPoint(x: prev.x, y: size.height))
-                    fillPath.closeSubpath()
+                    completePath.addLine(to: bottomPoint)
+                    dashedPath.move(to: prev)
+                    dashedPath.addLine(to: bottomPoint)
+                    
+                    // 關閉填充路徑
+                    if fillStarted {
+                        fillPath.addLine(to: bottomPoint)
+                        fillPath.addLine(to: CGPoint(x: prev.x, y: size.height))
+                        fillPath.closeSubpath()
+                    }
                 }
                 previousPoint = nil
+                previousWasOutOfChart = true
                 fillStarted = false
             }
         }
@@ -170,17 +219,36 @@ struct RankingTrendChart: View {
         }
         
         return ZStack {
-            // 填充區域（Spotify Green 漸層）
-            fillPath.fill(
-                LinearGradient(
-                    colors: [Color.spotifyGreen.opacity(0.2), Color.clear],
-                    startPoint: .top,
-                    endPoint: .bottom
+            // 填充區域（Spotify Green 漸層）- 使用遮罩跟隨折線顯示
+            fillPath
+                .fill(
+                    LinearGradient(
+                        colors: [Color.spotifyGreen.opacity(0.2), Color.clear],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
                 )
-            )
+                .mask(
+                    Rectangle()
+                        .frame(width: size.width * lineProgress, height: size.height)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                )
             
-            // 曲線（Spotify Green）
-            path.stroke(Color.spotifyGreen, lineWidth: 2)
+            // 先繪製完整路徑作為底層（實線）
+            completePath
+                .trim(from: 0, to: lineProgress)
+                .stroke(Color.spotifyGreen, lineWidth: 2)
+            
+            // 在進榜/出榜部分疊加虛線
+            dashedPath
+                .trim(from: 0, to: lineProgress)
+                .stroke(
+                    Color.spotifyGreen,
+                    style: StrokeStyle(
+                        lineWidth: 2,
+                        dash: [5, 3]
+                    )
+                )
         }
     }
     
@@ -204,6 +272,9 @@ struct RankingTrendChart: View {
                     yRange: yRange
                 )
                 
+                // 計算淡入延遲（根據點的位置）
+                let delay = Double(index) * 0.08
+                
                 // 排名標籤
                 Text("#\(rank)")
                     .font(.custom("SpotifyMix-Bold", size: 9))
@@ -215,6 +286,8 @@ struct RankingTrendChart: View {
                             .padding(.vertical, -1)
                     )
                     .position(x: x, y: y + labelOffset)
+                    .opacity(lineProgress >= CGFloat(index) / 6.0 ? 1.0 : 0.0)
+                    .animation(.linear(duration: 0.1).delay(delay), value: lineProgress)
             }
         }
     }
@@ -249,15 +322,40 @@ struct RankingTrendChart: View {
         let yRange = calculateYAxisRange()
         let paddingX: CGFloat = 10  // 左右留白
         let availableWidth = size.width - 2 * paddingX
+        let lastIndex = trend.dataPoints.count - 1  // 最後一個點的索引
         
         return ForEach(Array(trend.dataPoints.enumerated()), id: \.offset) { index, point in
             let x = paddingX + CGFloat(index) / 6 * availableWidth
+            let isLatestPoint = index == lastIndex  // 是否為最新的點
             
             if let rank = point.rank {
                 let rankInRange = CGFloat(rank - yRange.min) / CGFloat(yRange.max - yRange.min)
                 let y = rankInRange * size.height
                 
+                // 計算出現延遲（根據點的位置）
+                let delay = Double(index) * 0.08
+                
+                // 計算該點應該顯示的進度閾值
+                let pointThreshold = CGFloat(index) / 6.0
+                
                 ZStack {
+                    // 波紋效果（只顯示在最新的點，始終渲染但根據動畫狀態控制顯示）
+                    if isLatestPoint {
+                        Circle()
+                            .stroke(Color.spotifyGreen.opacity(0.5), lineWidth: 2)
+                            .frame(width: 8, height: 8)
+                            .scaleEffect(pulseAnimation ? 2.5 : 1.0)
+                            .opacity(pulseAnimation ? 0.0 : 1.0)
+                            .position(x: x, y: y)
+                        
+                        Circle()
+                            .stroke(Color.spotifyGreen.opacity(0.3), lineWidth: 1.5)
+                            .frame(width: 8, height: 8)
+                            .scaleEffect(pulseAnimation ? 3.5 : 1.0)
+                            .opacity(pulseAnimation ? 0.0 : 0.8)
+                            .position(x: x, y: y)
+                    }
+                    
                     // 圓點（所有點都用 Spotify Green）
                     Circle()
                         .fill(Color.spotifyGreen)
@@ -270,6 +368,8 @@ struct RankingTrendChart: View {
                         .frame(width: 8, height: 8)
                         .position(x: x, y: y)
                 }
+                .opacity(lineProgress >= pointThreshold ? 1.0 : 0.0)
+                .animation(.linear(duration: 0.2).delay(delay), value: lineProgress)
             }
         }
     }

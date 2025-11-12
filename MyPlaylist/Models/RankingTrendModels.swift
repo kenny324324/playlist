@@ -40,12 +40,15 @@ struct RankingTrend {
     }
     
     /// 從原始歷史記錄創建排名趨勢
-    static func from(histories: [RankingHistory], trackName: String) -> RankingTrend {
+    static func from(histories: [RankingHistory], trackName: String, currentRank: Int? = nil) -> RankingTrend {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
         
         // Debug: 輸出原始資料
         print("📊 [RankingTrend] 收到 \(histories.count) 筆歷史記錄")
+        if let currentRank = currentRank {
+            print("📊 [RankingTrend] 當前即時排名: #\(currentRank)")
+        }
         for history in histories.prefix(5) {
             print("  - \(history.recordedDate): Rank #\(history.rank)")
         }
@@ -76,7 +79,20 @@ struct RankingTrend {
         var consecutiveMissing = 0
         
         for date in past7Days {
-            if let dayHistories = groupedByDay[date],
+            let isToday = calendar.isDate(date, inSameDayAs: Date())
+            
+            // 如果是今天且有提供即時排名，優先使用即時排名
+            if isToday, let currentRank = currentRank {
+                print("📊 [RankingTrend] 使用即時排名 #\(currentRank) 作為今天的資料點")
+                points.append(RankingDataPoint(
+                    date: Date(),  // 使用當前時間
+                    rank: currentRank,
+                    isFilled: false,
+                    isOutOfChart: false
+                ))
+                lastKnownRank = currentRank
+                consecutiveMissing = 0
+            } else if let dayHistories = groupedByDay[date],
                let latest = dayHistories.max(by: { $0.recordedDate < $1.recordedDate }) {
                 // 有資料：使用當天最新記錄
                 points.append(RankingDataPoint(
