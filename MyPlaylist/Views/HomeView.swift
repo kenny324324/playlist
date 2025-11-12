@@ -399,6 +399,21 @@ struct HomeView: View {
         }
     }
     
+    // 單獨的趨勢圖載入佔位符
+    private var top5TrendLoadingPlaceholder: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            RoundedRectangle(cornerRadius: 4)
+                .fill(Color.gray.opacity(0.3))
+                .frame(width: 180, height: 22)
+                .shimmer()
+            
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.gray.opacity(0.3))
+                .frame(height: 300)
+                .shimmer()
+        }
+    }
+    
     
     // MARK: - Dashboard Section
     private var dashboardSection: some View {
@@ -432,9 +447,14 @@ struct HomeView: View {
                 )
                 
                 // Top 5 趨勢圖表（Dashboard 載入完成後）
-                if !top5Trends.isEmpty {
+                if isLoadingTrends {
+                    // 趨勢圖載入中，顯示佔位符保持佈局穩定
+                    top5TrendLoadingPlaceholder
+                } else if !top5Trends.isEmpty {
+                    // 載入完成且有資料，顯示實際圖表
                     top5TrendSection
                 }
+                // 如果載入完成但沒有資料，不顯示任何內容
                 
                 // 本月熱門歌曲
                 VStack(alignment: .leading, spacing: 15) {
