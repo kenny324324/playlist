@@ -1,40 +1,78 @@
 import SwiftUI
 
+// MARK: - 圖片和顏色快取管理器
+class MiniPlayerCacheManager: ObservableObject {
+    static let shared = MiniPlayerCacheManager()
+    
+    private var imageCache: [String: UIImage] = [:]
+    private var colorCache: [String: Color] = [:]
+    
+    func getImage(for url: String) -> UIImage? {
+        return imageCache[url]
+    }
+    
+    func setImage(_ image: UIImage, for url: String) {
+        imageCache[url] = image
+        objectWillChange.send()
+    }
+    
+    func getColor(for trackId: String) -> Color? {
+        return colorCache[trackId]
+    }
+    
+    func setColor(_ color: Color, for trackId: String) {
+        colorCache[trackId] = color
+        objectWillChange.send()
+    }
+}
+
 // MARK: - 底部迷你播放條
 struct MiniPlayerBar: View {
     let track: CurrentlyPlayingTrack?
     @ObservedObject var audioPlayer: AudioPlayer
     let onTapTrack: (String) -> Void
     
-    @State private var dominantColor: Color = Color.gray.opacity(0.2)
+    @StateObject private var cache = MiniPlayerCacheManager.shared
+    @State private var currentTrackId: String = ""
+    @State private var isLoadingImage = false
+    
+    // 使用 computed property 來避免圖片消失
+    private var coverImage: UIImage? {
+        guard let track = track,
+              let imageUrl = track.album.images.first?.url else {
+            return nil
+        }
+        return cache.getImage(for: imageUrl)
+    }
+    
+    private var dominantColor: Color {
+        guard let track = track else {
+            return Color.gray.opacity(0.2)
+        }
+        return cache.getColor(for: track.id) ?? Color.gray.opacity(0.2)
+    }
     
     var body: some View {
         if let track = track {
             HStack(spacing: 12) {
-                // 專輯封面
-                AsyncImage(url: URL(string: track.album.images.first?.url ?? "")) { phase in
-                    switch phase {
-                    case .empty:
+                // 專輯封面 - 使用快取圖片
+                Group {
+                    if let image = coverImage {
+                        Image(uiImage: image)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    } else if isLoadingImage {
                         ZStack {
                             Color.gray.opacity(0.3)
                             ProgressView()
                                 .tint(.white)
                         }
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                            .onAppear {
-                                extractDominantColor(from: image)
-                            }
-                    case .failure:
+                    } else {
                         ZStack {
                             Color.gray.opacity(0.3)
                             Image(systemName: "music.note")
                                 .foregroundColor(.gray)
                         }
-                    @unknown default:
-                        EmptyView()
                     }
                 }
                 .frame(width: 32, height: 32)
@@ -82,6 +120,7 @@ struct MiniPlayerBar: View {
                         startPoint: .leading,
                         endPoint: .trailing
                     )
+                    .animation(.easeInOut(duration: 0.3), value: dominantColor)
                     
                     // 頂部細線分隔
                     VStack {
@@ -96,10 +135,11 @@ struct MiniPlayerBar: View {
             .onTapGesture {
                 onTapTrack(track.id)
             }
-            .animation(.easeInOut(duration: 0.5), value: dominantColor)
+            .onAppear {
+                loadTrackDataIfNeeded(track)
+            }
             .onChange(of: track.id) { _ in
-                // 當歌曲切換時重置顏色
-                dominantColor = Color.gray.opacity(0.2)
+                loadTrackDataIfNeeded(track)
             }
         } else {
             // 沒有播放中的歌曲
@@ -121,14 +161,82 @@ struct MiniPlayerBar: View {
     }
     
     // MARK: - Helper Methods
-    private func extractDominantColor(from image: Image) {
-        // 將 SwiftUI Image 轉換為 UIImage
-        let renderer = ImageRenderer(content: image)
-        if let uiImage = renderer.uiImage {
-            uiImage.getDominantColor { color in
-                if let color = color {
-                    dominantColor = Color(color)
+    
+    /// 只在需要時加載資料
+    private func loadTrackDataIfNeeded(_ track: CurrentlyPlayingTrack) {
+        currentTrackId = track.id
+        
+        guard let imageUrlString = track.album.images.first?.url else {
+            return
+        }
+        
+        // 檢查是否已有圖片快取
+        let hasImage = cache.getImage(for: imageUrlString) != nil
+        let hasColor = cache.getColor(for: track.id) != nil
+        
+        if hasImage && hasColor {
+            // 都有快取，不需要做任何事
+            return
+        }
+        
+        if hasImage && !hasColor {
+            // 有圖片但沒顏色，提取顏色
+            if let cachedImage = cache.getImage(for: imageUrlString) {
+                extractAndCacheColor(from: cachedImage, trackId: track.id)
+            }
+            return
+        }
+        
+        // 沒有圖片快取，需要下載
+        if !hasImage {
+            isLoadingImage = true
+            loadImageFromURL(imageUrlString, trackId: track.id)
+        }
+    }
+    
+    /// 從 URL 下載圖片
+    private func loadImageFromURL(_ urlString: String, trackId: String) {
+        guard let url = URL(string: urlString) else {
+            isLoadingImage = false
+            return
+        }
+        
+        URLSession.shared.dataTask(with: url) { data, response, error in
+            guard let data = data,
+                  let image = UIImage(data: data),
+                  error == nil else {
+                DispatchQueue.main.async {
+                    self.isLoadingImage = false
                 }
+                return
+            }
+            
+            DispatchQueue.main.async {
+                // 存入快取（這會觸發 View 更新，因為 cache 是 @Published）
+                self.cache.setImage(image, for: urlString)
+                
+                if self.currentTrackId == trackId {
+                    self.isLoadingImage = false
+                }
+                
+                // 提取並快取顏色
+                self.extractAndCacheColor(from: image, trackId: trackId)
+            }
+        }.resume()
+    }
+    
+    /// 提取並快取主色調
+    private func extractAndCacheColor(from image: UIImage, trackId: String) {
+        // 檢查是否已經有快取的顏色
+        if cache.getColor(for: trackId) != nil {
+            return
+        }
+        
+        image.getDominantColor { color in
+            if let color = color {
+                let swiftUIColor = Color(color)
+                // 存入快取（這會觸發 View 更新）
+                self.cache.setColor(swiftUIColor, for: trackId)
             }
         }
     }
