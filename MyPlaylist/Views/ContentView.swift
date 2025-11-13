@@ -1,6 +1,65 @@
 import SwiftUI
 import AuthenticationServices
 
+// MARK: - 啟動畫面過渡動畫選項
+enum LaunchTransitionStyle: String, CaseIterable, Identifiable {
+    case fade = "fade"                    // 淡入淡出
+    case scaleUpFade = "scaleUpFade"     // 放大淡出
+    case scaleDownFade = "scaleDownFade" // 縮小淡出
+    case slideUp = "slideUp"             // 向上滑動
+    case slideUpFade = "slideUpFade"     // 向上滑動 + 淡出
+    
+    var id: String { rawValue }
+    
+    var displayName: LocalizedStringKey {
+        switch self {
+        case .fade:
+            return "settings.launchTransition.fade"
+        case .scaleUpFade:
+            return "settings.launchTransition.scaleUpFade"
+        case .scaleDownFade:
+            return "settings.launchTransition.scaleDownFade"
+        case .slideUp:
+            return "settings.launchTransition.slideUp"
+        case .slideUpFade:
+            return "settings.launchTransition.slideUpFade"
+        }
+    }
+    
+    var icon: String {
+        switch self {
+        case .fade:
+            return "circle.dotted"
+        case .scaleUpFade:
+            return "arrow.up.left.and.arrow.down.right"
+        case .scaleDownFade:
+            return "arrow.down.right.and.arrow.up.left"
+        case .slideUp:
+            return "arrow.up"
+        case .slideUpFade:
+            return "arrow.up.circle"
+        }
+    }
+    
+    var transition: AnyTransition {
+        switch self {
+        case .fade:
+            return .opacity
+        case .scaleUpFade:
+            return .scale(scale: 1.2).combined(with: .opacity)
+        case .scaleDownFade:
+            return .scale(scale: 0.8).combined(with: .opacity)
+        case .slideUp:
+            return .move(edge: .top)
+        case .slideUpFade:
+            return .asymmetric(
+                insertion: .move(edge: .bottom).combined(with: .opacity),
+                removal: .move(edge: .top).combined(with: .opacity)
+            )
+        }
+    }
+}
+
 struct ContentView: View {
     @StateObject private var themeManager = ThemeManager.shared
     @StateObject private var demoModeManager = DemoModeManager.shared
@@ -25,6 +84,16 @@ struct ContentView: View {
     @AppStorage("updateFrequency") private var updateFrequency: Int = 5
     @State private var lastUpdateTime: Date = Date()
     
+    // 啟動載入畫面控制
+    @State private var showLaunchScreen = true
+    
+    // 過渡動畫樣式（從設定讀取）
+    @AppStorage("launchTransitionStyle") private var transitionStyleRaw: String = LaunchTransitionStyle.fade.rawValue
+    
+    private var transitionStyle: LaunchTransitionStyle {
+        LaunchTransitionStyle(rawValue: transitionStyleRaw) ?? .fade
+    }
+    
     // 定時器：每秒檢查，但根據設定頻率執行
     private let currentlyPlayingTimer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
@@ -32,6 +101,61 @@ struct ContentView: View {
         ZStack {
             Color.spotifyText.ignoresSafeArea()
             
+            // 顯示啟動載入畫面或主畫面
+            if showLaunchScreen {
+                LaunchScreenView(
+                    onLoadingComplete: {
+                        // 載入完成後隱藏啟動畫面
+                        showLaunchScreen = false
+                    },
+                    checkLoginAndPreload: {
+                        // 在啟動畫面時預載資料
+                        checkIfLoggedIn()
+                    }
+                )
+                .transition(transitionStyle.transition)  // 使用選擇的過渡動畫
+            } else {
+                mainContent
+            }
+        }
+        .onOpenURL { url in
+            handleSpotifyCallback(url: url)  // 監聽 Spotify 回調 URL
+        }
+        .onAppear {
+            // 檢查編譯標誌（用於調試）
+            DebugHelper.checkCompilationFlags()
+        }
+        .onChange(of: scenePhase) { newPhase in
+            if newPhase == .active && !showLaunchScreen {
+                checkIfLoggedIn()  // App 從背景返回時檢查登入狀態
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .spotifyUnauthorized)) { _ in
+            resetSessionState()
+        }
+        .onReceive(currentlyPlayingTimer) { _ in
+            if scenePhase == .active && isLoggedIn && !showLaunchScreen {
+                // 檢查是否達到更新頻率
+                let now = Date()
+                let timeInterval = now.timeIntervalSince(lastUpdateTime)
+                
+                if timeInterval >= Double(updateFrequency) {
+                    lastUpdateTime = now
+                fetchCurrentlyPlaying()
+                }
+            }
+        }
+        .sheet(item: $trackDetailSheetItem) { item in
+            NavigationStack {
+                TrackDetailView(trackId: item.id, accessToken: accessToken ?? "", audioPlayer: audioPlayer)
+            }
+        }
+    }
+    
+    // MARK: - 主要內容
+    @ViewBuilder
+    private var mainContent: some View {
+        ZStack {
             // Demo 模式指示器
             if demoModeManager.isDemoMode {
                 VStack {
@@ -40,7 +164,7 @@ struct ContentView: View {
                         Text("Demo Mode")
                         Image(systemName: "theatermasks.fill")
                     }
-                    .font(.custom("SpotifyMix-Bold", size: 14))
+                    .font(.appFont(size: 14, weight: .bold))
                     .foregroundColor(.white)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
@@ -185,39 +309,8 @@ struct ContentView: View {
                 }
             }
         }
-        .onOpenURL { url in
-            handleSpotifyCallback(url: url)  // 監聽 Spotify 回調 URL
-        }
         .onAppear {
-            // 檢查編譯標誌（用於調試）
-            DebugHelper.checkCompilationFlags()
-            
             checkIfLoggedIn()  // 每次顯示時檢查登入狀態
-        }
-        .onChange(of: scenePhase) { newPhase in
-            if newPhase == .active {
-                checkIfLoggedIn()  // App 從背景返回時檢查登入狀態
-            }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .spotifyUnauthorized)) { _ in
-            resetSessionState()
-        }
-        .onReceive(currentlyPlayingTimer) { _ in
-            if scenePhase == .active && isLoggedIn {
-                // 檢查是否達到更新頻率
-                let now = Date()
-                let timeInterval = now.timeIntervalSince(lastUpdateTime)
-                
-                if timeInterval >= Double(updateFrequency) {
-                    lastUpdateTime = now
-                fetchCurrentlyPlaying()
-                }
-            }
-        }
-        .sheet(item: $trackDetailSheetItem) { item in
-            NavigationStack {
-                TrackDetailView(trackId: item.id, accessToken: accessToken ?? "", audioPlayer: audioPlayer)
-            }
         }
     }
 

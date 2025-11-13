@@ -16,7 +16,7 @@ struct LoginView: View {
             // Spotify 登入按鈕
             Button(action: login) {
                 Text("login.button")
-                    .font(.custom("SpotifyMix-Medium", size: 22))
+                    .font(.appFont(size: 22, weight: .medium))
                     .foregroundColor(Color.spotifyText)
                     .frame(maxWidth: .infinity)
                     .padding()
@@ -33,7 +33,7 @@ struct LoginView: View {
                         Image(systemName: "theatermasks")
                         Text("Demo Mode (For Review)")
                     }
-                    .font(.custom("SpotifyMix-Medium", size: 18))
+                    .font(.appFont(size: 18, weight: .medium))
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding()

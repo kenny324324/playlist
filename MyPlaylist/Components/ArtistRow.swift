@@ -81,7 +81,7 @@ struct ArtistRow: View {
                     .cornerRadius(1)
                 Text("#\(index)")
                     .foregroundColor(.white)
-                    .font(.custom("SpotifyMix-Bold", size: 22))
+                    .font(.appFont(size: 22, weight: .bold))
                     .lineLimit(1)
             }
             .frame(width: 50, alignment: .center)
@@ -121,14 +121,14 @@ struct ArtistRow: View {
                 VStack(alignment: .leading, spacing: 4) {
                     ArtistFadingText(
                         text: artist.name,
-                        font: .custom("SpotifyMix-Bold", size: 17),
+                        font: .appFont(size: 17, weight: .bold),
                         foregroundColor: .white,
                         backgroundColor: Color(red: 0.12, green: 0.12, blue: 0.12)
                     )
 
                     ArtistFadingText(
                         text: formatFollowers(artist.followers.total),
-                        font: .custom("SpotifyMix-Medium", size: 15),
+                        font: .appFont(size: 15, weight: .medium),
                         foregroundColor: .gray,
                         backgroundColor: Color(red: 0.12, green: 0.12, blue: 0.12)
                     )
@@ -140,12 +140,12 @@ struct ArtistRow: View {
                 VStack(spacing: 2) {
                     Text("component.popularity")
                         .foregroundColor(.gray)
-                        .font(.custom("SpotifyMix-Medium", size: 14))
+                        .font(.appFont(size: 14, weight: .medium))
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
                     Text("\(artist.popularity)")
                         .foregroundColor(Color.spotifyGreen)
-                        .font(.custom("SpotifyMix-Medium", size: 16))
+                        .font(.appFont(size: 16, weight: .medium))
                 }
                 .frame(width: 70, alignment: .trailing)
             }

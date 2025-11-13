@@ -81,7 +81,7 @@ struct MultiTrackTrendChart: View {
         VStack(spacing: 0) {
             ForEach(1...5, id: \.self) { rank in
                 Text("#\(rank)")
-                    .font(.custom("SpotifyMix-Bold", size: 11))
+                    .font(.appFont(size: 11, weight: .bold))
                     .foregroundColor(.gray)
                     .frame(height: size.height / 4)
             }
@@ -240,7 +240,7 @@ struct MultiTrackTrendChart: View {
                 let x = paddingX + CGFloat(i) / 6 * availableWidth
                 
                 Text(formatDate(date))
-                    .font(.custom("SpotifyMix-Medium", size: 11))
+                    .font(.appFont(size: 11, weight: .medium))
                     .foregroundColor(.white)
                     .position(x: x, y: 10)
             }
@@ -261,7 +261,7 @@ struct MultiTrackTrendChart: View {
                     
                     // 歌曲資訊
                     Text(trackTrend.trackName)
-                        .font(.custom("SpotifyMix-Medium", size: 13))
+                        .font(.appFont(size: 13, weight: .medium))
                         .foregroundColor(.white)
                         .lineLimit(1)
                     
@@ -270,7 +270,7 @@ struct MultiTrackTrendChart: View {
                         .font(.system(size: 10))
                     
                     Text(trackTrend.artistName)
-                        .font(.custom("SpotifyMix-Medium", size: 12))
+                        .font(.appFont(size: 12, weight: .medium))
                         .foregroundColor(.gray)
                         .lineLimit(1)
                     

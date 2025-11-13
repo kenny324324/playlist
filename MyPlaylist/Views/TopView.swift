@@ -137,10 +137,10 @@ struct TopView: View {
                         .font(.system(size: 60))
                         .foregroundColor(.gray)
                     Text("login.prompt.title")
-                        .font(.custom("SpotifyMix-Bold", size: 24))
+                        .font(.appFont(size: 24, weight: .bold))
                         .foregroundColor(.white)
                     Text("login.prompt.topChart")
-                        .font(.custom("SpotifyMix-Medium", size: 16))
+                        .font(.appFont(size: 16, weight: .medium))
                         .foregroundColor(.gray)
                     Spacer()
                 }
@@ -206,7 +206,7 @@ struct TopView: View {
             } label: {
                 HStack(spacing: 5) {
                     Text(selectedContentType.title)
-                        .font(.custom("SpotifyMix-Medium", size: 14))
+                        .font(.appFont(size: 14, weight: .medium))
                     Image(systemName: "chevron.down")
                         .font(.system(size: 11, weight: .medium))
                         .opacity(0.8)
@@ -246,7 +246,7 @@ struct TopView: View {
             } label: {
                 HStack(spacing: 5) {
                     Text(selectedTimeRange.title)
-                        .font(.custom("SpotifyMix-Medium", size: 14))
+                        .font(.appFont(size: 14, weight: .medium))
                     Image(systemName: "chevron.down")
                         .font(.system(size: 11, weight: .medium))
                         .opacity(0.8)
@@ -349,7 +349,7 @@ struct TopView: View {
                 // 未登入：顯示登入按鈕
                 Button(action: login) {
                     Text("login.title")
-                        .font(.custom("SpotifyMix-Medium", size: 14))
+                        .font(.appFont(size: 14, weight: .medium))
                         .foregroundColor(Color.spotifyText)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 6)
@@ -590,7 +590,7 @@ struct TopView: View {
                 
                 Text("#\(index)")
                     .foregroundColor(.white)
-                    .font(.custom("SpotifyMix-Bold", size: 22))
+                    .font(.appFont(size: 22, weight: .bold))
                     .lineLimit(1)
             }
             .frame(width: 50, alignment: .center)
@@ -639,7 +639,7 @@ struct TopView: View {
         HStack(alignment: .center, spacing: 8) {
             Text("#\(index)")
                 .foregroundColor(.gray)
-                .font(.custom("SpotifyMix-Bold", size: 20))
+                .font(.appFont(size: 20, weight: .bold))
                 .lineLimit(1)
                 .frame(width: 35, alignment: .center)
             HStack(spacing: 12) {
@@ -648,19 +648,19 @@ struct TopView: View {
                     .frame(width: 45, height: 45)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("")
-                        .font(.custom("SpotifyMix-Bold", size: 17))
+                        .font(.appFont(size: 17, weight: .bold))
                         .foregroundColor(.clear)
                     Text("")
-                        .font(.custom("SpotifyMix-Medium", size: 15))
+                        .font(.appFont(size: 15, weight: .medium))
                         .foregroundColor(.clear)
                 }
                 Spacer()
                 VStack(spacing: 2) {
                     Text("")
-                        .font(.custom("SpotifyMix-Medium", size: 14))
+                        .font(.appFont(size: 14, weight: .medium))
                         .foregroundColor(.clear)
                     Text("")
-                        .font(.custom("SpotifyMix-Medium", size: 16))
+                        .font(.appFont(size: 16, weight: .medium))
                         .foregroundColor(.clear)
                 }
                 .frame(width: 60, alignment: .trailing)

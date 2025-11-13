@@ -6,6 +6,35 @@ extension Notification.Name {
     static let spotifyUnauthorized = Notification.Name("spotifyUnauthorized")
 }
 
+// MARK: - Font Extension
+extension Font {
+    enum FontWeight {
+        case medium
+        case bold
+        case extraBold
+        
+        var fontName: String {
+            switch self {
+            case .medium:
+                return "SpotifyMix-Medium"
+            case .bold:
+                return "SpotifyMix-Bold"
+            case .extraBold:
+                return "SpotifyMix-Extrabold"
+            }
+        }
+        
+        // 支援 scale 運算
+        static func * (weight: FontWeight, scale: CGFloat) -> FontWeight {
+            return weight
+        }
+    }
+    
+    static func appFont(size: CGFloat, weight: FontWeight) -> Font {
+        return .custom(weight.fontName, size: size)
+    }
+}
+
 // MARK: - Shimmer Effect Extension
 extension View {
     func shimmer() -> some View {

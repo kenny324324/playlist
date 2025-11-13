@@ -39,12 +39,12 @@ struct MiniPlayerBar: View {
                 // 歌曲資訊
                 VStack(alignment: .leading, spacing: 3) {
                     Text(track.name)
-                        .font(.custom("SpotifyMix-Bold", size: 13))
+                        .font(.appFont(size: 13, weight: .bold))
                         .foregroundColor(.white)
                         .lineLimit(1)
                     
                     Text(track.artists.map(\.name).joined(separator: ", "))
-                        .font(.custom("SpotifyMix-Medium", size: 11))
+                        .font(.appFont(size: 11, weight: .medium))
                         .foregroundColor(.gray)
                         .lineLimit(1)
                 }
@@ -87,7 +87,7 @@ struct MiniPlayerBar: View {
                     .foregroundColor(.gray)
                 
                 Text("player.noCurrentlyPlaying")
-                    .font(.custom("SpotifyMix-Medium", size: 13))
+                    .font(.appFont(size: 13, weight: .medium))
                     .foregroundColor(.gray)
                 
                 Spacer()

@@ -32,13 +32,13 @@ struct PlayerView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(currentTrack?.name ?? "Unknown Track")
                         .foregroundColor(.primary)
-                        .font(.custom("SpotifyMix-Medium", size: 14))
+                        .font(.appFont(size: 14, weight: .medium))
                         .lineLimit(1)
                         .truncationMode(.tail)
 
                     Text(currentTrack?.artists.map(\.name).joined(separator: ", ") ?? "Unknown Artist")
                         .foregroundColor(.white)
-                        .font(.custom("SpotifyMix-Medium", size: 12))
+                        .font(.appFont(size: 12, weight: .medium))
                         .lineLimit(1)
                         .truncationMode(.tail)
                 }

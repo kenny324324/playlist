@@ -13,14 +13,14 @@ struct SmallStatCard: View {
         }) {
             VStack(alignment: .leading, spacing: 6) {
                 Text(number)
-                    .font(.custom("SpotifyMix-Bold", size: 22))
+                    .font(.appFont(size: 22, weight: .bold))
                     .foregroundColor(.spotifyGreen)
                 
                 if let highlightWord = highlightWord {
                     highlightedText(fullText: text, highlightWord: highlightWord)
                 } else {
                     Text(text)
-                        .font(.custom("SpotifyMix-Medium", size: 14))
+                        .font(.appFont(size: 14, weight: .medium))
                         .foregroundColor(.white)
                         .lineLimit(3)
                         .fixedSize(horizontal: false, vertical: true)
@@ -43,19 +43,19 @@ struct SmallStatCard: View {
         return Group {
             if parts.count == 2 {
                 (Text(parts[0])
-                    .font(.custom("SpotifyMix-Medium", size: 14))
+                    .font(.appFont(size: 14, weight: .medium))
                     .foregroundColor(.white) +
                 Text(highlightWord)
-                    .font(.custom("SpotifyMix-Bold", size: 14))
+                    .font(.appFont(size: 14, weight: .bold))
                     .foregroundColor(.spotifyGreen) +
                 Text(parts[1])
-                    .font(.custom("SpotifyMix-Medium", size: 14))
+                    .font(.appFont(size: 14, weight: .medium))
                     .foregroundColor(.white))
                 .lineLimit(3)
                 .fixedSize(horizontal: false, vertical: true)
             } else {
                 Text(fullText)
-                    .font(.custom("SpotifyMix-Medium", size: 14))
+                    .font(.appFont(size: 14, weight: .medium))
                     .foregroundColor(.white)
                     .lineLimit(3)
                     .fixedSize(horizontal: false, vertical: true)

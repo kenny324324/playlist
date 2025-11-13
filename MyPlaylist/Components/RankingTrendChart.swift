@@ -45,7 +45,7 @@ struct RankingTrendChart: View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
                 Text("rankingTrend.past7Days")
-                    .font(.custom("SpotifyMix-Medium", size: 14))
+                    .font(.appFont(size: 14, weight: .medium))
                     .foregroundColor(.gray)
                 
                 if let change = trend.rankChange {
@@ -54,12 +54,12 @@ struct RankingTrendChart: View {
                             Image(systemName: "minus")
                                 .font(.system(size: 12))
                             Text("rankingTrend.noChange")
-                                .font(.custom("SpotifyMix-Medium", size: 14))
+                                .font(.appFont(size: 14, weight: .medium))
                         } else {
                             Image(systemName: change > 0 ? "arrow.up" : "arrow.down")
                                 .font(.system(size: 12))
                             Text(change > 0 ? "+\(change)" : "\(change)")
-                                .font(.custom("SpotifyMix-Bold", size: 16))
+                                .font(.appFont(size: 16, weight: .bold))
                         }
                     }
                     .foregroundColor(change > 0 ? .spotifyGreen : change < 0 ? .red : .gray)
@@ -72,18 +72,18 @@ struct RankingTrendChart: View {
                 VStack(alignment: .trailing, spacing: 4) {
                     HStack(spacing: 4) {
                         Text("rankingTrend.best")
-                            .font(.custom("SpotifyMix-Medium", size: 11))
+                            .font(.appFont(size: 11, weight: .medium))
                             .foregroundColor(.gray)
                         Text("#\(highest)")
-                            .font(.custom("SpotifyMix-Bold", size: 14))
+                            .font(.appFont(size: 14, weight: .bold))
                             .foregroundColor(.spotifyGreen)
                     }
                     HStack(spacing: 4) {
                         Text("rankingTrend.worst")
-                            .font(.custom("SpotifyMix-Medium", size: 11))
+                            .font(.appFont(size: 11, weight: .medium))
                             .foregroundColor(.gray)
                         Text("#\(lowest)")
-                            .font(.custom("SpotifyMix-Bold", size: 14))
+                            .font(.appFont(size: 14, weight: .bold))
                             .foregroundColor(.red)
                     }
                 }
@@ -281,7 +281,7 @@ struct RankingTrendChart: View {
                 
                 // 排名標籤
                 Text("#\(rank)")
-                    .font(.custom("SpotifyMix-Bold", size: 9))
+                    .font(.appFont(size: 9, weight: .bold))
                     .foregroundColor(.spotifyGreen)
                     .background(
                         RoundedRectangle(cornerRadius: 3)
@@ -389,7 +389,7 @@ struct RankingTrendChart: View {
                 let x = paddingX + CGFloat(i) / 6 * availableWidth
                 
                 Text(formatDate(date))
-                    .font(.custom("SpotifyMix-Medium", size: 11))
+                    .font(.appFont(size: 11, weight: .medium))
                     .foregroundColor(.white)
                     .position(x: x, y: 10)
             }

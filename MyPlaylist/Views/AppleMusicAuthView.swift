@@ -14,18 +14,18 @@ struct AppleMusicAuthView: View {
             
             // 標題
             Text("applemusic.auth.title")
-                .font(.custom("SpotifyMix-Bold", size: 28))
+                .font(.appFont(size: 28, weight: .bold))
                 .foregroundColor(.white)
             
             // 說明
             VStack(spacing: 12) {
                 Text("applemusic.auth.description")
-                    .font(.custom("SpotifyMix-Medium", size: 16))
+                    .font(.appFont(size: 16, weight: .medium))
                     .foregroundColor(.gray)
                     .multilineTextAlignment(.center)
                 
                 Text("applemusic.auth.reason")
-                    .font(.custom("SpotifyMix-Medium", size: 14))
+                    .font(.appFont(size: 14, weight: .medium))
                     .foregroundColor(.gray)
                     .multilineTextAlignment(.center)
             }
@@ -37,7 +37,7 @@ struct AppleMusicAuthView: View {
                     .foregroundColor(appleMusicService.isAuthorized ? .green : .red)
                 
                 Text(appleMusicService.isAuthorized ? "applemusic.auth.authorized" : "applemusic.auth.notAuthorized")
-                    .font(.custom("SpotifyMix-Medium", size: 16))
+                    .font(.appFont(size: 16, weight: .medium))
                     .foregroundColor(.white)
             }
             .padding()
@@ -61,7 +61,7 @@ struct AppleMusicAuthView: View {
                         Image(systemName: "music.note")
                         Text("applemusic.auth.button")
                     }
-                    .font(.custom("SpotifyMix-Bold", size: 18))
+                    .font(.appFont(size: 18, weight: .bold))
                     .foregroundColor(.black)
                     .padding()
                     .frame(maxWidth: .infinity)

@@ -204,10 +204,10 @@ struct HomeView: View {
                             .font(.system(size: 60))
                             .foregroundColor(.gray)
                         Text("login.prompt.title")
-                            .font(.custom("SpotifyMix-Bold", size: 24))
+                            .font(.appFont(size: 24, weight: .bold))
                             .foregroundColor(.white)
                         Text("login.prompt.message")
-                            .font(.custom("SpotifyMix-Medium", size: 16))
+                            .font(.appFont(size: 16, weight: .medium))
                             .foregroundColor(.gray)
                         
                         #if APPSTORE_REVIEW
@@ -218,7 +218,7 @@ struct HomeView: View {
                                     Image(systemName: "theatermasks")
                                     Text("Demo Mode (For Review)")
                                 }
-                                .font(.custom("SpotifyMix-Medium", size: 18))
+                                .font(.appFont(size: 18, weight: .medium))
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 24)
                                 .padding(.vertical, 12)
@@ -439,7 +439,7 @@ struct HomeView: View {
     private var top5TrendSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("home.top5Trends")
-                .font(.custom("SpotifyMix-Bold", size: 22))
+                .font(.appFont(size: 22, weight: .bold))
                 .foregroundColor(.white)
             
             MultiTrackTrendChart(trends: top5Trends)
@@ -512,7 +512,7 @@ struct HomeView: View {
                 // 本月熱門歌曲
                 VStack(alignment: .leading, spacing: 15) {
                     Text(String(localized: "dashboard.monthlyTopTracks"))
-                        .font(.custom("SpotifyMix-Bold", size: 22))
+                        .font(.appFont(size: 22, weight: .bold))
                         .foregroundColor(.white)
                     
                     if summary.weeklyTopTracks.isEmpty {
@@ -521,7 +521,7 @@ struct HomeView: View {
                                 .font(.system(size: 40))
                                 .foregroundColor(.gray)
                             Text("dashboard.empty.noTopTracks")
-                                .font(.custom("SpotifyMix-Medium", size: 16))
+                                .font(.appFont(size: 16, weight: .medium))
                                 .foregroundColor(.gray)
                                 .multilineTextAlignment(.center)
                         }
@@ -544,7 +544,7 @@ struct HomeView: View {
                 // 本月熱門藝人
                 VStack(alignment: .leading, spacing: 15) {
                     Text(String(localized: "dashboard.monthlyTopArtists"))
-                        .font(.custom("SpotifyMix-Bold", size: 22))
+                        .font(.appFont(size: 22, weight: .bold))
                         .foregroundColor(.white)
                     
                     if summary.weeklyTopArtists.isEmpty {
@@ -553,7 +553,7 @@ struct HomeView: View {
                                 .font(.system(size: 40))
                                 .foregroundColor(.gray)
                             Text("dashboard.empty.noTopArtists")
-                                .font(.custom("SpotifyMix-Medium", size: 16))
+                                .font(.appFont(size: 16, weight: .medium))
                                 .foregroundColor(.gray)
                                 .multilineTextAlignment(.center)
                         }
@@ -581,7 +581,7 @@ struct HomeView: View {
     private var currentlyPlayingSection: some View {
         VStack(alignment: .leading, spacing: 15) {
             Text("home.nowPlaying")
-                .font(.custom("SpotifyMix-Bold", size: 22))
+                .font(.appFont(size: 22, weight: .bold))
                 .foregroundColor(.white)
             
             if isLoading && currentlyPlaying == nil {
@@ -595,7 +595,7 @@ struct HomeView: View {
                         .font(.system(size: 40))
                         .foregroundColor(.gray)
                     Text("home.empty.noMusic")
-                        .font(.custom("SpotifyMix-Medium", size: 18))
+                        .font(.appFont(size: 18, weight: .medium))
                         .foregroundColor(.gray)
                 }
                 .frame(maxWidth: .infinity, minHeight: 100)
@@ -609,7 +609,7 @@ struct HomeView: View {
     private var recentlyPlayedSection: some View {
         VStack(alignment: .leading, spacing: 15) {
             Text("home.recentlyPlayed")
-                .font(.custom("SpotifyMix-Bold", size: 22))
+                .font(.appFont(size: 22, weight: .bold))
                 .foregroundColor(.white)
             
             if isLoading && recentlyPlayed.isEmpty {
@@ -625,7 +625,7 @@ struct HomeView: View {
                         .font(.system(size: 40))
                         .foregroundColor(.gray)
                     Text("home.empty.noHistory")
-                        .font(.custom("SpotifyMix-Medium", size: 18))
+                        .font(.appFont(size: 18, weight: .medium))
                         .foregroundColor(.gray)
                 }
                 .frame(maxWidth: .infinity, minHeight: 100)
@@ -649,7 +649,7 @@ struct HomeView: View {
                     }) {
                         HStack {
                             Text(String(localized: "home.viewRecent", defaultValue: "View recent \(recentlyPlayed.count) plays"))
-                                .font(.custom("SpotifyMix-Medium", size: 16))
+                                .font(.appFont(size: 16, weight: .medium))
                                 .foregroundColor(.white)
                             Image(systemName: "chevron.right")
                                 .font(.system(size: 12))
@@ -670,7 +670,7 @@ struct HomeView: View {
     private var savedTracksSection: some View {
         VStack(alignment: .leading, spacing: 15) {
             Text("home.savedTracks")
-                .font(.custom("SpotifyMix-Bold", size: 22))
+                .font(.appFont(size: 22, weight: .bold))
                 .foregroundColor(.white)
             
             if isLoading && savedTracks.isEmpty {
@@ -685,7 +685,7 @@ struct HomeView: View {
                         .font(.system(size: 40))
                         .foregroundColor(.gray)
                     Text("home.empty.noSavedTracks")
-                        .font(.custom("SpotifyMix-Medium", size: 18))
+                        .font(.appFont(size: 18, weight: .medium))
                         .foregroundColor(.gray)
                 }
                 .frame(maxWidth: .infinity, minHeight: 100)
@@ -708,7 +708,7 @@ struct HomeView: View {
     private var savedAlbumsSection: some View {
         VStack(alignment: .leading, spacing: 15) {
             Text("home.savedAlbums")
-                .font(.custom("SpotifyMix-Bold", size: 22))
+                .font(.appFont(size: 22, weight: .bold))
                 .foregroundColor(.white)
             
             if isLoading && savedAlbums.isEmpty {
@@ -727,7 +727,7 @@ struct HomeView: View {
                         .font(.system(size: 40))
                         .foregroundColor(.gray)
                     Text("home.empty.noSavedAlbums")
-                        .font(.custom("SpotifyMix-Medium", size: 18))
+                        .font(.appFont(size: 18, weight: .medium))
                         .foregroundColor(.gray)
                 }
                 .frame(maxWidth: .infinity, minHeight: 100)
@@ -757,7 +757,7 @@ struct HomeView: View {
     private var userPlaylistsSection: some View {
         VStack(alignment: .leading, spacing: 15) {
             Text("home.myPlaylists")
-                .font(.custom("SpotifyMix-Bold", size: 22))
+                .font(.appFont(size: 22, weight: .bold))
                 .foregroundColor(.white)
             
             if isLoading && userPlaylists.isEmpty {
@@ -776,7 +776,7 @@ struct HomeView: View {
                         .font(.system(size: 40))
                         .foregroundColor(.gray)
                     Text("home.empty.noPlaylists")
-                        .font(.custom("SpotifyMix-Medium", size: 18))
+                        .font(.appFont(size: 18, weight: .medium))
                         .foregroundColor(.gray)
                 }
                 .frame(maxWidth: .infinity, minHeight: 100)
@@ -803,7 +803,7 @@ struct HomeView: View {
     private var followedArtistsSection: some View {
         VStack(alignment: .leading, spacing: 15) {
             Text("home.followedArtists")
-                .font(.custom("SpotifyMix-Bold", size: 22))
+                .font(.appFont(size: 22, weight: .bold))
                 .foregroundColor(.white)
             
             if isLoading && followedArtists.isEmpty {
@@ -822,7 +822,7 @@ struct HomeView: View {
                         .font(.system(size: 40))
                         .foregroundColor(.gray)
                     Text("home.empty.noFollowedArtists")
-                        .font(.custom("SpotifyMix-Medium", size: 18))
+                        .font(.appFont(size: 18, weight: .medium))
                         .foregroundColor(.gray)
                 }
                 .frame(maxWidth: .infinity, minHeight: 100)
@@ -1181,7 +1181,7 @@ struct CurrentlyPlayingCard: View {
             VStack(alignment: .leading, spacing: 6) {
                 HomeFadingText(
                     text: track.name,
-                    font: .custom("SpotifyMix-Bold", size: 20),
+                    font: .appFont(size: 20, weight: .bold),
                     foregroundColor: .white,
                     backgroundColor: Color(red: 0.12, green: 0.12, blue: 0.12),
                     lineLimit: 2
@@ -1189,14 +1189,14 @@ struct CurrentlyPlayingCard: View {
                 
                 HomeFadingText(
                     text: track.artists.map(\.name).joined(separator: ", "),
-                    font: .custom("SpotifyMix-Medium", size: 16),
+                    font: .appFont(size: 16, weight: .medium),
                     foregroundColor: .gray,
                     backgroundColor: Color(red: 0.12, green: 0.12, blue: 0.12)
                 )
                 
                 HomeFadingText(
                     text: track.album.name,
-                    font: .custom("SpotifyMix-Medium", size: 14),
+                    font: .appFont(size: 14, weight: .medium),
                     foregroundColor: .gray,
                     backgroundColor: Color(red: 0.12, green: 0.12, blue: 0.12)
                 )
@@ -1209,7 +1209,7 @@ struct CurrentlyPlayingCard: View {
                             Image(systemName: audioPlayer.isPlaying && audioPlayer.currentPreviewUrl == previewUrl ? "pause.fill" : "play.fill")
                             Text("home.preview")
                         }
-                        .font(.custom("SpotifyMix-Medium", size: 14))
+                        .font(.appFont(size: 14, weight: .medium))
                         .foregroundColor(.white)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
@@ -1265,14 +1265,14 @@ struct RecentlyPlayedRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 HomeFadingText(
                     text: item.track.name,
-                    font: .custom("SpotifyMix-Medium", size: 16),
+                    font: .appFont(size: 16, weight: .medium),
                     foregroundColor: .white,
                     backgroundColor: Color(red: 0.12, green: 0.12, blue: 0.12)
                 )
                 
                 HomeFadingText(
                     text: item.track.artists.map(\.name).joined(separator: ", "),
-                    font: .custom("SpotifyMix-Medium", size: 14),
+                    font: .appFont(size: 14, weight: .medium),
                     foregroundColor: .gray,
                     backgroundColor: Color(red: 0.12, green: 0.12, blue: 0.12)
                 )
@@ -1282,7 +1282,7 @@ struct RecentlyPlayedRow: View {
             
             // 歌曲時長
             Text(formatDuration(item.track.duration_ms))
-                .font(.custom("SpotifyMix-Medium", size: 14))
+                .font(.appFont(size: 14, weight: .medium))
                 .foregroundColor(.gray)
             
             if let previewUrl = item.track.preview_url {
@@ -1446,14 +1446,14 @@ struct SavedTrackRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 HomeFadingText(
                     text: item.track.name,
-                    font: .custom("SpotifyMix-Medium", size: 16),
+                    font: .appFont(size: 16, weight: .medium),
                     foregroundColor: .white,
                     backgroundColor: Color(red: 0.12, green: 0.12, blue: 0.12)
                 )
                 
                 HomeFadingText(
                     text: item.track.artists.map(\.name).joined(separator: ", "),
-                    font: .custom("SpotifyMix-Medium", size: 14),
+                    font: .appFont(size: 14, weight: .medium),
                     foregroundColor: .gray,
                     backgroundColor: Color(red: 0.12, green: 0.12, blue: 0.12)
                 )
@@ -1518,7 +1518,7 @@ struct AlbumCard: View {
             
             HomeFadingText(
                 text: album.name,
-                font: .custom("SpotifyMix-Medium", size: 14),
+                font: .appFont(size: 14, weight: .medium),
                 foregroundColor: .white,
                 backgroundColor: .black,
                 lineLimit: 1
@@ -1527,7 +1527,7 @@ struct AlbumCard: View {
             
             HomeFadingText(
                 text: album.artists.map(\.name).joined(separator: ", "),
-                font: .custom("SpotifyMix-Medium", size: 12),
+                font: .appFont(size: 12, weight: .medium),
                 foregroundColor: .gray,
                 backgroundColor: .black,
                 lineLimit: 1
@@ -1571,7 +1571,7 @@ struct PlaylistCard: View {
             
             HomeFadingText(
                 text: playlist.name,
-                font: .custom("SpotifyMix-Medium", size: 14),
+                font: .appFont(size: 14, weight: .medium),
                 foregroundColor: .white,
                 backgroundColor: .black,
                 lineLimit: 1
@@ -1615,7 +1615,7 @@ struct ArtistCard: View {
             ZStack {
                 HomeFadingText(
                     text: artist.name,
-                    font: .custom("SpotifyMix-Medium", size: 14),
+                    font: .appFont(size: 14, weight: .medium),
                     foregroundColor: .white,
                     backgroundColor: .black,
                     lineLimit: 1
@@ -1626,7 +1626,7 @@ struct ArtistCard: View {
             ZStack {
                 HomeFadingText(
                     text: "\(artist.followers.total.formatted()) \(String(localized: "component.followers"))",
-                    font: .custom("SpotifyMix-Medium", size: 12),
+                    font: .appFont(size: 12, weight: .medium),
                     foregroundColor: .gray,
                     backgroundColor: .black,
                     lineLimit: 1
@@ -1711,7 +1711,7 @@ struct WeeklyTopRowContent: View {
                 
                 Text("#\(rank)")
                     .foregroundColor(.white)
-                    .font(.custom("SpotifyMix-Bold", size: 22))
+                    .font(.appFont(size: 22, weight: .bold))
                     .lineLimit(1)
             }
             .frame(width: 50, alignment: .center)
@@ -1741,7 +1741,7 @@ struct WeeklyTopRowContent: View {
                 VStack(alignment: .leading, spacing: 4) {
                     HomeFadingText(
                         text: entry.name,
-                        font: .custom("SpotifyMix-Bold", size: 17),
+                        font: .appFont(size: 17, weight: .bold),
                         foregroundColor: .white,
                         backgroundColor: Color(red: 0.12, green: 0.12, blue: 0.12)
                     )
@@ -1749,7 +1749,7 @@ struct WeeklyTopRowContent: View {
                     if let artistName = entry.artistName {
                         HomeFadingText(
                             text: artistName,
-                            font: .custom("SpotifyMix-Medium", size: 15),
+                            font: .appFont(size: 15, weight: .medium),
                             foregroundColor: .gray,
                             backgroundColor: Color(red: 0.12, green: 0.12, blue: 0.12)
                         )

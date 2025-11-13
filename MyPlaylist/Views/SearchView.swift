@@ -267,14 +267,14 @@ struct NewReleaseCard: View {
             
             // 專輯名稱
             Text(album.name)
-                .font(.custom("SpotifyMix-Medium", size: 14))
+                .font(.appFont(size: 14, weight: .medium))
                 .foregroundColor(.white)
                 .lineLimit(1)
                 .frame(width: 140, alignment: .leading)
             
             // 藝人名稱
             Text(album.artistNames)
-                .font(.custom("SpotifyMix-Medium", size: 12))
+                .font(.appFont(size: 12, weight: .medium))
                 .foregroundColor(.gray)
                 .lineLimit(1)
                 .frame(width: 140, alignment: .leading)

@@ -179,7 +179,7 @@ struct TrackDetailView: View {
     private func trackTitleSection(track: TrackDetail) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(track.name)
-                .font(.custom("SpotifyMix-Bold", size: 32))
+                .font(.appFont(size: 32, weight: .bold))
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 20)
@@ -245,10 +245,10 @@ struct TrackDetailView: View {
                 // 人氣卡片
                 VStack(alignment: .leading, spacing: 4) {
                     Text(String(format: "%.1f", Double(track.popularity) / 10.0))
-                        .font(.custom("SpotifyMix-Bold", size: 22))
+                        .font(.appFont(size: 22, weight: .bold))
                         .foregroundColor(.spotifyGreen)
                     Text("detail.popularity")
-                        .font(.custom("SpotifyMix-Medium", size: 12))
+                        .font(.appFont(size: 12, weight: .medium))
                         .foregroundColor(.white)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -260,10 +260,10 @@ struct TrackDetailView: View {
                 // 時長卡片
                 VStack(alignment: .leading, spacing: 4) {
                     Text(formatDuration(track.duration_ms))
-                        .font(.custom("SpotifyMix-Bold", size: 22))
+                        .font(.appFont(size: 22, weight: .bold))
                         .foregroundColor(.spotifyGreen)
                     Text("detail.duration")
-                        .font(.custom("SpotifyMix-Medium", size: 12))
+                        .font(.appFont(size: 12, weight: .medium))
                         .foregroundColor(.white)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -278,7 +278,7 @@ struct TrackDetailView: View {
             // 專輯區塊
             VStack(alignment: .leading, spacing: 12) {
                 Text("detail.album")
-                    .font(.custom("SpotifyMix-Bold", size: 20))
+                    .font(.appFont(size: 20, weight: .bold))
                     .foregroundColor(.white)
                 
                 NavigationLink(destination: AlbumDetailView(albumId: track.album.id, albumName: track.album.name, accessToken: accessToken, audioPlayer: audioPlayer)) {
@@ -299,13 +299,13 @@ struct TrackDetailView: View {
                         
                         VStack(alignment: .leading, spacing: 4) {
                             Text(track.album.name)
-                                .font(.custom("SpotifyMix-Bold", size: 18))
+                                .font(.appFont(size: 18, weight: .bold))
                                 .foregroundColor(.white)
                                 .lineLimit(2)
                             
                             if let releaseDate = track.album.release_date {
                                 Text(formatReleaseDate(releaseDate))
-                                    .font(.custom("SpotifyMix-Medium", size: 14))
+                                    .font(.appFont(size: 14, weight: .medium))
                                     .foregroundColor(.gray)
                             }
                         }
@@ -323,7 +323,7 @@ struct TrackDetailView: View {
         VStack(alignment: .leading, spacing: 24) {
             // Audio features 標題
             Text("detail.audioFeatures")
-                .font(.custom("SpotifyMix-Bold", size: 20))
+                .font(.appFont(size: 20, weight: .bold))
                 .foregroundColor(.white)
                 .padding(.horizontal, 20)
                 .padding(.top, 24)
@@ -343,7 +343,7 @@ struct TrackDetailView: View {
             
             // Audio analysis 標題
             Text("Audio analysis")
-                .font(.custom("SpotifyMix-Bold", size: 20))
+                .font(.appFont(size: 20, weight: .bold))
                 .foregroundColor(.white)
                 .padding(.horizontal, 20)
                 .padding(.top, 8)
@@ -393,7 +393,7 @@ struct TrackDetailView: View {
     private func artistInfoSection() -> some View {
         VStack(alignment: .leading, spacing: 20) {
             Text("detail.artists")
-                .font(.custom("SpotifyMix-Bold", size: 20))
+                .font(.appFont(size: 20, weight: .bold))
                 .foregroundColor(.white)
                 .padding(.horizontal, 20)
             
@@ -423,7 +423,7 @@ struct TrackDetailView: View {
                                 }
                                 
                                 Text(artist.name)
-                                    .font(.custom("SpotifyMix-Bold", size: 14))
+                                    .font(.appFont(size: 14, weight: .bold))
                                     .foregroundColor(.white)
                                     .lineLimit(2)
                                     .multilineTextAlignment(.center)
@@ -442,7 +442,7 @@ struct TrackDetailView: View {
     private func openInSpotifyButton(track: TrackDetail) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("detail.externalLinks")
-                .font(.custom("SpotifyMix-Bold", size: 20))
+                .font(.appFont(size: 20, weight: .bold))
                 .foregroundColor(.white)
                 .padding(.horizontal, 20)
             
@@ -459,7 +459,7 @@ struct TrackDetailView: View {
                         .frame(width: 28, height: 28)
                     
                     Text("detail.openInSpotify")
-                        .font(.custom("SpotifyMix-Bold", size: 15))
+                        .font(.appFont(size: 15, weight: .bold))
                         .foregroundColor(.spotifyGreen)
                     
                     Spacer()
@@ -802,11 +802,11 @@ struct TrackDetailView: View {
                     .foregroundColor(.gray)
                 
                 Text("rankingTrend.noHistory")
-                    .font(.custom("SpotifyMix-Medium", size: 16))
+                    .font(.appFont(size: 16, weight: .medium))
                     .foregroundColor(.gray)
                 
                 Text("rankingTrend.keepListening")
-                    .font(.custom("SpotifyMix-Medium", size: 14))
+                    .font(.appFont(size: 14, weight: .medium))
                     .foregroundColor(.gray.opacity(0.7))
                     .multilineTextAlignment(.center)
             }
@@ -973,11 +973,11 @@ struct InfoRow: View {
     var body: some View {
         HStack {
             Text(label)
-                .font(.custom("SpotifyMix-Medium", size: 16))
+                .font(.appFont(size: 16, weight: .medium))
                 .foregroundColor(.gray)
             Spacer()
             Text(value)
-                .font(.custom("SpotifyMix-Medium", size: 16))
+                .font(.appFont(size: 16, weight: .medium))
                 .foregroundColor(.white)
                 .multilineTextAlignment(.trailing)
         }
@@ -995,11 +995,11 @@ struct AudioFeatureBar: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text(label)
-                    .font(.custom("SpotifyMix-Medium", size: 16))
+                    .font(.appFont(size: 16, weight: .medium))
                     .foregroundColor(.gray)
                 Spacer()
                 Text(String(format: "%.0f%%", value * 100))
-                    .font(.custom("SpotifyMix-Medium", size: 16))
+                    .font(.appFont(size: 16, weight: .medium))
                     .foregroundColor(.white)
             }
             
@@ -1034,7 +1034,7 @@ struct AudioFeatureProgressBar: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(label)
-                .font(.custom("SpotifyMix-Medium", size: 14))
+                .font(.appFont(size: 14, weight: .medium))
                 .foregroundColor(.white)
             
             GeometryReader { geometry in
@@ -1062,10 +1062,10 @@ struct AudioAnalysisCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(value)
-                .font(.custom("SpotifyMix-Bold", size: 32))
+                .font(.appFont(size: 32, weight: .bold))
                 .foregroundColor(.white)
             Text(label)
-                .font(.custom("SpotifyMix-Medium", size: 14))
+                .font(.appFont(size: 14, weight: .medium))
                 .foregroundColor(.white)
         }
         .frame(maxWidth: .infinity, alignment: .leading)

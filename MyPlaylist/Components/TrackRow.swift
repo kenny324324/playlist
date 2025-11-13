@@ -57,7 +57,7 @@ struct TrackRow: View {
                 
                 Text("#\(index)")
                     .foregroundColor(.white)
-                    .font(.custom("SpotifyMix-Bold", size: 22))
+                    .font(.appFont(size: 22, weight: .bold))
                     .lineLimit(1)
             }
             .frame(width: 50, alignment: .center)
@@ -77,14 +77,14 @@ struct TrackRow: View {
                 VStack(alignment: .leading, spacing: 4) {
                     FadingText(
                         text: track.name,
-                        font: .custom("SpotifyMix-Bold", size: 17),
+                        font: .appFont(size: 17, weight: .bold),
                         foregroundColor: .white,
                         backgroundColor: Color(red: 0.12, green: 0.12, blue: 0.12)
                     )
 
                     FadingText(
                         text: artistNames,
-                        font: .custom("SpotifyMix-Medium", size: 15),
+                        font: .appFont(size: 15, weight: .medium),
                         foregroundColor: .gray,
                         backgroundColor: Color(red: 0.12, green: 0.12, blue: 0.12)
                     )

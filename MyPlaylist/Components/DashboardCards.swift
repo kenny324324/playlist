@@ -19,19 +19,19 @@ struct TodayListeningCard: View {
                         .font(.system(size: 16))
                         .foregroundColor(.spotifyGreen)
                     Text("dashboard.todayListening")
-                        .font(.custom("SpotifyMix-Bold", size: 18))
+                        .font(.appFont(size: 18, weight: .bold))
                         .foregroundColor(.white)
                     Spacer()
                     
                     // 歌曲數量（右上角）
                     HStack(spacing: 4) {
                         Text("\(displayedTrackCount)")
-                            .font(.custom("SpotifyMix-Bold", size: 13))
+                            .font(.appFont(size: 13, weight: .bold))
                             .foregroundColor(.white)
                             .contentTransition(.numericText())
                             .animation(.easeOut(duration: 1.2), value: displayedTrackCount)
                         Text("dashboard.tracksCount")
-                            .font(.custom("SpotifyMix-Medium", size: 13))
+                            .font(.appFont(size: 13, weight: .medium))
                             .foregroundColor(.gray)
                             .animation(nil, value: displayedTrackCount)
                     }
@@ -42,12 +42,12 @@ struct TodayListeningCard: View {
                 // 主要數字（只顯示分鐘）
                 HStack(alignment: .firstTextBaseline, spacing: 4) {
                     Text("\(displayedMinutes)")
-                        .font(.custom("SpotifyMix-Extrabold", size: 48))
+                        .font(.appFont(size: 48, weight: .extraBold))
                         .foregroundColor(.white)
                         .contentTransition(.numericText())
                         .animation(.easeOut(duration: 1.2), value: displayedMinutes)
                     Text("dashboard.minutes")
-                        .font(.custom("SpotifyMix-Medium", size: 18))
+                        .font(.appFont(size: 18, weight: .medium))
                         .foregroundColor(.gray)
                         .animation(nil, value: displayedMinutes)  // 取消文字動畫
                 }
@@ -132,7 +132,7 @@ struct WeeklyTopCard: View {
         VStack(alignment: .leading, spacing: 15) {
             // 標題（與 HomeView 其他區域一致）
             Text(title)
-                .font(.custom("SpotifyMix-Bold", size: 22))
+                .font(.appFont(size: 22, weight: .bold))
                 .foregroundColor(.white)
             
             // 項目列表
@@ -156,7 +156,7 @@ struct WeeklyTopCard: View {
                 .font(.system(size: 40))
                 .foregroundColor(.gray)
             Text("dashboard.empty.noData")
-                .font(.custom("SpotifyMix-Medium", size: 18))
+                .font(.appFont(size: 18, weight: .medium))
                 .foregroundColor(.gray)
         }
         .frame(maxWidth: .infinity, minHeight: 100)
@@ -185,7 +185,7 @@ struct WeeklyTopRow: View {
                     
                     Text("#\(rank)")
                         .foregroundColor(.white)
-                        .font(.custom("SpotifyMix-Bold", size: 22))
+                        .font(.appFont(size: 22, weight: .bold))
                         .lineLimit(1)
                 }
                 .frame(width: 50, alignment: .center)
@@ -214,13 +214,13 @@ struct WeeklyTopRow: View {
                     // 資訊
                     VStack(alignment: .leading, spacing: 4) {
                         Text(entry.name)
-                            .font(.custom("SpotifyMix-Bold", size: 17))
+                            .font(.appFont(size: 17, weight: .bold))
                             .foregroundColor(.white)
                             .lineLimit(1)
                         
                         if let artistName = entry.artistName {
                             Text(artistName)
-                                .font(.custom("SpotifyMix-Medium", size: 15))
+                                .font(.appFont(size: 15, weight: .medium))
                                 .foregroundColor(.gray)
                                 .lineLimit(1)
                         }
@@ -391,11 +391,11 @@ struct DashboardEmptyState: View {
                 .foregroundColor(.gray)
             
             Text("dashboard.empty.title")
-                .font(.custom("SpotifyMix-Bold", size: 22))
+                .font(.appFont(size: 22, weight: .bold))
                 .foregroundColor(.white)
             
             Text("dashboard.empty.message")
-                .font(.custom("SpotifyMix-Medium", size: 16))
+                .font(.appFont(size: 16, weight: .medium))
                 .foregroundColor(.gray)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 30)

@@ -143,7 +143,7 @@ struct ArtistDetailView: View {
     private func artistTitleSection(artist: ArtistDetail) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(artist.name)
-                .font(.custom("SpotifyMix-Bold", size: 32))
+                .font(.appFont(size: 32, weight: .bold))
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 20)
@@ -158,10 +158,10 @@ struct ArtistDetailView: View {
                 // 人氣卡片
                 VStack(alignment: .leading, spacing: 4) {
                     Text(String(format: "%.1f", Double(artist.popularity) / 10.0))
-                        .font(.custom("SpotifyMix-Bold", size: 22))
+                        .font(.appFont(size: 22, weight: .bold))
                         .foregroundColor(.spotifyGreen)
                     Text("detail.popularity")
-                        .font(.custom("SpotifyMix-Medium", size: 12))
+                        .font(.appFont(size: 12, weight: .medium))
                         .foregroundColor(.white)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -173,10 +173,10 @@ struct ArtistDetailView: View {
                 // 粉絲數卡片
                 VStack(alignment: .leading, spacing: 4) {
                     Text(formatFollowers(artist.followers.total))
-                        .font(.custom("SpotifyMix-Bold", size: 22))
+                        .font(.appFont(size: 22, weight: .bold))
                         .foregroundColor(.spotifyGreen)
                     Text("detail.followers")
-                        .font(.custom("SpotifyMix-Medium", size: 12))
+                        .font(.appFont(size: 12, weight: .medium))
                         .foregroundColor(.white)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -192,13 +192,13 @@ struct ArtistDetailView: View {
             if !artist.genres.isEmpty {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("detail.genres")
-                        .font(.custom("SpotifyMix-Bold", size: 20))
+                        .font(.appFont(size: 20, weight: .bold))
                         .foregroundColor(.white)
                     
                     FlowLayout(spacing: 8) {
                         ForEach(artist.genres.prefix(10), id: \.self) { genre in
                             Text(genre)
-                                .font(.custom("SpotifyMix-Medium", size: 14))
+                                .font(.appFont(size: 14, weight: .medium))
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 8)
                                 .background(Color.spotifyGreen.opacity(0.2))
@@ -264,7 +264,7 @@ struct ArtistDetailView: View {
         VStack(alignment: .leading, spacing: 24) {
             // 藝人名稱
             Text(artist.name)
-                .font(.custom("SpotifyMix-Bold", size: 32))
+                .font(.appFont(size: 32, weight: .bold))
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 20)
@@ -275,10 +275,10 @@ struct ArtistDetailView: View {
                 // 人氣卡片
                 VStack(alignment: .leading, spacing: 4) {
                     Text(String(format: "%.1f", Double(artist.popularity) / 10.0))
-                        .font(.custom("SpotifyMix-Bold", size: 22))
+                        .font(.appFont(size: 22, weight: .bold))
                         .foregroundColor(.spotifyGreen)
                     Text("detail.popularity")
-                        .font(.custom("SpotifyMix-Medium", size: 12))
+                        .font(.appFont(size: 12, weight: .medium))
                         .foregroundColor(.white)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -290,10 +290,10 @@ struct ArtistDetailView: View {
                 // 粉絲數卡片
                 VStack(alignment: .leading, spacing: 4) {
                     Text(formatFollowers(artist.followers.total))
-                        .font(.custom("SpotifyMix-Bold", size: 22))
+                        .font(.appFont(size: 22, weight: .bold))
                         .foregroundColor(.spotifyGreen)
                     Text("detail.followers")
-                        .font(.custom("SpotifyMix-Medium", size: 12))
+                        .font(.appFont(size: 12, weight: .medium))
                         .foregroundColor(.white)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -308,13 +308,13 @@ struct ArtistDetailView: View {
             if !artist.genres.isEmpty {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("detail.genres")
-                        .font(.custom("SpotifyMix-Bold", size: 20))
+                        .font(.appFont(size: 20, weight: .bold))
                         .foregroundColor(.white)
                     
                     FlowLayout(spacing: 8) {
                         ForEach(artist.genres, id: \.self) { genre in
                             Text(genre)
-                                .font(.custom("SpotifyMix-Medium", size: 14))
+                                .font(.appFont(size: 14, weight: .medium))
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 6)
@@ -333,7 +333,7 @@ struct ArtistDetailView: View {
     private func topTracksSection() -> some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("detail.topTracks")
-                .font(.custom("SpotifyMix-Bold", size: 20))
+                .font(.appFont(size: 20, weight: .bold))
                 .foregroundColor(.white)
                 .padding(.horizontal, 20)
             
@@ -352,7 +352,7 @@ struct ArtistDetailView: View {
                 }) {
                     HStack(spacing: 6) {
                         Text("View more")
-                            .font(.custom("SpotifyMix-Bold", size: 14))
+                            .font(.appFont(size: 14, weight: .bold))
                             .foregroundColor(.spotifyGreen)
                         Image(systemName: "chevron.right")
                             .font(.system(size: 12, weight: .bold))
@@ -375,7 +375,7 @@ struct ArtistDetailView: View {
         HStack(spacing: 12) {
             // 排名
             Text("\(index + 1)")
-                .font(.custom("SpotifyMix-Bold", size: 18))
+                .font(.appFont(size: 18, weight: .bold))
                 .foregroundColor(.white)
                 .frame(width: 24, alignment: .center)
             
@@ -397,12 +397,12 @@ struct ArtistDetailView: View {
             // 歌曲資訊
             VStack(alignment: .leading, spacing: 2) {
                 Text(track.name)
-                    .font(.custom("SpotifyMix-Bold", size: 16))
+                    .font(.appFont(size: 16, weight: .bold))
                     .foregroundColor(.white)
                     .lineLimit(1)
                 
                 Text(track.artists.map { $0.name }.joined(separator: ", "))
-                    .font(.custom("SpotifyMix-Medium", size: 14))
+                    .font(.appFont(size: 14, weight: .medium))
                     .foregroundColor(.gray)
                     .lineLimit(1)
             }
@@ -421,7 +421,7 @@ struct ArtistDetailView: View {
     private func albumsSection() -> some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Top albums")
-                .font(.custom("SpotifyMix-Bold", size: 20))
+                .font(.appFont(size: 20, weight: .bold))
                 .foregroundColor(.white)
                 .padding(.horizontal, 20)
             
@@ -440,7 +440,7 @@ struct ArtistDetailView: View {
                 }) {
                     HStack(spacing: 6) {
                         Text("View more")
-                            .font(.custom("SpotifyMix-Bold", size: 14))
+                            .font(.appFont(size: 14, weight: .bold))
                             .foregroundColor(.spotifyGreen)
                         Image(systemName: "chevron.right")
                             .font(.system(size: 12, weight: .bold))
@@ -462,7 +462,7 @@ struct ArtistDetailView: View {
         HStack(spacing: 12) {
             // 排名
             Text("\(index + 1)")
-                .font(.custom("SpotifyMix-Bold", size: 18))
+                .font(.appFont(size: 18, weight: .bold))
                 .foregroundColor(.white)
                 .frame(width: 24, alignment: .center)
             
@@ -484,12 +484,12 @@ struct ArtistDetailView: View {
             // 專輯資訊
             VStack(alignment: .leading, spacing: 2) {
                 Text(album.name)
-                    .font(.custom("SpotifyMix-Bold", size: 16))
+                    .font(.appFont(size: 16, weight: .bold))
                     .foregroundColor(.white)
                     .lineLimit(1)
                 
                 Text(album.artists.map { $0.name }.joined(separator: ", "))
-                    .font(.custom("SpotifyMix-Medium", size: 14))
+                    .font(.appFont(size: 14, weight: .medium))
                     .foregroundColor(.gray)
                     .lineLimit(1)
             }
@@ -508,7 +508,7 @@ struct ArtistDetailView: View {
     private func openInSpotifyButton(artist: ArtistDetail) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("detail.externalLinks")
-                .font(.custom("SpotifyMix-Bold", size: 20))
+                .font(.appFont(size: 20, weight: .bold))
                 .foregroundColor(.white)
                 .padding(.horizontal, 20)
             
@@ -525,7 +525,7 @@ struct ArtistDetailView: View {
                         .frame(width: 28, height: 28)
                     
                     Text("detail.openInSpotify")
-                        .font(.custom("SpotifyMix-Bold", size: 15))
+                        .font(.appFont(size: 15, weight: .bold))
                         .foregroundColor(.spotifyGreen)
                     
                     Spacer()

@@ -22,7 +22,7 @@ struct TopArtistsView: View {
                 .toolbar {
                     ToolbarItem(placement: .navigationBarLeading) {
                         Text("settings.madeBy")
-                            .font(.custom("SpotifyMix-Medium", size: 14))
+                            .font(.appFont(size: 14, weight: .medium))
                             .foregroundColor(.gray)
                             .opacity(0.7)
                     }

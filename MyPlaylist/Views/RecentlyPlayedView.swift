@@ -29,7 +29,7 @@ struct RecentlyPlayedView: View {
                             .font(.system(size: 60))
                             .foregroundColor(.gray)
                         Text("home.empty.noHistory")
-                            .font(.custom("SpotifyMix-Medium", size: 20))
+                            .font(.appFont(size: 20, weight: .medium))
                             .foregroundColor(.gray)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -57,7 +57,7 @@ struct RecentlyPlayedView: View {
                     Button("common.close") {
                         dismiss()
                     }
-                    .font(.custom("SpotifyMix-Medium", size: 18))
+                    .font(.appFont(size: 18, weight: .medium))
                     .foregroundColor(.spotifyGreen)
                 }
             }

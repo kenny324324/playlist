@@ -47,7 +47,7 @@ struct GenreRow: View {
             // 左側排名數字
             Text("#\(index)")
                 .foregroundColor(.gray)
-                .font(.custom("SpotifyMix-Bold", size: 20))
+                .font(.appFont(size: 20, weight: .bold))
                 .lineLimit(1)
                 .frame(width: 35, alignment: .center)
 
@@ -56,7 +56,7 @@ struct GenreRow: View {
                 // 類型名稱
                 GenreFadingText(
                     text: genre.capitalized,
-                    font: .custom("SpotifyMix-Bold", size: 17),
+                    font: .appFont(size: 17, weight: .bold),
                     foregroundColor: .white,
                     backgroundColor: Color(red: 0.12, green: 0.12, blue: 0.12)
                 )
@@ -66,7 +66,7 @@ struct GenreRow: View {
                 // 類型的聆聽次數
                 Text(String(localized: "component.times", defaultValue: "\(count) times"))
                     .foregroundColor(.gray)
-                    .font(.custom("SpotifyMix-Medium", size: 15))
+                    .font(.appFont(size: 15, weight: .medium))
             }
             .frame(height: 45)
             .padding(8)

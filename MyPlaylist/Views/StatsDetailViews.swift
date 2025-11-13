@@ -49,7 +49,7 @@ struct StatsDetailSheet: View {
                         dismiss()
                     }
                     .foregroundColor(.spotifyGreen)
-                    .font(.custom("SpotifyMix-Bold", size: 16))
+                    .font(.appFont(size: 16, weight: .bold))
                 }
             }
         }
@@ -58,7 +58,7 @@ struct StatsDetailSheet: View {
     // MARK: - Subtitle View
     private var subtitleView: some View {
         Text(subtitle)
-            .font(.custom("SpotifyMix-Medium", size: 14))
+            .font(.appFont(size: 14, weight: .medium))
             .foregroundColor(.gray)
             .multilineTextAlignment(.center)
             .padding(.horizontal, 24)
@@ -69,7 +69,7 @@ struct StatsDetailSheet: View {
         HStack(spacing: 12) {
             if !isRecentlyPlayed {
                 Text("#\(track.rank)")
-                    .font(.custom("SpotifyMix-Bold", size: 18))
+                    .font(.appFont(size: 18, weight: .bold))
                     .foregroundColor(.white)
                     .frame(width: 40, alignment: .center)
                     .lineLimit(1)
@@ -106,12 +106,12 @@ struct StatsDetailSheet: View {
             
             VStack(alignment: .leading, spacing: 4) {
                 Text(track.trackName)
-                    .font(.custom("SpotifyMix-Bold", size: 16))
+                    .font(.appFont(size: 16, weight: .bold))
                     .foregroundColor(.white)
                     .lineLimit(1)
                 
                 Text(track.artistNames)
-                    .font(.custom("SpotifyMix-Medium", size: 14))
+                    .font(.appFont(size: 14, weight: .medium))
                     .foregroundColor(.gray)
                     .lineLimit(1)
             }
@@ -138,11 +138,11 @@ struct StatsDetailSheet: View {
                 .foregroundColor(.gray)
             
             Text(String(localized: "stats.detail.noTracks"))
-                .font(.custom("SpotifyMix-Bold", size: 18))
+                .font(.appFont(size: 18, weight: .bold))
                 .foregroundColor(.white)
             
             Text(String(localized: "stats.detail.noTracksDescription"))
-                .font(.custom("SpotifyMix-Medium", size: 14))
+                .font(.appFont(size: 14, weight: .medium))
                 .foregroundColor(.gray)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)

@@ -79,21 +79,21 @@ struct TodayPlayedView: View {
     private var statsHeader: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("todayPlayed.title")
-                .font(.custom("SpotifyMix-Bold", size: 24))
+                .font(.appFont(size: 24, weight: .bold))
                 .foregroundColor(.white)
             
             HStack(spacing: 24) {
                 // 總時長
                 VStack(alignment: .leading, spacing: 4) {
                     Text("todayPlayed.totalDuration")
-                        .font(.custom("SpotifyMix-Medium", size: 13))
+                        .font(.appFont(size: 13, weight: .medium))
                         .foregroundColor(.gray)
                     HStack(alignment: .firstTextBaseline, spacing: 4) {
                         Text("\(totalMinutes)")
-                            .font(.custom("SpotifyMix-Bold", size: 28))
+                            .font(.appFont(size: 28, weight: .bold))
                             .foregroundColor(.spotifyGreen)
                         Text("todayPlayed.minutes")
-                            .font(.custom("SpotifyMix-Medium", size: 14))
+                            .font(.appFont(size: 14, weight: .medium))
                             .foregroundColor(.gray)
                     }
                 }
@@ -101,14 +101,14 @@ struct TodayPlayedView: View {
                 // 歌曲數量
                 VStack(alignment: .leading, spacing: 4) {
                     Text("todayPlayed.trackCount")
-                        .font(.custom("SpotifyMix-Medium", size: 13))
+                        .font(.appFont(size: 13, weight: .medium))
                         .foregroundColor(.gray)
                     HStack(alignment: .firstTextBaseline, spacing: 4) {
                         Text("\(tracks.count)")
-                            .font(.custom("SpotifyMix-Bold", size: 28))
+                            .font(.appFont(size: 28, weight: .bold))
                             .foregroundColor(.spotifyGreen)
                         Text("todayPlayed.tracks")
-                            .font(.custom("SpotifyMix-Medium", size: 14))
+                            .font(.appFont(size: 14, weight: .medium))
                             .foregroundColor(.gray)
                     }
                 }
@@ -137,7 +137,7 @@ struct TodayPlayedView: View {
     private var tracksList: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("todayPlayed.playbackHistory")
-                .font(.custom("SpotifyMix-Bold", size: 18))
+                .font(.appFont(size: 18, weight: .bold))
                 .foregroundColor(.white)
             
             LazyVStack(spacing: 8) {
@@ -158,7 +158,7 @@ struct TodayPlayedView: View {
                 .font(.system(size: 60))
                 .foregroundColor(.gray)
             Text("todayPlayed.empty")
-                .font(.custom("SpotifyMix-Medium", size: 18))
+                .font(.appFont(size: 18, weight: .medium))
                 .foregroundColor(.gray)
         }
         .frame(maxWidth: .infinity)
@@ -212,14 +212,14 @@ struct TodayPlayedRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 HomeFadingText(
                     text: track.name,
-                    font: .custom("SpotifyMix-Medium", size: 16),
+                    font: .appFont(size: 16, weight: .medium),
                     foregroundColor: .white,
                     backgroundColor: Color(red: 0.12, green: 0.12, blue: 0.12)
                 )
                 
                 HomeFadingText(
                     text: "\(track.artistName) · \(track.durationFormatted)",
-                    font: .custom("SpotifyMix-Medium", size: 14),
+                    font: .appFont(size: 14, weight: .medium),
                     foregroundColor: .gray,
                     backgroundColor: Color(red: 0.12, green: 0.12, blue: 0.12)
                 )
@@ -229,7 +229,7 @@ struct TodayPlayedRow: View {
             
             // 播放時間（右側）
             Text(track.formattedTime)
-                .font(.custom("SpotifyMix-Medium", size: 14))
+                .font(.appFont(size: 14, weight: .medium))
                 .foregroundColor(.gray)
         }
         .frame(height: 45)
