@@ -64,7 +64,7 @@ struct TodayPlayedView: View {
     private func refresh() {
         guard !isRefreshing else { return }
         isRefreshing = true
-        DashboardMetricsService.shared.fetchTodayListeningMinutes(accessToken: accessToken) { minutes, _, tracks in
+        DashboardMetricsService.shared.fetchTodayListeningMinutes(accessToken: accessToken, useCache: false) { minutes, _, tracks in
             DispatchQueue.main.async {
                 self.totalMinutes = minutes
                 self.tracks = tracks

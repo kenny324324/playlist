@@ -12,6 +12,7 @@ struct AlbumDetailView: View {
     @State private var selectedTab: DetailTab = .info
     @State private var albumStats: AlbumStats?
     @State private var isLoadingStats = false
+    @State private var statsError: String?
     
     // Sheet 控制狀態
     @State private var selectedStatsType: StatsCardType?
@@ -69,12 +70,18 @@ struct AlbumDetailView: View {
                                 // 在 Spotify 中打開
                                 openInSpotifyButton(album: album)
                             } else {
-                                // Stats 分頁內容
-                                if let stats = albumStats {
-                                    albumStatsSection(stats: stats, albumName: album.name)
-                                } else if isLoadingStats {
-                                    statsLoadingPlaceholder()
-                                }
+                        // Stats 分頁內容
+                        if let stats = albumStats {
+                            albumStatsSection(stats: stats, albumName: album.name)
+                        } else if let statsError = statsError {
+                            Text(statsError)
+                                .font(.appFont(size: 16, weight: .medium))
+                                .foregroundColor(.gray)
+                                .padding(.horizontal, 20)
+                                .padding(.top, 40)
+                        } else if isLoadingStats {
+                            statsLoadingPlaceholder()
+                        }
                             }
                         }
                         .offset(y: -10)
@@ -821,21 +828,31 @@ struct AlbumDetailView: View {
     // MARK: - Load Album Stats
     private func loadAlbumStats() {
         isLoadingStats = true
+        statsError = nil
         
         SpotifyAuthService.ensureValidAccessToken { token in
             guard let token = token else {
                 DispatchQueue.main.async {
                     self.isLoadingStats = false
+                    self.statsError = String(localized: "detail.stats.authError", defaultValue: "無法取得統計資料，請重新登入。")
                 }
                 return
             }
             
             StatsCalculationService.shared.calculateAlbumStats(
                 albumId: self.albumId,
-                accessToken: token
-            ) { stats in
+                accessToken: token,
+                cacheKey: token
+            ) { result in
                 DispatchQueue.main.async {
-                    self.albumStats = stats
+                    switch result {
+                    case .success(let stats):
+                        self.albumStats = stats
+                        self.statsError = nil
+                    case .failure(let error):
+                        self.albumStats = nil
+                        self.statsError = error.localizedDescription
+                    }
                     self.isLoadingStats = false
                 }
             }

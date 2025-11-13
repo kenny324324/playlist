@@ -14,6 +14,7 @@ struct ArtistDetailView: View {
     @State private var showAllAlbums = false
     @State private var selectedTab: DetailTab = .info
     @State private var artistStats: ArtistStats?
+    @State private var statsError: String?
     @State private var isLoadingStats = false
     
     // Sheet 控制狀態
@@ -75,6 +76,12 @@ struct ArtistDetailView: View {
                                 // Stats 分頁內容
                                 if let stats = artistStats {
                                     artistStatsSection(stats: stats, artistName: artist.name)
+                                } else if let statsError = statsError {
+                                    Text(statsError)
+                                        .font(.appFont(size: 16, weight: .medium))
+                                        .foregroundColor(.gray)
+                                        .padding(.horizontal, 20)
+                                        .padding(.top, 40)
                                 } else if isLoadingStats {
                                     statsLoadingPlaceholder()
                                 }
@@ -918,21 +925,31 @@ struct ArtistDetailView: View {
     // MARK: - Load Artist Stats
     private func loadArtistStats() {
         isLoadingStats = true
+        statsError = nil
         
         SpotifyAuthService.ensureValidAccessToken { token in
             guard let token = token else {
                 DispatchQueue.main.async {
                     self.isLoadingStats = false
+                    self.statsError = String(localized: "detail.stats.authError", defaultValue: "無法取得統計資料，請重新登入。")
                 }
                 return
             }
             
             StatsCalculationService.shared.calculateArtistStats(
                 artistId: self.artistId,
-                accessToken: token
-            ) { stats in
+                accessToken: token,
+                cacheKey: token
+            ) { result in
                 DispatchQueue.main.async {
-                    self.artistStats = stats
+                    switch result {
+                    case .success(let stats):
+                        self.artistStats = stats
+                        self.statsError = nil
+                    case .failure(let error):
+                        self.artistStats = nil
+                        self.statsError = error.localizedDescription
+                    }
                     self.isLoadingStats = false
                 }
             }

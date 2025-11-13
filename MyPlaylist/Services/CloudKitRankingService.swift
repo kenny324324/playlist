@@ -13,6 +13,14 @@ enum CloudKitSyncStatus {
 /// 支援跨裝置同步、離線快取、自動清理
 class CloudKitRankingService: ObservableObject {
     static let shared = CloudKitRankingService()
+    private let fileManager = FileManager.default
+    private let cacheQueue = DispatchQueue(label: "com.myplaylist.rankingCache", qos: .utility)
+    private lazy var cacheFileURL: URL = {
+        let directory = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        let folder = directory.appendingPathComponent("RankingCache", isDirectory: true)
+        try? fileManager.createDirectory(at: folder, withIntermediateDirectories: true)
+        return folder.appendingPathComponent("ranking_history.json")
+    }()
     
     // 狀態追蹤（用於 UI 顯示）
     @Published var syncStatus: CloudKitSyncStatus = .unavailable
@@ -130,6 +138,7 @@ class CloudKitRankingService: ObservableObject {
             localCache.append(historyItem)
         }
         
+        trimLocalCache(for: userId)
         // 儲存本地快取（保證離線也能用）
         saveLocalCache()
         
@@ -486,17 +495,45 @@ class CloudKitRankingService: ObservableObject {
     
     // MARK: - 本地快取管理
     private func loadLocalCache() {
-        guard let data = UserDefaults.standard.data(forKey: cacheKey),
-              let cache = try? JSONDecoder().decode([RankingHistory].self, from: data) else {
+        if let data = try? Data(contentsOf: cacheFileURL),
+           let cache = try? JSONDecoder().decode([RankingHistory].self, from: data) {
+            localCache = cache
             return
         }
-        localCache = cache
+        
+        // Legacy UserDefaults migration
+        if let legacyData = UserDefaults.standard.data(forKey: cacheKey),
+           let cache = try? JSONDecoder().decode([RankingHistory].self, from: legacyData) {
+            localCache = cache
+            saveLocalCache()
+            UserDefaults.standard.removeObject(forKey: cacheKey)
+        }
     }
     
     private func saveLocalCache() {
-        if let encoded = try? JSONEncoder().encode(localCache) {
-            UserDefaults.standard.set(encoded, forKey: cacheKey)
+        let snapshot = localCache
+        cacheQueue.async { [weak self] in
+            guard let self = self else { return }
+            do {
+                let data = try JSONEncoder().encode(snapshot)
+                try self.ensureCacheDirectoryExists()
+                try data.write(to: self.cacheFileURL, options: .atomic)
+            } catch {
+                print("❌ 儲存本地排名快取失敗: \(error.localizedDescription)")
+            }
         }
+    }
+    
+    private func ensureCacheDirectoryExists() throws {
+        let directory = cacheFileURL.deletingLastPathComponent()
+        if !fileManager.fileExists(atPath: directory.path) {
+            try fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
+        }
+    }
+    
+    private func trimLocalCache(for userId: String) {
+        let sevenDaysAgo = Calendar.current.date(byAdding: .day, value: -7, to: Date())!
+        localCache.removeAll { $0.userId == userId && $0.recordedDate < sevenDaysAgo }
     }
     
     // MARK: - 查詢特定歌曲的排名歷史
@@ -732,4 +769,3 @@ class CloudKitRankingService: ObservableObject {
         }
     }
 }
-

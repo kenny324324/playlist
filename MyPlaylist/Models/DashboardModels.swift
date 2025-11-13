@@ -83,12 +83,68 @@ struct DailyListeningLog: Codable {
     let date: String  // 格式: yyyy-MM-dd
     var totalMinutes: Int
     var lastPlayedAt: String?  // ISO8601 格式，用於避免重複計算
-    var trackDurations: [String: Int] = [:]  // trackId: duration_ms
+    var trackDurations: [String: Int] = [:]  // 播放紀錄 ID (track+timestamp): duration_ms
+    var tracks: [TodayPlayedTrack] = []
+    var lastSyncedAt: Date?
     
     static func dateKey(from date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
         return formatter.string(from: date)
+    }
+    
+    var isForToday: Bool {
+        return date == DailyListeningLog.dateKey(from: Date())
+    }
+    
+    var isFresh: Bool {
+        guard let syncedAt = lastSyncedAt else { return false }
+        return Date().timeIntervalSince(syncedAt) < 90 // 90 秒內視為新鮮資料
+    }
+    
+    enum CodingKeys: String, CodingKey {
+        case date
+        case totalMinutes
+        case lastPlayedAt
+        case trackDurations
+        case tracks
+        case lastSyncedAt
+    }
+    
+    init(
+        date: String,
+        totalMinutes: Int = 0,
+        lastPlayedAt: String? = nil,
+        trackDurations: [String: Int] = [:],
+        tracks: [TodayPlayedTrack] = [],
+        lastSyncedAt: Date? = nil
+    ) {
+        self.date = date
+        self.totalMinutes = totalMinutes
+        self.lastPlayedAt = lastPlayedAt
+        self.trackDurations = trackDurations
+        self.tracks = tracks
+        self.lastSyncedAt = lastSyncedAt
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        date = try container.decode(String.self, forKey: .date)
+        totalMinutes = try container.decode(Int.self, forKey: .totalMinutes)
+        lastPlayedAt = try container.decodeIfPresent(String.self, forKey: .lastPlayedAt)
+        trackDurations = try container.decodeIfPresent([String: Int].self, forKey: .trackDurations) ?? [:]
+        tracks = try container.decodeIfPresent([TodayPlayedTrack].self, forKey: .tracks) ?? []
+        lastSyncedAt = try container.decodeIfPresent(Date.self, forKey: .lastSyncedAt)
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(date, forKey: .date)
+        try container.encode(totalMinutes, forKey: .totalMinutes)
+        try container.encodeIfPresent(lastPlayedAt, forKey: .lastPlayedAt)
+        try container.encode(trackDurations, forKey: .trackDurations)
+        try container.encode(tracks, forKey: .tracks)
+        try container.encodeIfPresent(lastSyncedAt, forKey: .lastSyncedAt)
     }
 }
 
@@ -150,4 +206,3 @@ extension UserDefaults {
         }
     }
 }
-

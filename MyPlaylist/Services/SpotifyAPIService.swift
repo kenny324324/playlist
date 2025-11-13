@@ -2,9 +2,62 @@ import Foundation
 
 class SpotifyAPIService {
     
+    enum SpotifyAPIError: LocalizedError {
+        case unauthorized
+        case network(Error)
+        case decoding(Error)
+        case emptyData
+        case noData
+        
+        var errorDescription: String? {
+            switch self {
+            case .unauthorized:
+                return "Spotify 驗證失效，請重新登入。"
+            case .network(let error):
+                return "無法連線至 Spotify：\(error.localizedDescription)"
+            case .decoding(let error):
+                return "解析 Spotify 回應失敗：\(error.localizedDescription)"
+            case .emptyData, .noData:
+                return "Spotify 沒有返回任何資料。"
+            }
+        }
+    }
+    
     // 檢查是否為 Demo 模式
     private static var isDemoMode: Bool {
         return DemoModeManager.shared.isDemoMode
+    }
+
+    private static func authorizedRequest(url: URL, accessToken: String) -> URLRequest {
+        var request = URLRequest(url: url)
+        request.addValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        return request
+    }
+    
+    private static func executeRequest<T: Decodable>(_ request: URLRequest, decode type: T.Type, completion: @escaping (Result<T, SpotifyAPIError>) -> Void) {
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                completion(.failure(.network(error)))
+                return
+            }
+            
+            if handleUnauthorized(response: response) {
+                completion(.failure(.unauthorized))
+                return
+            }
+            
+            guard let data = data else {
+                completion(.failure(.emptyData))
+                return
+            }
+            
+            do {
+                let decoded = try JSONDecoder().decode(T.self, from: data)
+                completion(.success(decoded))
+            } catch {
+                completion(.failure(.decoding(error)))
+            }
+        }.resume()
     }
 
     private static func handleUnauthorized(response: URLResponse?) -> Bool {
@@ -23,45 +76,53 @@ class SpotifyAPIService {
         return false
     }
     
-    static func fetchTopTracks(accessToken: String, timeRange: String, completion: @escaping ([Track]) -> Void) {
-        // Demo 模式：返回模擬數據
+    static func fetchTopTracks(
+        accessToken: String,
+        timeRange: String,
+        cacheKey: String? = nil,
+        forceRefresh: Bool = false,
+        completion: @escaping (Result<[Track], SpotifyAPIError>) -> Void
+    ) {
         if isDemoMode {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                completion(MockSpotifyData.demoTracks)
+                completion(.success(MockSpotifyData.demoTracks))
             }
             return
         }
         
-        let url = URL(string: "https://api.spotify.com/v1/me/top/tracks?limit=50&time_range=\(timeRange)")!
-        var request = URLRequest(url: url)
-        request.addValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            if let error = error {
+        let cacheIdentifier = cacheKey ?? accessToken
+        if !forceRefresh, let cached = APIResponseCache.shared.getTopTracks(userId: cacheIdentifier, timeRange: timeRange) {
+            completion(.success(cached))
+            return
+        }
+        
+        guard let url = URL(string: "https://api.spotify.com/v1/me/top/tracks?limit=50&time_range=\(timeRange)") else {
+            completion(.failure(.noData))
+            return
+        }
+        
+        let request = authorizedRequest(url: url, accessToken: accessToken)
+        executeRequest(request, decode: TracksResponse.self) { result in
+            switch result {
+            case .success(let response):
+                APIResponseCache.shared.setTopTracks(response.items, userId: cacheIdentifier, timeRange: timeRange)
+                completion(.success(response.items))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+    
+    static func fetchTopTracks(accessToken: String, timeRange: String, completion: @escaping ([Track]) -> Void) {
+        fetchTopTracks(accessToken: accessToken, timeRange: timeRange, cacheKey: nil, forceRefresh: false) { result in
+            switch result {
+            case .success(let tracks):
+                completion(tracks)
+            case .failure(let error):
                 print("Error fetching top tracks: \(error.localizedDescription)")
                 completion([])
-                return
             }
-
-            if handleUnauthorized(response: response) {
-                completion([])
-                return
-            }
-
-            guard let data = data else {
-                print("No data received from Spotify API")
-                completion([])
-                return
-            }
-
-            do {
-                let tracksResponse = try JSONDecoder().decode(TracksResponse.self, from: data)
-                completion(tracksResponse.items)
-            } catch {
-                print("Error decoding tracks: \(error.localizedDescription)")
-                completion([])
-            }
-        }.resume()
+        }
     }
     
     static func fetchCurrentUserProfile(accessToken: String, completion: @escaping (SpotifyUser?) -> Void) {
@@ -99,45 +160,53 @@ class SpotifyAPIService {
         }.resume()
     }
     
-    static func fetchTopArtists(accessToken: String, timeRange: String = "medium_term", completion: @escaping ([Artist]) -> Void) {
-        // Demo 模式：返回模擬數據
+    static func fetchTopArtists(
+        accessToken: String,
+        timeRange: String = "medium_term",
+        cacheKey: String? = nil,
+        forceRefresh: Bool = false,
+        completion: @escaping (Result<[Artist], SpotifyAPIError>) -> Void
+    ) {
         if isDemoMode {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                completion(MockSpotifyData.demoArtists)
+                completion(.success(MockSpotifyData.demoArtists))
             }
             return
         }
         
-        let url = URL(string: "https://api.spotify.com/v1/me/top/artists?limit=50&time_range=\(timeRange)")!
-        var request = URLRequest(url: url)
-        request.addValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            if let error = error {
+        let cacheIdentifier = cacheKey ?? accessToken
+        if !forceRefresh, let cached = APIResponseCache.shared.getTopArtists(userId: cacheIdentifier, timeRange: timeRange) {
+            completion(.success(cached))
+            return
+        }
+        
+        guard let url = URL(string: "https://api.spotify.com/v1/me/top/artists?limit=50&time_range=\(timeRange)") else {
+            completion(.failure(.noData))
+            return
+        }
+        
+        let request = authorizedRequest(url: url, accessToken: accessToken)
+        executeRequest(request, decode: ArtistsResponse.self) { result in
+            switch result {
+            case .success(let response):
+                APIResponseCache.shared.setTopArtists(response.items, userId: cacheIdentifier, timeRange: timeRange)
+                completion(.success(response.items))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+    
+    static func fetchTopArtists(accessToken: String, timeRange: String = "medium_term", completion: @escaping ([Artist]) -> Void) {
+        fetchTopArtists(accessToken: accessToken, timeRange: timeRange, cacheKey: nil, forceRefresh: false) { result in
+            switch result {
+            case .success(let artists):
+                completion(artists)
+            case .failure(let error):
                 print("Error fetching top artists: \(error.localizedDescription)")
                 completion([])
-                return
             }
-
-            if handleUnauthorized(response: response) {
-                completion([])
-                return
-            }
-
-            guard let data = data else {
-                print("No data received from Spotify API")
-                completion([])
-                return
-            }
-
-            do {
-                let artistsResponse = try JSONDecoder().decode(ArtistsResponse.self, from: data)
-                completion(artistsResponse.items)
-            } catch {
-                print("Error decoding artists: \(error.localizedDescription)")
-                completion([])
-            }
-        }.resume()
+        }
     }
     
     // 新增的方法來獲取使用者播放列表
@@ -237,45 +306,53 @@ class SpotifyAPIService {
     }
 
     // 新增：獲取最近播放的歌曲
-    static func fetchRecentlyPlayed(accessToken: String, limit: Int = 20, completion: @escaping ([RecentlyPlayedTrack]) -> Void) {
-        // Demo 模式：返回模擬數據
+    static func fetchRecentlyPlayed(
+        accessToken: String,
+        limit: Int = 20,
+        cacheKey: String? = nil,
+        forceRefresh: Bool = false,
+        completion: @escaping (Result<[RecentlyPlayedTrack], SpotifyAPIError>) -> Void
+    ) {
         if isDemoMode {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                completion(MockSpotifyData.demoRecentlyPlayed)
+                completion(.success(MockSpotifyData.demoRecentlyPlayed))
             }
             return
         }
         
-        let url = URL(string: "https://api.spotify.com/v1/me/player/recently-played?limit=\(limit)")!
-        var request = URLRequest(url: url)
-        request.addValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            if let error = error {
+        let cacheIdentifier = cacheKey ?? accessToken
+        if !forceRefresh, let cached = APIResponseCache.shared.getRecentlyPlayed(userId: cacheIdentifier) {
+            completion(.success(cached))
+            return
+        }
+        
+        guard let url = URL(string: "https://api.spotify.com/v1/me/player/recently-played?limit=\(limit)") else {
+            completion(.failure(.noData))
+            return
+        }
+        
+        let request = authorizedRequest(url: url, accessToken: accessToken)
+        executeRequest(request, decode: RecentlyPlayedResponse.self) { result in
+            switch result {
+            case .success(let response):
+                APIResponseCache.shared.setRecentlyPlayed(response.items, userId: cacheIdentifier)
+                completion(.success(response.items))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+    
+    static func fetchRecentlyPlayed(accessToken: String, limit: Int = 20, completion: @escaping ([RecentlyPlayedTrack]) -> Void) {
+        fetchRecentlyPlayed(accessToken: accessToken, limit: limit, cacheKey: nil, forceRefresh: false) { result in
+            switch result {
+            case .success(let tracks):
+                completion(tracks)
+            case .failure(let error):
                 print("Error fetching recently played: \(error.localizedDescription)")
                 completion([])
-                return
             }
-
-            if handleUnauthorized(response: response) {
-                completion([])
-                return
-            }
-
-            guard let data = data else {
-                print("No data received from Spotify API")
-                completion([])
-                return
-            }
-
-            do {
-                let recentlyPlayedResponse = try JSONDecoder().decode(RecentlyPlayedResponse.self, from: data)
-                completion(recentlyPlayedResponse.items)
-            } catch {
-                print("Error decoding recently played: \(error.localizedDescription)")
-                completion([])
-            }
-        }.resume()
+        }
     }
     
     // 新增：獲取收藏的歌曲
