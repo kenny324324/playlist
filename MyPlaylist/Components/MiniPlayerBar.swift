@@ -6,6 +6,8 @@ struct MiniPlayerBar: View {
     @ObservedObject var audioPlayer: AudioPlayer
     let onTapTrack: (String) -> Void
     
+    @State private var dominantColor: Color = Color.gray.opacity(0.2)
+    
     var body: some View {
         if let track = track {
             HStack(spacing: 12) {
@@ -22,6 +24,9 @@ struct MiniPlayerBar: View {
                         image
                             .resizable()
                             .aspectRatio(contentMode: .fill)
+                            .onAppear {
+                                extractDominantColor(from: image)
+                            }
                     case .failure:
                         ZStack {
                             Color.gray.opacity(0.3)
@@ -67,17 +72,34 @@ struct MiniPlayerBar: View {
             .padding(.trailing, 14)
             .padding(.vertical, 6)
             .background(
-                // 頂部細線分隔
-                VStack {
-                    Rectangle()
-                        .fill(Color.gray.opacity(0.2))
-                        .frame(height: 0.3)
-                    Spacer()
+                ZStack {
+                    // 漸變背景
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            dominantColor.opacity(0.5),
+                            dominantColor.opacity(0.3)
+                        ]),
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                    
+                    // 頂部細線分隔
+                    VStack {
+                        Rectangle()
+                            .fill(Color.white.opacity(0.15))
+                            .frame(height: 0.3)
+                        Spacer()
+                    }
                 }
             )
             .contentShape(Rectangle())  // 整個區域都可以點擊
             .onTapGesture {
                 onTapTrack(track.id)
+            }
+            .animation(.easeInOut(duration: 0.5), value: dominantColor)
+            .onChange(of: track.id) { _ in
+                // 當歌曲切換時重置顏色
+                dominantColor = Color.gray.opacity(0.2)
             }
         } else {
             // 沒有播放中的歌曲
@@ -97,6 +119,17 @@ struct MiniPlayerBar: View {
             .padding(.vertical, 8)
         }
     }
+    
+    // MARK: - Helper Methods
+    private func extractDominantColor(from image: Image) {
+        // 將 SwiftUI Image 轉換為 UIImage
+        let renderer = ImageRenderer(content: image)
+        if let uiImage = renderer.uiImage {
+            uiImage.getDominantColor { color in
+                if let color = color {
+                    dominantColor = Color(color)
+                }
+            }
+        }
+    }
 }
-
-
