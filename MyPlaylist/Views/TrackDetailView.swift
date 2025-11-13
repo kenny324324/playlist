@@ -5,6 +5,7 @@ struct TrackDetailView: View {
     let accessToken: String
     @ObservedObject var audioPlayer: AudioPlayer
     @Environment(\.dismiss) private var dismiss
+    @ObservedObject private var demoModeManager = DemoModeManager.shared
     
     @State private var trackDetail: TrackDetail?
     @State private var audioFeatures: AudioFeatures?
@@ -105,6 +106,7 @@ struct TrackDetailView: View {
         .toolbarColorScheme(.light, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
+                if !demoModeManager.isDemoMode {
                 Button(action: {
                     guard canPlayPreview, let track = trackDetail else { return }
                     Task {
@@ -131,6 +133,7 @@ struct TrackDetailView: View {
                 .buttonStyle(.borderedProminent)
                 .tint(canPlayPreview ? Color.spotifyGreen : Color.gray)
                 .disabled(!canPlayPreview)
+                }
             }
         }
         .onAppear {
@@ -196,7 +199,13 @@ struct TrackDetailView: View {
                     } placeholder: {
                         Rectangle()
                             .fill(Color.gray.opacity(0.3))
-                            .overlay(ProgressView())
+                            .overlay(
+                                Group {
+                                    if !demoModeManager.isDemoMode {
+                                        ProgressView()
+                                    }
+                                }
+                            )
                     }
                     .frame(width: geometry.size.width, height: geometry.size.width)
                     .clipped()

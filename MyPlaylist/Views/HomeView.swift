@@ -133,7 +133,7 @@ struct HomeView: View {
     @State private var savedAlbums: [SavedAlbumItem] = []
     @State private var userPlaylists: [Playlist] = []
     @State private var followedArtists: [Artist] = []
-    @State private var isLoading = true
+    @State private var isLoading = false  // 改為預設 false，避免一開始就顯示佔位符
     @State private var showUserProfile = false
     @State private var refreshRotation: Double = 0
     @State private var showAllRecentlyPlayed = false
@@ -142,7 +142,7 @@ struct HomeView: View {
     
     // Dashboard 相關狀態
     @State private var dashboardSummary: DashboardSummary? = nil
-    @State private var isDashboardLoading = true
+    @State private var isDashboardLoading = false  // 改為預設 false
     @State private var showTodayPlayed = false
     @State private var showClearCacheAlert = false
     
@@ -325,12 +325,23 @@ struct HomeView: View {
             }
         }
         .onAppear {
-            guard isLoggedIn && !accessToken.isEmpty else { return }
+            print("🏠 [HomeView onAppear]")
+            print("  - isLoggedIn: \(isLoggedIn)")
+            print("  - accessToken 長度: \(accessToken.count)")
+            print("  - isLoading: \(isLoading)")
+            print("  - isDashboardLoading: \(isDashboardLoading)")
+            print("  - dashboardSummary: \(dashboardSummary != nil ? "有資料" : "nil")")
+            print("  - lastDataLoadTime: \(lastDataLoadTime?.description ?? "nil")")
             
-            // 如果沒有資料，首次載入
-            if dashboardSummary == nil && !isLoading {
+            guard isLoggedIn && !accessToken.isEmpty else { 
+                print("❌ [onAppear] 未登入或 Token 為空，不載入資料")
+                return 
+            }
+            
+            // 如果沒有資料，首次載入（移除 !isLoading 條件）
+            if dashboardSummary == nil {
                 print("📱 [onAppear] 資料為空，觸發首次載入")
-                loadData(using: accessToken)
+                loadData(using: accessToken, showLoading: true)
                 return
             }
             
@@ -344,9 +355,9 @@ struct HomeView: View {
                     print("📱 [onAppear] 距離上次載入 \(Int(timeSinceLastLoad)) 秒，無需刷新")
                 }
             } else {
-                // 沒有記錄時間，背景刷新
-                print("📱 [onAppear] 無載入記錄，背景刷新資料")
-                loadData(showLoading: false)
+                // 沒有記錄時間，首次載入應該顯示載入狀態
+                print("📱 [onAppear] 無載入記錄，首次載入資料")
+                loadData(showLoading: true)
             }
         }
         .onReceive(currentlyPlayingTimer) { _ in
@@ -386,19 +397,36 @@ struct HomeView: View {
             Text("這將清除今日聆聽時間和本月熱門資料的快取，並重新從 Spotify 載入資料。")
         }
         .onChange(of: isLoggedIn) { loggedIn in
+            print("🔄 [onChange isLoggedIn] \(loggedIn)")
+            print("  - accessToken 長度: \(accessToken.count)")
             if loggedIn && !accessToken.isEmpty {
+                print("  - 觸發 loadData (from isLoggedIn change)")
                 loadData(using: accessToken)
             } else if !loggedIn {
+                print("  - 清除資料")
                 clearData()
+            } else if loggedIn && accessToken.isEmpty {
+                print("  - 已登入但 Token 尚未準備好，等待 token...")
             }
         }
         .onChange(of: accessToken) { token in
-            // 只有在已登入狀態下，token 變化時才重新載入
-            // 避免與 isLoggedIn 的 onChange 重複觸發
-            if isLoggedIn && !token.isEmpty && !isLoading {
-                print("🔑 Access token 已更新，重新載入資料")
-                loadData(using: token)
+            print("🔑 [onChange accessToken]")
+            print("  - isLoggedIn: \(isLoggedIn)")
+            print("  - token 長度: \(token.count)")
+            print("  - dashboardSummary: \(dashboardSummary != nil ? "有資料" : "nil")")
+            
+            // 關鍵修改：不再檢查 isLoggedIn，只要有 token 就載入
+            // 因為 token 的存在本身就代表已登入
+            if !token.isEmpty {
+                // 只有在沒有資料時才載入，避免重複載入
+                if dashboardSummary == nil {
+                    print("  - 觸發 loadData (from accessToken change, no data yet)")
+                    loadData(using: token)
+                } else {
+                    print("  - 已有資料，跳過載入")
+                }
             } else if token.isEmpty {
+                print("  - Token 為空，清除資料")
                 clearData()
             }
         }
@@ -822,8 +850,16 @@ struct HomeView: View {
     }
     
     private func loadData(using tokenOverride: String? = nil, showLoading: Bool = true) {
+        print("🔄 [loadData] 開始載入")
+        print("  - showLoading: \(showLoading)")
+        print("  - isLoading 當前: \(isLoading)")
+        print("  - isDashboardLoading 當前: \(isDashboardLoading)")
+        
         let authToken = tokenOverride ?? accessToken
+        print("  - Token 長度: \(authToken.count)")
+        
         guard !authToken.isEmpty else {
+            print("❌ [loadData] Token 為空，取消載入")
             if showLoading {
                 isLoading = false
                 isDashboardLoading = false
@@ -832,11 +868,15 @@ struct HomeView: View {
         }
         
         if showLoading {
+            print("📊 [loadData] 設定載入狀態為 true")
             isLoading = true
             isDashboardLoading = true
+        } else {
+            print("📊 [loadData] 背景載入，不改變載入狀態")
         }
         
         let group = DispatchGroup()
+        print("📊 [loadData] 開始並行載入...")
         
         // 🎯 獲取 Dashboard 資料
         group.enter()
@@ -905,9 +945,12 @@ struct HomeView: View {
         }
         
         group.notify(queue: .main) {
-            if showLoading {
-                self.isLoading = false
-            }
+            print("✅ [loadData] 所有資料載入完成")
+            print("  - 設定 isLoading = false")
+            print("  - dashboardSummary: \(self.dashboardSummary != nil ? "有資料" : "nil")")
+            print("  - recentlyPlayed 數量: \(self.recentlyPlayed.count)")
+            
+            self.isLoading = false
             
             // 記錄載入完成時間
             self.lastDataLoadTime = Date()
