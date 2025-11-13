@@ -29,8 +29,8 @@ struct LaunchScreenView: View {
                 
                 // 中間區域：App 名稱 + 波紋動畫
                 VStack(spacing: 30) {
-                    // App 名稱
-                    Text("SpoStats")
+                    // App 名稱（動態取得）
+                    Text(Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ?? "spo.stats")
                         .font(.custom("SpotifyMix-Bold", size: 42))
                         .foregroundColor(.white)
                         .shadow(color: themeManager.themeColor.opacity(0.3), radius: 10)

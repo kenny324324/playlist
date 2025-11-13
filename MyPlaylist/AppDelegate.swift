@@ -1,4 +1,5 @@
 import UIKit
+import UserNotifications
 
 class AppDelegate: UIResponder, UIApplicationDelegate {
     
@@ -10,6 +11,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         
         // 確保 token 有效
         ensureTokenValidity()
+        
+        // 設定通知 delegate
+        UNUserNotificationCenter.current().delegate = self
+        
+        // 清除 App 角標
+        NotificationService.shared.clearBadge()
+        
         return true
     }
     
@@ -53,5 +61,34 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         
         // 標記為已遷移
         UserDefaults.standard.set(true, forKey: migrationKey)
+    }
+    
+    // App 進入前景時清除角標
+    func applicationWillEnterForeground(_ application: UIApplication) {
+        NotificationService.shared.clearBadge()
+    }
+}
+
+// MARK: - UNUserNotificationCenterDelegate
+extension AppDelegate: UNUserNotificationCenterDelegate {
+    // 在前景收到通知時的處理
+    func userNotificationCenter(_ center: UNUserNotificationCenter,
+                                willPresent notification: UNNotification,
+                                withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+        // 即使在前景也顯示通知
+        completionHandler([.banner, .sound, .badge])
+    }
+    
+    // 用戶點擊通知時的處理
+    func userNotificationCenter(_ center: UNUserNotificationCenter,
+                                didReceive response: UNNotificationResponse,
+                                withCompletionHandler completionHandler: @escaping () -> Void) {
+        // 用戶點擊通知，清除角標
+        NotificationService.shared.clearBadge()
+        
+        // 可以在這裡處理導航到特定頁面的邏輯
+        // 例如：跳轉到 Top Charts 頁面
+        
+        completionHandler()
     }
 }

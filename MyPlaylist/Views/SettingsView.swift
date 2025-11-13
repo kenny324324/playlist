@@ -20,6 +20,13 @@ struct SettingsView: View {
     @StateObject private var themeManager = ThemeManager.shared
     @AppStorage("hapticFeedbackEnabled") private var hapticFeedbackEnabled: Bool = true
     
+    // 通知設定
+    @StateObject private var notificationService = NotificationService.shared
+    @AppStorage("dailyNotificationEnabled") private var dailyNotificationEnabled: Bool = true  // 預設開啟
+    @AppStorage("dailyNotificationHour") private var dailyNotificationHour: Int = 20
+    @AppStorage("dailyNotificationMinute") private var dailyNotificationMinute: Int = 0
+    @State private var showNotificationTimeAlert = false
+    
     var body: some View {
         NavigationView {
             ScrollView(showsIndicators: false) {
@@ -29,6 +36,9 @@ struct SettingsView: View {
                     
                     // 個人化
                     personalizationSection
+                    
+                    // 通知設定
+                    notificationSection
                     
                     // 儲存與快取
                     storageSection
@@ -75,6 +85,8 @@ struct SettingsView: View {
                       }
                       .onAppear {
                           calculateCacheSize()
+                          notificationService.checkAuthorizationStatus()
+                          applyNotificationSettings()
                       }
                   }
               }
@@ -321,6 +333,163 @@ struct SettingsView: View {
         }
     }
     
+    // MARK: - 通知設定
+    private var notificationSection: some View {
+        VStack(alignment: .leading, spacing: 15) {
+            Text("settings.section.notifications")
+                .font(.custom("SpotifyMix-Bold", size: 22))
+                .foregroundColor(.white)
+            
+            VStack(spacing: 0) {
+                // 通知授權狀態
+                Button(action: {
+                    if notificationService.authorizationStatus == .notDetermined {
+                        // 請求權限
+                        notificationService.requestAuthorization { granted in
+                            if granted {
+                                // 權限授予後，根據開關狀態決定是否排程
+                                applyNotificationSettings()
+                            }
+                        }
+                    } else if notificationService.authorizationStatus == .denied {
+                        // 開啟系統設定
+                        notificationService.openNotificationSettings()
+                    }
+                }) {
+                    HStack(spacing: 15) {
+                        Image(systemName: notificationService.isAuthorized ? "bell.badge.fill" : "bell.slash.fill")
+                            .font(.system(size: 20))
+                            .foregroundColor(themeManager.themeColor)
+                            .frame(width: 30)
+                        
+                        Text(LocalizedStringKey("settings.notificationPermission"))
+                            .font(.custom("SpotifyMix-Medium", size: 16))
+                            .foregroundColor(.white)
+                        
+                        Spacer()
+                        
+                        Text(notificationService.authorizationStatus.displayName)
+                            .font(.custom("SpotifyMix-Medium", size: 14))
+                            .foregroundColor(notificationService.isAuthorized ? themeManager.themeColor : .red)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(Color.gray.opacity(0.3))
+                            .clipShape(Capsule())
+                        
+                        if notificationService.authorizationStatus != .authorized {
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 14))
+                                .foregroundColor(.gray)
+                        }
+                    }
+                    .padding()
+                }
+                .buttonStyle(PlainButtonStyle())
+                .disabled(notificationService.authorizationStatus == .authorized)
+                
+                if notificationService.isAuthorized {
+                    Divider()
+                        .background(Color.gray.opacity(0.3))
+                        .padding(.leading, 50)
+                    
+                    // 每日提醒開關
+                    Toggle(isOn: $dailyNotificationEnabled) {
+                        HStack(spacing: 15) {
+                            Image(systemName: "calendar.badge.clock")
+                                .font(.system(size: 20))
+                                .foregroundColor(themeManager.themeColor)
+                                .frame(width: 30)
+                            
+                            Text(LocalizedStringKey("settings.dailyReminder"))
+                                .font(.custom("SpotifyMix-Medium", size: 16))
+                                .foregroundColor(.white)
+                        }
+                    }
+                    .tint(themeManager.themeColor)
+                    .padding()
+                    .onChange(of: dailyNotificationEnabled) { _ in
+                        HapticManager.shared.light()
+                        applyNotificationSettings()
+                    }
+                    
+                    if dailyNotificationEnabled {
+                        Divider()
+                            .background(Color.gray.opacity(0.3))
+                            .padding(.leading, 50)
+                        
+                        // 提醒時間設定
+                        Button(action: {
+                            showNotificationTimeAlert = true
+                        }) {
+                            HStack(spacing: 15) {
+                                Image(systemName: "clock.fill")
+                                    .font(.system(size: 20))
+                                    .foregroundColor(themeManager.themeColor)
+                                    .frame(width: 30)
+                                
+                                Text(LocalizedStringKey("settings.reminderTime"))
+                                    .font(.custom("SpotifyMix-Medium", size: 16))
+                                    .foregroundColor(.white)
+                                
+                                Spacer()
+                                
+                                Text(String(format: "%02d:%02d", dailyNotificationHour, dailyNotificationMinute))
+                                    .font(.custom("SpotifyMix-Medium", size: 14))
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(Color.gray.opacity(0.3))
+                                    .clipShape(Capsule())
+                            }
+                            .padding()
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .sheet(isPresented: $showNotificationTimeAlert) {
+                            NotificationTimePickerView(
+                                hour: $dailyNotificationHour,
+                                minute: $dailyNotificationMinute,
+                                onSave: {
+                                    applyNotificationSettings()
+                                }
+                            )
+                            .presentationDetents([.height(350)])
+                        }
+                        
+                        // MARK: - 測試通知按鈕（已隱藏）
+                        /*
+                        Divider()
+                            .background(Color.gray.opacity(0.3))
+                            .padding(.leading, 50)
+                        
+                        // 測試通知按鈕
+                        Button(action: {
+                            HapticManager.shared.light()
+                            notificationService.sendTestNotification()
+                        }) {
+                            HStack(spacing: 15) {
+                                Image(systemName: "paperplane.fill")
+                                    .font(.system(size: 20))
+                                    .foregroundColor(themeManager.themeColor)
+                                    .frame(width: 30)
+                                
+                                Text(LocalizedStringKey("settings.testNotification"))
+                                    .font(.custom("SpotifyMix-Medium", size: 16))
+                                    .foregroundColor(.white)
+                                
+                                Spacer()
+                            }
+                            .padding()
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        */
+                    }
+                }
+            }
+            .background(Color.white.opacity(0.1))
+            .cornerRadius(15)
+        }
+    }
+    
     // MARK: - 儲存與快取
     private var storageSection: some View {
         VStack(alignment: .leading, spacing: 15) {
@@ -481,7 +650,7 @@ struct SettingsView: View {
                     }
                     
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("MyPlaylist")
+                        Text(Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ?? "spo.stats")
                             .font(.custom("SpotifyMix-Bold", size: 20))
                             .foregroundColor(.white)
                         
@@ -652,6 +821,116 @@ struct SettingsView: View {
     private func reauthorize() {
         logout()
         // 用戶需要重新登入
+    }
+    
+    // MARK: - 通知相關
+    
+    private func applyNotificationSettings() {
+        notificationService.scheduleDailyReminder(
+            hour: dailyNotificationHour,
+            minute: dailyNotificationMinute,
+            enabled: dailyNotificationEnabled
+        )
+    }
+}
+
+// MARK: - 時間選擇器視圖
+struct NotificationTimePickerView: View {
+    @Environment(\.dismiss) var dismiss
+    @Binding var hour: Int
+    @Binding var minute: Int
+    let onSave: () -> Void
+    
+    // 使用臨時狀態，只有按勾勾時才保存
+    @State private var tempHour: Int
+    @State private var tempMinute: Int
+    
+    init(hour: Binding<Int>, minute: Binding<Int>, onSave: @escaping () -> Void) {
+        self._hour = hour
+        self._minute = minute
+        self.onSave = onSave
+        // 初始化臨時變數
+        self._tempHour = State(initialValue: hour.wrappedValue)
+        self._tempMinute = State(initialValue: minute.wrappedValue)
+    }
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 20) {
+                HStack(spacing: 20) {
+                    // 小時選擇（綁定到臨時變數）
+                    Picker("Hour", selection: $tempHour) {
+                        ForEach(0..<24, id: \.self) { h in
+                            Text(String(format: "%02d", h))
+                                .font(.custom("SpotifyMix-Bold", size: 22))
+                                .tag(h)
+                        }
+                    }
+                    .pickerStyle(.wheel)
+                    .frame(width: 80)
+                    .clipped()
+                    
+                    Text(":")
+                        .font(.custom("SpotifyMix-Bold", size: 28))
+                        .foregroundColor(.white)
+                    
+                    // 分鐘選擇（綁定到臨時變數）
+                    Picker("Minute", selection: $tempMinute) {
+                        ForEach(0..<60, id: \.self) { m in
+                            Text(String(format: "%02d", m))
+                                .font(.custom("SpotifyMix-Bold", size: 22))
+                                .tag(m)
+                        }
+                    }
+                    .pickerStyle(.wheel)
+                    .frame(width: 80)
+                    .clipped()
+                }
+                .padding()
+                .padding(.top, 20)
+                
+                Text("settings.reminderTime.description")
+                    .font(.custom("SpotifyMix-Medium", size: 14))
+                    .foregroundColor(.gray)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+                
+                Spacer()
+            }
+            .navigationTitle("settings.reminderTime")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                // 左側：取消按鈕（不保存，直接關閉）
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(action: {
+                        dismiss()
+                    }) {
+                        Image(systemName: "xmark")
+                            .foregroundColor(.white)
+                            .font(.system(size: 16, weight: .semibold))
+                    }
+                }
+                
+                // 右側：儲存按鈕（與播放按鈕一致：使用 borderedProminent + tint）
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: {
+                        HapticManager.shared.light()
+                        // 儲存臨時變數到實際變數
+                        hour = tempHour
+                        minute = tempMinute
+                        // 執行保存回調
+                        onSave()
+                        dismiss()
+                    }) {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(Color.spotifyText)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(Color.spotifyGreen)
+                }
+            }
+        }
     }
 }
 

@@ -87,6 +87,12 @@ struct ContentView: View {
     // 啟動載入畫面控制
     @State private var showLaunchScreen = true
     
+    // 通知權限請求標記
+    @AppStorage("hasRequestedNotificationPermission") private var hasRequestedNotificationPermission: Bool = false
+    @AppStorage("dailyNotificationEnabled") private var dailyNotificationEnabled: Bool = true
+    @AppStorage("dailyNotificationHour") private var dailyNotificationHour: Int = 20
+    @AppStorage("dailyNotificationMinute") private var dailyNotificationMinute: Int = 0
+    
     // 過渡動畫樣式（從設定讀取）
     @AppStorage("launchTransitionStyle") private var transitionStyleRaw: String = LaunchTransitionStyle.fade.rawValue
     
@@ -107,6 +113,9 @@ struct ContentView: View {
                     onLoadingComplete: {
                         // 載入完成後隱藏啟動畫面
                         showLaunchScreen = false
+                        
+                        // 首次啟動時請求通知權限
+                        requestNotificationPermissionIfNeeded()
                     },
                     checkLoginAndPreload: {
                         // 在啟動畫面時預載資料
@@ -434,6 +443,36 @@ struct ContentView: View {
         SpotifyAPIService.fetchTopTracks(accessToken: token, timeRange: timeRange.rawValue) { fetchedTracks in
             DispatchQueue.main.async {
                 self.tracks = fetchedTracks
+            }
+        }
+    }
+    
+    // MARK: - 通知權限請求
+    
+    /// 首次啟動時請求通知權限
+    private func requestNotificationPermissionIfNeeded() {
+        // 如果已經請求過，就不再請求
+        guard !hasRequestedNotificationPermission else {
+            return
+        }
+        
+        // 延遲 0.5 秒再請求，讓啟動過渡動畫完成
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            NotificationService.shared.requestAuthorization { granted in
+                // 標記已請求過
+                self.hasRequestedNotificationPermission = true
+                
+                if granted {
+                    print("✅ 通知權限已授予，啟用每日提醒")
+                    // 自動排程每日通知
+                    NotificationService.shared.scheduleDailyReminder(
+                        hour: self.dailyNotificationHour,
+                        minute: self.dailyNotificationMinute,
+                        enabled: self.dailyNotificationEnabled
+                    )
+                } else {
+                    print("⚠️ 用戶拒絕通知權限")
+                }
             }
         }
     }
