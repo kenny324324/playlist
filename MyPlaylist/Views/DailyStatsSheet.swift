@@ -72,17 +72,14 @@ struct DailyStatsSheet: View {
         }
         .onAppear {
             print("📱 [DailyStatsSheet] onAppear - histories: \(histories?.count ?? -1) 筆")
-            if histories != nil {
-                loadTracks()
+            if let histories = histories {
+                loadTracks(with: histories)
             }
         }
         .onChange(of: histories) { newHistories in
-            print("🔄 [DailyStatsSheet] onChange - histories: \(newHistories?.count ?? -1) 筆")
-            // 使用 DispatchQueue 確保 View 已更新
-            DispatchQueue.main.async {
-                if newHistories != nil && !newHistories!.isEmpty {
-                    self.loadTracks()
-                }
+            print("🔄 [DailyStatsSheet] onChange - newHistories: \(newHistories?.count ?? -1) 筆")
+            if let histories = newHistories, !histories.isEmpty {
+                loadTracks(with: histories)
             }
         }
     }
@@ -203,22 +200,14 @@ struct DailyStatsSheet: View {
     }
     
     // MARK: - Load Tracks
-    private func loadTracks() {
+    private func loadTracks(with histories: [RankingHistory]) {
         print("📊 [DailyStatsSheet] loadTracks() called")
-        print("  - histories: \(histories?.count ?? -1) 筆")
+        print("  - 傳入 histories: \(histories.count) 筆")
         print("  - isLoading: \(isLoading)")
         
-        guard let histories = histories, !histories.isEmpty else {
-            print("⚠️ [DailyStatsSheet] histories 是 nil 或空")
-            // histories 為 nil 或空，保持 loading 狀態等待數據
-            if histories != nil {
-                // histories 不是 nil 但是空的，表示真的沒有資料
-                print("  → histories 是空陣列，設置 isLoading = false")
-                isLoading = false
-            } else {
-                print("  → histories 是 nil，保持 isLoading = true")
-            }
-            // 如果 histories 是 nil，保持 isLoading = true，繼續顯示 loading
+        guard !histories.isEmpty else {
+            print("⚠️ [DailyStatsSheet] histories 是空陣列")
+            isLoading = false
             return
         }
         
