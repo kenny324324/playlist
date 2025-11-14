@@ -6,9 +6,17 @@ struct CountBarChart: View {
     let dataPoints: [CountDataPoint]
     let title: String
     let emptyMessage: String?  // 如果有值，顯示空狀態提示
+    let onBarTap: ((CountDataPoint) -> Void)?  // 點擊長條的回調
     @State private var animationProgress: CGFloat = 0
     
     private let spotifyGreen = Color(red: 0.114, green: 0.725, blue: 0.329)
+    
+    init(dataPoints: [CountDataPoint], title: String, emptyMessage: String? = nil, onBarTap: ((CountDataPoint) -> Void)? = nil) {
+        self.dataPoints = dataPoints
+        self.title = title
+        self.emptyMessage = emptyMessage
+        self.onBarTap = onBarTap
+    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -22,7 +30,7 @@ struct CountBarChart: View {
                         }
                     }
                 }
-                .frame(height: 160)
+                .frame(height: 120)  // 從 160 降低到 120
                 
                 // 空狀態提示（如果有 emptyMessage）
                 if let message = emptyMessage {
@@ -31,7 +39,7 @@ struct CountBarChart: View {
                         .foregroundColor(.gray)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 20)
-                        .frame(maxWidth: .infinity, maxHeight: 160)
+                        .frame(maxWidth: .infinity, maxHeight: 120)  // 從 160 降低到 120
                 }
             }
             
@@ -47,32 +55,11 @@ struct CountBarChart: View {
     // MARK: - 圖表標題
     private var chartHeader: some View {
         HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.appFont(size: 14, weight: .medium))
-                    .foregroundColor(.gray)
-            }
+            Text(title)
+                .font(.appFont(size: 14, weight: .medium))
+                .foregroundColor(.gray)
             
             Spacer()
-            
-            // 顯示最大值（如果有數據）
-            if maxCount > 0 {
-                VStack(alignment: .trailing, spacing: 4) {
-                    Text("stats.chart.highest")
-                        .font(.appFont(size: 14, weight: .medium))
-                        .foregroundColor(.gray)
-                    
-                    HStack(spacing: 4) {
-                        Text("#\(maxCount)")
-                            .font(.appFont(size: 16, weight: .bold))
-                            .foregroundColor(.spotifyGreen)
-                        
-                        Text("stats.chart.tracks")
-                            .font(.appFont(size: 14, weight: .medium))
-                            .foregroundColor(.gray)
-                    }
-                }
-            }
         }
     }
     
@@ -100,6 +87,13 @@ struct CountBarChart: View {
                 .frame(width: barWidth, height: max(height, point.count > 0 ? 4 : 2))
         }
         .frame(width: columnWidth, height: size.height, alignment: .bottom)
+        .contentShape(Rectangle())  // 讓整個區域可點擊
+        .onTapGesture {
+            // 只有當有資料且有回調時才觸發
+            if point.count > 0, let onBarTap = onBarTap {
+                onBarTap(point)
+            }
+        }
     }
     
     // MARK: - X 軸日期標籤

@@ -915,7 +915,7 @@ class CloudKitRankingService: ObservableObject {
         ])
         
         let query = CKQuery(recordType: recordType, predicate: compoundPredicate)
-        query.sortDescriptors = [NSSortDescriptor(key: "recordedDate", ascending: true)]
+        query.sortDescriptors = [NSSortDescriptor(key: "recordedDate", ascending: false)]  // 改為降序，最新的在前面
         
         print("☁️ 從 CloudKit 查詢專輯歷史數據...")
         
@@ -934,9 +934,16 @@ class CloudKitRankingService: ObservableObject {
                 
                 print("✅ 從 CloudKit 查詢到 \(histories.count) 筆歷史記錄")
                 
+                // 調試：檢查有多少記錄包含 albumId
+                let recordsWithAlbumId = histories.filter { $0.albumId != nil && !$0.albumId!.isEmpty }
+                print("📋 其中 \(recordsWithAlbumId.count) 筆記錄包含 albumId")
+                if let latest = histories.first {
+                    print("📅 最新記錄日期: \(latest.recordedDate), albumId: \(latest.albumId ?? "nil")")
+                }
+                
                 // 過濾出屬於該專輯的記錄
                 let albumHistories = histories.filter { $0.albumId == albumId }
-                print("📊 其中 \(albumHistories.count) 筆屬於該專輯")
+                print("📊 其中 \(albumHistories.count) 筆屬於該專輯（albumId: \(albumId)）")
                 
                 // 處理數據並生成趨勢
                 let trend = self.processAlbumCountTrend(histories: albumHistories, albumId: albumId)
@@ -988,7 +995,7 @@ class CloudKitRankingService: ObservableObject {
         ])
         
         let query = CKQuery(recordType: recordType, predicate: compoundPredicate)
-        query.sortDescriptors = [NSSortDescriptor(key: "recordedDate", ascending: true)]
+        query.sortDescriptors = [NSSortDescriptor(key: "recordedDate", ascending: false)]  // 改為降序，最新的在前面
         
         print("☁️ 從 CloudKit 查詢藝人歷史數據...")
         
@@ -1165,5 +1172,185 @@ class CloudKitRankingService: ObservableObject {
         }
         
         return processArtistCountTrend(histories: filtered, artistId: artistId)
+    }
+    
+    // MARK: - 查詢單日專輯/藝人歌曲
+    /// 查詢特定日期的專輯歌曲排名
+    func fetchAlbumTracksForDate(
+        userId: String,
+        albumId: String,
+        date: Date,
+        timeRange: String,
+        completion: @escaping ([RankingHistory]) -> Void
+    ) {
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: date)
+        guard let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay) else {
+            completion([])
+            return
+        }
+        
+        print("📊 [CloudKit] 查詢單日專輯歌曲")
+        print("  - userId: \(userId)")
+        print("  - albumId: \(albumId)")
+        print("  - date: \(startOfDay)")
+        print("  - timeRange: \(timeRange)")
+        
+        // 如果 CloudKit 可用，從雲端查詢
+        guard isCloudKitAvailable, let db = database else {
+            print("⚠️ CloudKit 不可用，使用本地快取")
+            let filtered = localCache.filter { history in
+                history.userId == userId &&
+                history.timeRange == timeRange &&
+                history.albumId == albumId &&
+                calendar.isDate(history.recordedDate, inSameDayAs: date)
+            }
+            completion(filtered)
+            return
+        }
+        
+        // 查詢該天的記錄
+        let userPredicate = NSPredicate(format: "userId == %@", userId)
+        let timeRangePredicate = NSPredicate(format: "timeRange == %@", timeRange)
+        let datePredicate = NSPredicate(format: "recordedDate >= %@ AND recordedDate < %@", 
+                                       startOfDay as NSDate, endOfDay as NSDate)
+        let compoundPredicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            userPredicate, timeRangePredicate, datePredicate
+        ])
+        
+        let query = CKQuery(recordType: recordType, predicate: compoundPredicate)
+        query.sortDescriptors = [NSSortDescriptor(key: "rank", ascending: true)]
+        
+        print("☁️ 從 CloudKit 查詢該日資料...")
+        
+        db.fetch(withQuery: query, inZoneWith: nil, desiredKeys: nil, resultsLimit: CKQueryOperation.maximumResults) { result in
+            switch result {
+            case .success(let queryResult):
+                let histories = queryResult.matchResults.compactMap { (recordID, recordResult) -> RankingHistory? in
+                    switch recordResult {
+                    case .success(let record):
+                        return self.convertToRankingHistory(record: record)
+                    case .failure(let error):
+                        print("❌ 解析記錄失敗: \(error.localizedDescription)")
+                        return nil
+                    }
+                }
+                
+                print("✅ 查詢到 \(histories.count) 筆該日記錄")
+                
+                // 過濾出屬於該專輯的記錄
+                let albumHistories = histories.filter { $0.albumId == albumId }
+                print("📊 其中 \(albumHistories.count) 筆屬於該專輯")
+                
+                DispatchQueue.main.async {
+                    completion(albumHistories)
+                }
+                
+            case .failure(let error):
+                print("❌ CloudKit 查詢失敗: \(error.localizedDescription)")
+                // 降級使用本地快取
+                let filtered = self.localCache.filter { history in
+                    history.userId == userId &&
+                    history.timeRange == timeRange &&
+                    history.albumId == albumId &&
+                    calendar.isDate(history.recordedDate, inSameDayAs: date)
+                }
+                DispatchQueue.main.async {
+                    completion(filtered)
+                }
+            }
+        }
+    }
+    
+    /// 查詢特定日期的藝人歌曲排名
+    func fetchArtistTracksForDate(
+        userId: String,
+        artistId: String,
+        date: Date,
+        timeRange: String,
+        completion: @escaping ([RankingHistory]) -> Void
+    ) {
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: date)
+        guard let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay) else {
+            completion([])
+            return
+        }
+        
+        print("📊 [CloudKit] 查詢單日藝人歌曲")
+        print("  - userId: \(userId)")
+        print("  - artistId: \(artistId)")
+        print("  - date: \(startOfDay)")
+        print("  - timeRange: \(timeRange)")
+        
+        // 如果 CloudKit 可用，從雲端查詢
+        guard isCloudKitAvailable, let db = database else {
+            print("⚠️ CloudKit 不可用，使用本地快取")
+            let filtered = localCache.filter { history in
+                guard let artistIds = history.artistIds else { return false }
+                return history.userId == userId &&
+                history.timeRange == timeRange &&
+                artistIds.split(separator: ",").map(String.init).contains(artistId) &&
+                calendar.isDate(history.recordedDate, inSameDayAs: date)
+            }
+            completion(filtered)
+            return
+        }
+        
+        // 查詢該天的記錄
+        let userPredicate = NSPredicate(format: "userId == %@", userId)
+        let timeRangePredicate = NSPredicate(format: "timeRange == %@", timeRange)
+        let datePredicate = NSPredicate(format: "recordedDate >= %@ AND recordedDate < %@", 
+                                       startOfDay as NSDate, endOfDay as NSDate)
+        let compoundPredicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            userPredicate, timeRangePredicate, datePredicate
+        ])
+        
+        let query = CKQuery(recordType: recordType, predicate: compoundPredicate)
+        query.sortDescriptors = [NSSortDescriptor(key: "rank", ascending: true)]
+        
+        print("☁️ 從 CloudKit 查詢該日資料...")
+        
+        db.fetch(withQuery: query, inZoneWith: nil, desiredKeys: nil, resultsLimit: CKQueryOperation.maximumResults) { result in
+            switch result {
+            case .success(let queryResult):
+                let histories = queryResult.matchResults.compactMap { (recordID, recordResult) -> RankingHistory? in
+                    switch recordResult {
+                    case .success(let record):
+                        return self.convertToRankingHistory(record: record)
+                    case .failure(let error):
+                        print("❌ 解析記錄失敗: \(error.localizedDescription)")
+                        return nil
+                    }
+                }
+                
+                print("✅ 查詢到 \(histories.count) 筆該日記錄")
+                
+                // 過濾出包含該藝人的記錄
+                let artistHistories = histories.filter { history in
+                    guard let artistIds = history.artistIds else { return false }
+                    return artistIds.split(separator: ",").map(String.init).contains(artistId)
+                }
+                print("📊 其中 \(artistHistories.count) 筆包含該藝人")
+                
+                DispatchQueue.main.async {
+                    completion(artistHistories)
+                }
+                
+            case .failure(let error):
+                print("❌ CloudKit 查詢失敗: \(error.localizedDescription)")
+                // 降級使用本地快取
+                let filtered = self.localCache.filter { history in
+                    guard let artistIds = history.artistIds else { return false }
+                    return history.userId == userId &&
+                    history.timeRange == timeRange &&
+                    artistIds.split(separator: ",").map(String.init).contains(artistId) &&
+                    calendar.isDate(history.recordedDate, inSameDayAs: date)
+                }
+                DispatchQueue.main.async {
+                    completion(filtered)
+                }
+            }
+        }
     }
 }
