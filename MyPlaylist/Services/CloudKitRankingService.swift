@@ -642,11 +642,18 @@ class CloudKitRankingService: ObservableObject {
         let sevenDaysAgo = Calendar.current.date(byAdding: .day, value: -7, to: Date())!
         
         print("📊 [CloudKit] 查詢過去 7 天所有 Top 5 歌曲")
+        print("  - 查詢條件：userId=\(userId), timeRange=\(timeRange), date>=\(sevenDaysAgo), rank<=5")
         
         // 如果 CloudKit 不可用，從本地快取查詢
         guard isCloudKitAvailable, let db = database else {
             print("⚠️ CloudKit 不可用，使用本地快取")
             print("  - localCache 總共有 \(localCache.count) 筆記錄")
+            
+            // Debug: 列出本地快取中所有記錄的日期範圍
+            if let oldest = localCache.map(\.recordedDate).min(),
+               let newest = localCache.map(\.recordedDate).max() {
+                print("  - 本地快取日期範圍：\(oldest) 到 \(newest)")
+            }
             
             let filtered = localCache.filter { 
                 $0.userId == userId && 
@@ -658,14 +665,17 @@ class CloudKitRankingService: ObservableObject {
             print("  - 符合條件的記錄：\(filtered.count) 筆")
             
             // Debug: 列出所有符合條件的記錄
-            for record in filtered.prefix(20) {
-                print("    - \(record.recordedDate): Track \(record.trackId) Rank #\(record.rank)")
+            for record in filtered.prefix(30) {
+                let formatter = DateFormatter()
+                formatter.dateFormat = "MM/dd HH:mm"
+                print("    - \(formatter.string(from: record.recordedDate)): Track \(record.trackId.prefix(10))... Rank #\(record.rank)")
             }
             
             let trackIds = filtered.map { $0.trackId }
             let uniqueTrackIds = Array(Set(trackIds))
             
-            print("  - 去重後有 \(uniqueTrackIds.count) 首歌")
+            print("  - 去重後有 \(uniqueTrackIds.count) 首不同的歌曲曾經進入 Top 5")
+            print("  - 這意味著過去 7 天內有 \(uniqueTrackIds.count) 首歌曾經排名在前 5 名內")
             
             completion(uniqueTrackIds)
             return
@@ -683,37 +693,131 @@ class CloudKitRankingService: ObservableObject {
         let query = CKQuery(recordType: recordType, predicate: compoundPredicate)
         query.sortDescriptors = [NSSortDescriptor(key: "recordedDate", ascending: false)]
         
-        db.fetch(withQuery: query, inZoneWith: nil, desiredKeys: ["trackId"], resultsLimit: CKQueryOperation.maximumResults) { result in
-            switch result {
-            case .success(let matchResults):
-                let trackIds = matchResults.matchResults.compactMap { _, recordResult -> String? in
-                    if case .success(let record) = recordResult,
-                       let trackId = record["trackId"] as? String {
-                        return trackId
-                    }
-                    return nil
-                }
-                
-                // 去重
-                let uniqueTrackIds = Array(Set(trackIds))
-                print("✅ 找到 \(uniqueTrackIds.count) 首曾經進入 Top 5 的歌曲")
-                
-                DispatchQueue.main.async {
-                    completion(uniqueTrackIds)
-                }
-                
-            case .failure(let error):
-                print("❌ CloudKit 查詢失敗: \(error.localizedDescription)")
-                // 降級使用本地快取
-                let trackIds = self.localCache
-                    .filter { $0.userId == userId && $0.timeRange == timeRange && $0.recordedDate >= sevenDaysAgo && $0.rank <= 5 }
-                    .map { $0.trackId }
-                let uniqueTrackIds = Array(Set(trackIds))
-                
-                DispatchQueue.main.async {
-                    completion(uniqueTrackIds)
+        // 使用遞迴方式獲取所有分頁結果
+        var allRecordDetails: [(trackId: String, rank: Int, date: Date)] = []
+        
+        func fetchPage(cursor: CKQueryOperation.Cursor? = nil) {
+            let operation: CKQueryOperation
+            
+            if let cursor = cursor {
+                operation = CKQueryOperation(cursor: cursor)
+            } else {
+                operation = CKQueryOperation(query: query)
+            }
+            
+            operation.desiredKeys = ["trackId", "rank", "recordedDate"]
+            operation.resultsLimit = 400  // 每次獲取 400 筆
+            
+            operation.recordMatchedBlock = { recordID, recordResult in
+                if case .success(let record) = recordResult,
+                   let trackId = record["trackId"] as? String,
+                   let rank = record["rank"] as? Int,
+                   let date = record["recordedDate"] as? Date {
+                    allRecordDetails.append((trackId: trackId, rank: rank, date: date))
                 }
             }
+            
+            operation.queryResultBlock = { result in
+                switch result {
+                case .success(let cursor):
+                    if let cursor = cursor {
+                        // 還有更多資料，繼續獲取下一頁
+                        print("  📄 已獲取 \(allRecordDetails.count) 筆，繼續獲取下一頁...")
+                        fetchPage(cursor: cursor)
+                    } else {
+                        // 所有資料都獲取完畢
+                        self.processAllRecords(allRecordDetails, userId: userId, timeRange: timeRange, sevenDaysAgo: sevenDaysAgo, completion: completion)
+                    }
+                    
+                case .failure(let error):
+                    print("❌ CloudKit 查詢失敗: \(error.localizedDescription)")
+                    // 降級使用本地快取
+                    let trackIds = self.localCache
+                        .filter { $0.userId == userId && $0.timeRange == timeRange && $0.recordedDate >= sevenDaysAgo && $0.rank <= 5 }
+                        .map { $0.trackId }
+                    let uniqueTrackIds = Array(Set(trackIds))
+                    
+                    DispatchQueue.main.async {
+                        completion(uniqueTrackIds)
+                    }
+                }
+            }
+            
+            db.add(operation)
+        }
+        
+        // 開始第一頁的查詢
+        fetchPage()
+    }
+    
+    // 處理所有獲取到的記錄
+    private func processAllRecords(
+        _ recordDetails: [(trackId: String, rank: Int, date: Date)],
+        userId: String,
+        timeRange: String,
+        sevenDaysAgo: Date,
+        completion: @escaping ([String]) -> Void
+    ) {
+        let trackIds = recordDetails.map { $0.trackId }
+        let uniqueTrackIds = Array(Set(trackIds))
+        
+        print("✅ CloudKit 查詢成功（包含所有分頁）")
+        print("  - 找到 \(trackIds.count) 筆記錄")
+        print("  - 去重後有 \(uniqueTrackIds.count) 首不同的歌曲曾經進入 Top 5")
+        
+        // Debug: 按日期分析每天的 Top 5
+        print("\n📅 按日期分析（每天的 Top 5）：")
+        let calendar = Calendar.current
+        let groupedByDate = Dictionary(grouping: recordDetails) { record -> Date in
+            calendar.startOfDay(for: record.date)
+        }
+        
+        let sortedDates = groupedByDate.keys.sorted()
+        for date in sortedDates {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "MM/dd (EEE)"
+            print("\n  📆 \(formatter.string(from: date))")
+            
+            if let dayRecords = groupedByDate[date] {
+                // 找出該天最新的一筆記錄時間
+                let latestTime = dayRecords.map { $0.date }.max()!
+                let latestRecords = dayRecords.filter { $0.date == latestTime }
+                
+                // 按排名排序
+                let top5 = latestRecords
+                    .filter { $0.rank <= 5 }
+                    .sorted(by: { $0.rank < $1.rank })
+                
+                for record in top5 {
+                    print("     #\(record.rank): \(record.trackId.prefix(15))...")
+                }
+                
+                if top5.count < 5 {
+                    print("     ⚠️ 只有 \(top5.count) 首歌的記錄")
+                }
+            }
+        }
+        
+        // Debug: 顯示每首歌的詳細記錄
+        print("\n📋 詳細記錄（按歌曲分組）：")
+        let groupedByTrack = Dictionary(grouping: recordDetails, by: { $0.trackId })
+        for (trackId, records) in groupedByTrack.sorted(by: { $0.value.count > $1.value.count }) {
+            let sortedRecords = records.sorted(by: { $0.date < $1.date })
+            print("\n  🎵 Track \(trackId.prefix(15))...")
+            print("     共 \(records.count) 筆記錄")
+            let formatter = DateFormatter()
+            formatter.dateFormat = "MM/dd HH:mm"
+            for record in sortedRecords.prefix(10) {
+                print("     - \(formatter.string(from: record.date)): Rank #\(record.rank)")
+            }
+            if sortedRecords.count > 10 {
+                print("     ... 還有 \(sortedRecords.count - 10) 筆")
+            }
+        }
+        print("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        
+        DispatchQueue.main.async {
+            completion(uniqueTrackIds)
         }
     }
     

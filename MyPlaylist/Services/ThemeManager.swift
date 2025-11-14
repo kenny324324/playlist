@@ -151,6 +151,14 @@ class ThemeManager: ObservableObject {
         currentTone = tone
         selectedToneRawValue = tone.rawValue
     }
+    
+    // 重置為預設主題（登出時使用）
+    func resetToDefault() {
+        currentTheme = .color1  // 預設綠色
+        currentTone = .defaultTone  // 預設色系
+        selectedThemeRawValue = ThemeColor.color1.rawValue
+        selectedToneRawValue = ColorTone.defaultTone.rawValue
+    }
 }
 
 // MARK: - Color Extension
@@ -166,5 +174,8 @@ extension Color {
     static var spotifyGreen: Color {
         ThemeManager.shared.themeColor
     }
+    
+    // 固定的 Spotify 綠色（不受主題影響，用於 Spotify 相關按鈕）
+    static let spotifyDefaultGreen = Color(red: 0.11, green: 0.84, blue: 0.38)
 }
 

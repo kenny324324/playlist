@@ -127,16 +127,22 @@ struct MultiTrackTrendChart: View {
                     // 前一個點存在且在 Top 5：正常連線（實線）
                     solidPath.addLine(to: currentPoint)
                 } else if previousWasOutOfTop5 && index > 0 {
-                    // 前一個點在榜外，當前點進榜：從中間點畫虛線到當前點
-                    let prevX = paddingX + CGFloat(index - 1) / 6 * availableWidth
-                    let midX = (prevX + x) / 2  // 兩個日期的中間點
-                    let bottomPoint = CGPoint(x: midX, y: size.height)
-                    
-                    dashedPath.move(to: bottomPoint)
-                    dashedPath.addLine(to: currentPoint)
-                    
-                    // 當前點設為實線的起點
-                    solidPath.move(to: currentPoint)
+                    // 前一個點在榜外，當前點進榜
+                    // 如果進榜到第5名，不畫虛線（因為會是平的）
+                    if rank == 5 {
+                        solidPath.move(to: currentPoint)
+                    } else {
+                        // 從中間點畫虛線到當前點
+                        let prevX = paddingX + CGFloat(index - 1) / 6 * availableWidth
+                        let midX = (prevX + x) / 2  // 兩個日期的中間點
+                        let bottomPoint = CGPoint(x: midX, y: size.height)
+                        
+                        dashedPath.move(to: bottomPoint)
+                        dashedPath.addLine(to: currentPoint)
+                        
+                        // 當前點設為實線的起點
+                        solidPath.move(to: currentPoint)
+                    }
                 } else {
                     // 第一個點：開始新的線段
                     solidPath.move(to: currentPoint)
@@ -146,13 +152,19 @@ struct MultiTrackTrendChart: View {
                 previousWasOutOfTop5 = false
             } else {
                 // 掉出 Top 5：畫虛線到中間點的底部
+                // 但如果前一個點是第5名，不畫虛線（因為會是平的）
                 if let prev = previousPoint, index > 0 {
-                    let prevX = paddingX + CGFloat(index - 1) / 6 * availableWidth
-                    let midX = (prevX + x) / 2  // 兩個日期的中間點
-                    let bottomPoint = CGPoint(x: midX, y: size.height)
-                    
-                    dashedPath.move(to: prev)
-                    dashedPath.addLine(to: bottomPoint)
+                    // 檢查前一個點的排名
+                    if index > 0, let prevRank = trackTrend.dataPoints[index - 1].rank, prevRank == 5 {
+                        // 從第5名掉出榜外，不畫虛線
+                    } else {
+                        let prevX = paddingX + CGFloat(index - 1) / 6 * availableWidth
+                        let midX = (prevX + x) / 2  // 兩個日期的中間點
+                        let bottomPoint = CGPoint(x: midX, y: size.height)
+                        
+                        dashedPath.move(to: prev)
+                        dashedPath.addLine(to: bottomPoint)
+                    }
                 }
                 previousPoint = nil
                 previousWasOutOfTop5 = true

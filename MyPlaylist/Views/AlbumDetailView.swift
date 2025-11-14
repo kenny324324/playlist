@@ -500,18 +500,18 @@ struct AlbumDetailView: View {
                     
                     Text("detail.openInSpotify")
                         .font(.appFont(size: 15, weight: .bold))
-                        .foregroundColor(.spotifyGreen)
+                        .foregroundColor(.spotifyDefaultGreen)
                     
                     Spacer()
                     
                     Image(systemName: "arrow.up.forward")
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(.spotifyGreen)
+                        .foregroundColor(.spotifyDefaultGreen)
                 }
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.spotifyGreen.opacity(0.1))
+                .background(Color.spotifyDefaultGreen.opacity(0.1))
                 .cornerRadius(10)
             }
             .padding(.horizontal, 20)

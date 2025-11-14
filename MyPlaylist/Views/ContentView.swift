@@ -112,7 +112,9 @@ struct ContentView: View {
                 LaunchScreenView(
                     onLoadingComplete: {
                         // 載入完成後隱藏啟動畫面
-                        showLaunchScreen = false
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            showLaunchScreen = false
+                        }
                         
                         // 首次啟動時請求通知權限
                         requestNotificationPermissionIfNeeded()
@@ -125,6 +127,7 @@ struct ContentView: View {
                 .transition(transitionStyle.transition)  // 使用選擇的過渡動畫
             } else {
                 mainContent
+                    .id("main_content")  // 強制重新渲染
             }
         }
         .onOpenURL { url in
@@ -165,39 +168,24 @@ struct ContentView: View {
     @ViewBuilder
     private var mainContent: some View {
         ZStack {
-            // Demo 模式指示器
-            if demoModeManager.isDemoMode {
-                VStack {
-                    HStack {
-                        Image(systemName: "theatermasks.fill")
-                        Text("Demo Mode")
-                        Image(systemName: "theatermasks.fill")
-                    }
-                    .font(.appFont(size: 14, weight: .bold))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background(Color.orange)
-                    .cornerRadius(20)
-                    .shadow(radius: 4)
-                    Spacer()
-                }
-                .padding(.top, 50)
-                .zIndex(999)
-            }
+            // Demo 模式指示器已移除（避免被 Apple 審核視為測試版本）
+            // 如果需要調試，可以查看 Console 日誌確認 Demo Mode 狀態
 
             if #available(iOS 26.0, *) {
                 TabView(selection: $selectedTab) {
                     Tab("tab.home", systemImage: "house.fill", value: 0) {
-                        HomeView(
-                            audioPlayer: audioPlayer,
-                            accessToken: accessToken ?? "",
-                            userProfile: userProfile,
-                            isLoggedIn: isLoggedIn,
-                            login: login,
-                            logout: logout,
-                            enterDemoMode: enterDemoMode
-                        )
+                        NavigationView {
+                            HomeView(
+                                audioPlayer: audioPlayer,
+                                accessToken: accessToken ?? "",
+                                userProfile: userProfile,
+                                isLoggedIn: isLoggedIn,
+                                login: login,
+                                logout: logout,
+                                enterDemoMode: enterDemoMode
+                            )
+                        }
+                        .navigationViewStyle(.stack)  // 確保使用正確的 navigation style
                     }
                     
                     Tab("tab.search", systemImage: "magnifyingglass", value: 1, role: .search) {
@@ -212,26 +200,31 @@ struct ContentView: View {
                             )
                         }
                     }
+                    .disabled(!isLoggedIn)  // 未登入時禁用搜尋
                     
                     Tab("tab.top", systemImage: "chart.bar.fill", value: 2) {
-                        TopView(
-                            audioPlayer: audioPlayer,
-                            userProfile: userProfile,
-                            isLoggedIn: isLoggedIn,
-                            login: login,
-                            logout: logout,
-                            accessToken: accessToken ?? ""
-                        )
+                        NavigationView {
+                            TopView(
+                                audioPlayer: audioPlayer,
+                                userProfile: userProfile,
+                                isLoggedIn: isLoggedIn,
+                                login: login,
+                                logout: logout,
+                                accessToken: accessToken ?? ""
+                            )
+                        }
                     }
                     .disabled(!isLoggedIn)
                     
                     Tab("tab.settings", systemImage: "gearshape.fill", value: 3) {
-                        SettingsView(
-                            userProfile: userProfile,
-                            accessToken: accessToken ?? "",
-                            isLoggedIn: isLoggedIn,
-                            logout: logout
-                        )
+                        NavigationView {
+                            SettingsView(
+                                userProfile: userProfile,
+                                accessToken: accessToken ?? "",
+                                isLoggedIn: isLoggedIn,
+                                logout: logout
+                            )
+                        }
                     }
                     .disabled(!isLoggedIn)
                 }
@@ -247,6 +240,7 @@ struct ContentView: View {
                 }
                 .tabBarMinimizeBehavior(.onScrollDown)
                 .tabViewBottomAccessory {
+                    // 只在登入時顯示 MiniPlayerBar（無論是否有播放內容）
                     if isLoggedIn {
                         MiniPlayerBar(
                             track: currentlyPlaying,
@@ -255,20 +249,26 @@ struct ContentView: View {
                                 trackDetailSheetItem = TrackDetailSheetItem(id: trackId)
                             }
                         )
+                    } else {
+                        // 未登入時返回空視圖，完全不顯示 bottom accessory
+                        EmptyView()
                     }
                 }
             } else {
                 TabView(selection: $selectedTab) {
                     Tab("tab.home", systemImage: "house.fill", value: 0) {
-                        HomeView(
-                            audioPlayer: audioPlayer,
-                            accessToken: accessToken ?? "",
-                            userProfile: userProfile,
-                            isLoggedIn: isLoggedIn,
-                            login: login,
-                            logout: logout,
-                            enterDemoMode: enterDemoMode
-                        )
+                        NavigationView {
+                            HomeView(
+                                audioPlayer: audioPlayer,
+                                accessToken: accessToken ?? "",
+                                userProfile: userProfile,
+                                isLoggedIn: isLoggedIn,
+                                login: login,
+                                logout: logout,
+                                enterDemoMode: enterDemoMode
+                            )
+                        }
+                        .navigationViewStyle(.stack)  // 確保使用正確的 navigation style
                     }
                     
                     Tab("tab.search", systemImage: "magnifyingglass", value: 1, role: .search) {
@@ -283,26 +283,31 @@ struct ContentView: View {
                             )
                         }
                     }
+                    .disabled(!isLoggedIn)  // 未登入時禁用搜尋
                     
                     Tab("tab.top", systemImage: "chart.bar.fill", value: 2) {
-                        TopView(
-                            audioPlayer: audioPlayer,
-                            userProfile: userProfile,
-                            isLoggedIn: isLoggedIn,
-                            login: login,
-                            logout: logout,
-                            accessToken: accessToken ?? ""
-                        )
+                        NavigationView {
+                            TopView(
+                                audioPlayer: audioPlayer,
+                                userProfile: userProfile,
+                                isLoggedIn: isLoggedIn,
+                                login: login,
+                                logout: logout,
+                                accessToken: accessToken ?? ""
+                            )
+                        }
                     }
                     .disabled(!isLoggedIn)
                     
                     Tab("tab.settings", systemImage: "gearshape.fill", value: 3) {
-                        SettingsView(
-                            userProfile: userProfile,
-                            accessToken: accessToken ?? "",
-                            isLoggedIn: isLoggedIn,
-                            logout: logout
-                        )
+                        NavigationView {
+                            SettingsView(
+                                userProfile: userProfile,
+                                accessToken: accessToken ?? "",
+                                isLoggedIn: isLoggedIn,
+                                logout: logout
+                            )
+                        }
                     }
                     .disabled(!isLoggedIn)
                 }
@@ -373,6 +378,9 @@ struct ContentView: View {
         self.currentlyPlaying = nil
         self.currentlyPlayingProgressMs = 0
         self.isSpotifyPlaying = false
+        
+        // 重置主題色為預設綠色
+        ThemeManager.shared.resetToDefault()
     }
     
     // 獲取當前播放的歌曲

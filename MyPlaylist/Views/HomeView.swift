@@ -153,6 +153,13 @@ struct HomeView: View {
     // 追蹤上次載入時間，用於智能刷新
     @State private var lastDataLoadTime: Date?
     
+    // 隱藏的 Demo 入口計數器（完全隱藏，無視覺提示）
+    @State private var iconTapCount: Int = 0
+    @State private var lastIconTapTime: Date = Date()
+    
+    // 強制刷新 navigation bar
+    @State private var navigationBarId = UUID()
+    
     let accessToken: String
     let userProfile: SpotifyUser?
     let isLoggedIn: Bool
@@ -161,8 +168,7 @@ struct HomeView: View {
     var enterDemoMode: (() -> Void)? = nil
     
     var body: some View {
-        NavigationView {
-            VStack(spacing: 0) {
+        VStack(spacing: 0) {
                 if isLoggedIn {
                     ScrollView(showsIndicators: false) {
                         VStack(alignment: .leading, spacing: 20) {
@@ -197,12 +203,15 @@ struct HomeView: View {
                         .padding(.top, 20)
                     }
                 } else {
-                    // 未登入提示
+                    // 未登入提示 - 隱藏的 Demo 入口（快速點擊圖標 5 次，無視覺提示）
                     VStack(spacing: 20) {
                         Spacer()
                         Image(systemName: "music.note.list")
                             .font(.system(size: 60))
                             .foregroundColor(.gray)
+                            .onTapGesture {
+                                handleIconTap()
+                            }
                         Text("login.prompt.title")
                             .font(.appFont(size: 24, weight: .bold))
                             .foregroundColor(.white)
@@ -210,121 +219,125 @@ struct HomeView: View {
                             .font(.appFont(size: 16, weight: .medium))
                             .foregroundColor(.gray)
                         
-                        #if APPSTORE_REVIEW
-                        // Demo 模式按鈕（僅在審核版本顯示）
-                        if let enterDemo = enterDemoMode {
-                            Button(action: enterDemo) {
-                                HStack {
-                                    Image(systemName: "theatermasks")
-                                    Text("Demo Mode (For Review)")
-                                }
-                                .font(.appFont(size: 18, weight: .medium))
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 24)
-                                .padding(.vertical, 12)
-                                .background(Color.orange)
-                                .cornerRadius(25)
-                            }
-                            .padding(.top, 10)
-                        }
-                        #endif
-                        
                         Spacer()
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
-            .background(Color.spotifyText.ignoresSafeArea())
-            .navigationTitle("tab.home")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
+        .background(Color.spotifyText.ignoresSafeArea())
+        .navigationTitle(isLoggedIn ? "tab.home" : "")  // 未登入時不顯示標題
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(false)
+        .id(navigationBarId)  // 使用 ID 強制重新渲染
+        .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    if isLoggedIn {
-                        // 已登入：顯示頭像
-                        if let user = userProfile,
-                           let imageUrl = user.images?.first?.url,
-                           let url = URL(string: imageUrl) {
-                            Button(action: {
-                                showUserProfile = true
-                            }) {
-                                AsyncImage(url: url) { image in
-                                    image.resizable()
-                                        .clipShape(Circle())
-                                } placeholder: {
-                                    ProgressView()
+                    Group {
+                        if isLoggedIn {
+                            // 已登入：顯示頭像或預設圖示
+                            if let user = userProfile,
+                               let imageUrl = user.images?.first?.url,
+                               let url = URL(string: imageUrl) {
+                                Button(action: {
+                                    showUserProfile = true
+                                }) {
+                                    AsyncImage(url: url) { image in
+                                        image.resizable()
+                                            .clipShape(Circle())
+                                    } placeholder: {
+                                        ProgressView()
+                                    }
+                                    .frame(width: AdaptiveSize.toolbarAvatarSize, height: AdaptiveSize.toolbarAvatarSize)
                                 }
                                 .frame(width: AdaptiveSize.toolbarAvatarSize, height: AdaptiveSize.toolbarAvatarSize)
+                                .contentShape(Rectangle())
+                                .sheet(isPresented: $showUserProfile) {
+                                    UserProfileView(userProfile: user, accessToken: accessToken, logout: logout)
+                                        .presentationDetents(PresentationDetent.adaptiveDetents)
+                                }
+                            } else {
+                                // 已登入但沒有頭像：顯示預設圖示
+                                Button(action: {
+                                    showUserProfile = true
+                                }) {
+                                    Image(systemName: "person.circle.fill")
+                                        .font(.system(size: AdaptiveSize.toolbarAvatarSize))
+                                        .foregroundColor(.spotifyGreen)
+                                }
+                                .sheet(isPresented: $showUserProfile) {
+                                    if let user = userProfile {
+                                        UserProfileView(userProfile: user, accessToken: accessToken, logout: logout)
+                                            .presentationDetents(PresentationDetent.adaptiveDetents)
+                                    }
+                                }
                             }
-                            .frame(width: AdaptiveSize.toolbarAvatarSize, height: AdaptiveSize.toolbarAvatarSize)
-                            .contentShape(Rectangle())
-                            .sheet(isPresented: $showUserProfile) {
-                                UserProfileView(userProfile: user, accessToken: accessToken, logout: logout)
-                                    .presentationDetents(PresentationDetent.adaptiveDetents)
-                            }
-                        }
-                    } else {
-                        // 未登入：顯示登入按鈕（審核版本不顯示，僅顯示頁面中央的 Demo Mode 按鈕）
-                        #if !APPSTORE_REVIEW
-                        if #available(iOS 26.0, *) {
-                            Button(action: login) {
-                                Text("login.title")
-                                    .adaptiveFont(name: "SpotifyMix-Bold", phoneSize: 18, padSize: 22)
-                                    .foregroundColor(.white)
-                                    .padding(.horizontal, AdaptiveSize.size(phone: 16, pad: 24))
-                                    .padding(.vertical, AdaptiveSize.size(phone: 8, pad: 12))
-                            }
-                            .buttonStyle(.glassProminent)
-                            .tint(Color.spotifyGreen)
-                        } else if #available(iOS 17.0, *) {
-                            Button(action: login) {
-                                Text("login.title")
-                                    .adaptiveFont(name: "SpotifyMix-Bold", phoneSize: 18, padSize: 22)
-                                    .foregroundColor(.white)
-                                    .padding(.horizontal, AdaptiveSize.size(phone: 16, pad: 24))
-                                    .padding(.vertical, AdaptiveSize.size(phone: 8, pad: 12))
-                            }
-                            .buttonStyle(.borderedProminent)
-                            .controlSize(.large)
-                            .tint(Color.spotifyGreen)
                         } else {
-                            Button(action: login) {
-                                Text("login.title")
-                                    .adaptiveFont(name: "SpotifyMix-Bold", phoneSize: 18, padSize: 22)
-                                    .foregroundColor(.white)
-                                    .padding(.horizontal, AdaptiveSize.size(phone: 16, pad: 24))
-                                    .padding(.vertical, AdaptiveSize.size(phone: 8, pad: 12))
+                            // 未登入：永遠顯示登入按鈕
+                            if #available(iOS 26.0, *) {
+                                Button(action: login) {
+                                    Text("login.title")
+                                        .adaptiveFont(name: "SpotifyMix-Bold", phoneSize: 18, padSize: 22)
+                                        .foregroundColor(.white)
+                                        .padding(.horizontal, AdaptiveSize.size(phone: 16, pad: 24))
+                                        .padding(.vertical, AdaptiveSize.size(phone: 8, pad: 12))
+                                }
+                                .buttonStyle(.glassProminent)
+                                .tint(Color.spotifyGreen)
+                            } else if #available(iOS 17.0, *) {
+                                Button(action: login) {
+                                    Text("login.title")
+                                        .adaptiveFont(name: "SpotifyMix-Bold", phoneSize: 18, padSize: 22)
+                                        .foregroundColor(.white)
+                                        .padding(.horizontal, AdaptiveSize.size(phone: 16, pad: 24))
+                                        .padding(.vertical, AdaptiveSize.size(phone: 8, pad: 12))
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .controlSize(.large)
+                                .tint(Color.spotifyGreen)
+                            } else {
+                                Button(action: login) {
+                                    Text("login.title")
+                                        .adaptiveFont(name: "SpotifyMix-Bold", phoneSize: 18, padSize: 22)
+                                        .foregroundColor(.white)
+                                        .padding(.horizontal, AdaptiveSize.size(phone: 16, pad: 24))
+                                        .padding(.vertical, AdaptiveSize.size(phone: 8, pad: 12))
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .tint(Color.spotifyGreen)
                             }
-                            .buttonStyle(.borderedProminent)
-                            .tint(Color.spotifyGreen)
                         }
-                        #endif
                     }
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    // 刷新按鈕（長按清除快取）
-                    Button(action: {
-                        withAnimation(.easeInOut(duration: 0.5)) {
-                            refreshRotation += 360
-                        }
-                        loadData()
-                    }) {
-                        Image(systemName: "arrow.clockwise")
-                            .font(.system(size: UIDevice.isPad ? 20 : 16, weight: .medium))
-                            .foregroundColor(.white)
-                            .frame(width: AdaptiveSize.toolbarAvatarSize, height: AdaptiveSize.toolbarAvatarSize)
-                            .rotationEffect(.degrees(refreshRotation))
-                    }
-                    .simultaneousGesture(
-                        LongPressGesture(minimumDuration: 1.0)
-                            .onEnded { _ in
-                                showClearCacheAlert = true
+                    // 刷新按鈕（長按清除快取）- 只在登入時顯示
+                    if isLoggedIn {
+                        Button(action: {
+                            withAnimation(.easeInOut(duration: 0.5)) {
+                                refreshRotation += 360
                             }
-                    )
+                            loadData()
+                        }) {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.system(size: UIDevice.isPad ? 20 : 16, weight: .medium))
+                                .foregroundColor(.white)
+                                .frame(width: AdaptiveSize.toolbarAvatarSize, height: AdaptiveSize.toolbarAvatarSize)
+                                .rotationEffect(.degrees(refreshRotation))
+                        }
+                        .simultaneousGesture(
+                            LongPressGesture(minimumDuration: 1.0)
+                                .onEnded { _ in
+                                    showClearCacheAlert = true
+                                }
+                        )
+                    }
                 }
             }
-        }
         .onAppear {
+            // 強制刷新 navigation bar
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                navigationBarId = UUID()
+            }
+            
             print("🏠 [HomeView onAppear]")
             print("  - isLoggedIn: \(isLoggedIn)")
             print("  - accessToken 長度: \(accessToken.count)")
@@ -989,16 +1002,49 @@ struct HomeView: View {
             userId: userId,
             timeRange: "short_term"
         ) { trackIds in
+            print("📊 [Top5Trends] fetchAllTop5TracksInLast7Days 返回結果")
+            print("  - 找到 \(trackIds.count) 首曾經進入 Top 5 的歌曲")
+            
+            // 如果沒有歷史記錄，使用當前的 Top 5 作為預設顯示
             guard !trackIds.isEmpty else {
-                print("⚠️ [Top5Trends] 沒有找到任何歷史記錄")
-                DispatchQueue.main.async {
-                    self.isLoadingTrends = false
+                print("⚠️ [Top5Trends] 沒有找到任何歷史記錄，將使用當前 Top 5")
+                
+                // 獲取當前 Top 5
+                SpotifyAPIService.fetchTopTracks(accessToken: accessToken, timeRange: "short_term") { currentTracks in
+                    let top5Tracks = Array(currentTracks.prefix(5))
+                    var trends: [TrackTrend] = []
+                    
+                    for track in top5Tracks {
+                        let currentRank = currentTracks.firstIndex(where: { $0.id == track.id }).map { $0 + 1 } ?? 999
+                        
+                        // 創建只有今天的資料點（7 天，但只有今天有排名）
+                        let calendar = Calendar.current
+                        let today = calendar.startOfDay(for: Date())
+                        let dataPoints = (0...6).reversed().map { daysAgo -> RankingDataPoint in
+                            let date = calendar.date(byAdding: .day, value: -daysAgo, to: today)!
+                            // 只有今天（daysAgo == 0）有排名
+                            if daysAgo == 0 {
+                                return RankingDataPoint(date: date, rank: currentRank, isFilled: false, isOutOfChart: false)
+                            } else {
+                                return RankingDataPoint(date: date, rank: nil, isFilled: false, isOutOfChart: true)
+                            }
+                        }
+                        
+                        let trackTrend = TrackTrend(track: track, dataPoints: dataPoints)
+                        trends.append(trackTrend)
+                    }
+                    
+                    DispatchQueue.main.async {
+                        self.top5Trends = trends
+                        self.isLoadingTrends = false
+                        print("✅ [Top5Trends] 使用當前 Top 5，顯示 \(trends.count) 條趨勢線")
+                    }
                 }
                 return
             }
             
-            print("📊 [Top5Trends] 找到 \(trackIds.count) 首曾經進入 Top 5 的歌曲")
-            print("  - Track IDs: \(trackIds.joined(separator: ", "))")
+            print("  - Track IDs: \(trackIds.prefix(10).joined(separator: ", "))\(trackIds.count > 10 ? "..." : "")")
+            print("  - 這些歌曲在過去 7 天內曾經進入過 Top 5")
             
             // 第二步：獲取當前 Top 50 以取得歌曲資訊
             SpotifyAPIService.fetchTopTracks(accessToken: accessToken, timeRange: "short_term") { currentTracks in
@@ -1137,6 +1183,42 @@ struct HomeView: View {
         isDashboardLoading = true
         isLoadingTrends = false  // 確保重置趨勢圖載入狀態
         lastDataLoadTime = nil  // 清除載入時間記錄
+    }
+    
+    // MARK: - 隱藏的 Demo 入口邏輯
+    
+    /// 處理圖標點擊 - 快速點擊 5 次進入 Demo Mode（完全隱藏，無視覺提示）
+    private func handleIconTap() {
+        let now = Date()
+        let timeSinceLastTap = now.timeIntervalSince(lastIconTapTime)
+        
+        // 如果距離上次點擊超過 2 秒，重置計數器
+        if timeSinceLastTap > 2.0 {
+            iconTapCount = 0
+        }
+        
+        lastIconTapTime = now
+        iconTapCount += 1
+        
+        // 達到 5 次點擊，進入 Demo Mode
+        if iconTapCount >= 5 {
+            triggerDemoMode()
+        }
+    }
+    
+    /// 觸發 Demo Mode
+    private func triggerDemoMode() {
+        // 震動反饋
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.success)
+        
+        // 重置計數器
+        iconTapCount = 0
+        
+        // 執行 Demo Mode
+        enterDemoMode?()
+        
+        print("🎭 隱藏入口已觸發 - 進入 Demo Mode")
     }
 }
 

@@ -159,26 +159,38 @@ struct RankingTrendChart: View {
                         fillPath.addLine(to: currentPoint)
                     }
                 } else if previousWasOutOfChart && index > 0 {
-                    // 前一個點在榜外，當前點進榜：從中間點畫斜線到當前點（虛線）
-                    let prevX = paddingX + CGFloat(index - 1) / 6 * availableWidth
-                    let midX = (prevX + x) / 2  // 兩個日期的中間點
-                    let bottomPoint = CGPoint(x: midX, y: size.height)
-                    
-                    if isFirstSegment {
-                        completePath.move(to: bottomPoint)
-                        dashedPath.move(to: bottomPoint)
-                        isFirstSegment = false
+                    // 前一個點在榜外，當前點進榜
+                    // 如果進榜到最低排名，不畫虛線（因為會是平的）
+                    if rank == yRange.max {
+                        if isFirstSegment {
+                            completePath.move(to: currentPoint)
+                            isFirstSegment = false
+                        }
+                        fillPath.move(to: CGPoint(x: x, y: size.height))
+                        fillPath.addLine(to: currentPoint)
+                        fillStarted = true
                     } else {
-                        completePath.addLine(to: bottomPoint)
-                        dashedPath.move(to: bottomPoint)
+                        // 從中間點畫斜線到當前點（虛線）
+                        let prevX = paddingX + CGFloat(index - 1) / 6 * availableWidth
+                        let midX = (prevX + x) / 2  // 兩個日期的中間點
+                        let bottomPoint = CGPoint(x: midX, y: size.height)
+                        
+                        if isFirstSegment {
+                            completePath.move(to: bottomPoint)
+                            dashedPath.move(to: bottomPoint)
+                            isFirstSegment = false
+                        } else {
+                            completePath.addLine(to: bottomPoint)
+                            dashedPath.move(to: bottomPoint)
+                        }
+                        completePath.addLine(to: currentPoint)
+                        dashedPath.addLine(to: currentPoint)
+                        
+                        // 填充也從底部開始
+                        fillPath.move(to: bottomPoint)
+                        fillPath.addLine(to: currentPoint)
+                        fillStarted = true
                     }
-                    completePath.addLine(to: currentPoint)
-                    dashedPath.addLine(to: currentPoint)
-                    
-                    // 填充也從底部開始
-                    fillPath.move(to: bottomPoint)
-                    fillPath.addLine(to: currentPoint)
-                    fillStarted = true
                 } else {
                     // 第一個點：開始新的曲線段
                     if isFirstSegment {
@@ -194,18 +206,23 @@ struct RankingTrendChart: View {
                 previousWasOutOfChart = false
             } else {
                 // 跌出榜外：畫斜線到中間點的底部（虛線）
+                // 但如果前一個點是最低排名，不畫虛線（因為會是平的）
                 if let prev = previousPoint, index > 0 {
-                    let prevX = paddingX + CGFloat(index - 1) / 6 * availableWidth
-                    let midX = (prevX + x) / 2  // 兩個日期的中間點
-                    let bottomPoint = CGPoint(x: midX, y: size.height)
-                    
-                    completePath.addLine(to: bottomPoint)
-                    dashedPath.move(to: prev)
-                    dashedPath.addLine(to: bottomPoint)
+                    // 檢查前一個點的排名
+                    if let prevRank = trend.dataPoints[index - 1].rank, prevRank == yRange.max {
+                        // 從最低排名掉出榜外，不畫虛線
+                    } else {
+                        let prevX = paddingX + CGFloat(index - 1) / 6 * availableWidth
+                        let midX = (prevX + x) / 2  // 兩個日期的中間點
+                        let bottomPoint = CGPoint(x: midX, y: size.height)
+                        
+                        completePath.addLine(to: bottomPoint)
+                        dashedPath.move(to: prev)
+                        dashedPath.addLine(to: bottomPoint)
+                    }
                     
                     // 關閉填充路徑
                     if fillStarted {
-                    fillPath.addLine(to: bottomPoint)
                     fillPath.addLine(to: CGPoint(x: prev.x, y: size.height))
                     fillPath.closeSubpath()
                     }
