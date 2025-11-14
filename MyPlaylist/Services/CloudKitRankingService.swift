@@ -133,7 +133,9 @@ class CloudKitRankingService: ObservableObject {
                 trackId: track.id,
                 rank: index + 1,
                 timeRange: timeRange,
-                recordedDate: now
+                recordedDate: now,
+                albumId: track.album.id,
+                artistIds: track.artists.compactMap { $0.id }.joined(separator: ",")
             )
             localCache.append(historyItem)
         }
@@ -165,6 +167,8 @@ class CloudKitRankingService: ObservableObject {
             record["rank"] = index + 1 as CKRecordValue
             record["timeRange"] = timeRange as CKRecordValue
             record["recordedDate"] = now as CKRecordValue
+            record["albumId"] = (track.album.id ?? "") as CKRecordValue
+            record["artistIds"] = track.artists.compactMap { $0.id }.joined(separator: ",") as CKRecordValue
             
             recordsToSave.append(record)
         }
@@ -370,12 +374,18 @@ class CloudKitRankingService: ObservableObject {
             return nil
         }
         
+        // 新欄位（可能為 nil，用於向後兼容）
+        let albumId = record["albumId"] as? String
+        let artistIds = record["artistIds"] as? String
+        
         return RankingHistory(
             userId: userId,
             trackId: trackId,
             rank: rank,
             timeRange: timeRange,
-            recordedDate: recordedDate
+            recordedDate: recordedDate,
+            albumId: albumId,
+            artistIds: artistIds
         )
     }
     
@@ -871,5 +881,289 @@ class CloudKitRankingService: ObservableObject {
                 completion(false)
             }
         }
+    }
+    
+    // MARK: - 查詢專輯數量趨勢
+    /// 獲取專輯在過去時間內的歌曲數量趨勢
+    func fetchAlbumCountTrend(
+        userId: String,
+        albumId: String,
+        timeRange: String,
+        completion: @escaping (AlbumCountTrend?) -> Void
+    ) {
+        let sevenDaysAgo = Calendar.current.date(byAdding: .day, value: -7, to: Date())!
+        
+        print("📊 [CloudKit] 查詢專輯數量趨勢")
+        print("  - userId: \(userId)")
+        print("  - albumId: \(albumId)")
+        print("  - timeRange: \(timeRange)")
+        
+        // 如果 CloudKit 可用，從雲端查詢
+        guard isCloudKitAvailable, let db = database else {
+            print("⚠️ CloudKit 不可用，使用本地快取")
+            let trend = processAlbumCountTrendFromCache(albumId: albumId, userId: userId, timeRange: timeRange, since: sevenDaysAgo)
+            completion(trend)
+            return
+        }
+        
+        // 查詢過去 7 天所有的記錄（不限制 trackId 或 albumId）
+        let userPredicate = NSPredicate(format: "userId == %@", userId)
+        let timeRangePredicate = NSPredicate(format: "timeRange == %@", timeRange)
+        let datePredicate = NSPredicate(format: "recordedDate >= %@", sevenDaysAgo as NSDate)
+        let compoundPredicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            userPredicate, timeRangePredicate, datePredicate
+        ])
+        
+        let query = CKQuery(recordType: recordType, predicate: compoundPredicate)
+        query.sortDescriptors = [NSSortDescriptor(key: "recordedDate", ascending: true)]
+        
+        print("☁️ 從 CloudKit 查詢專輯歷史數據...")
+        
+        db.fetch(withQuery: query, inZoneWith: nil, desiredKeys: nil, resultsLimit: CKQueryOperation.maximumResults) { result in
+            switch result {
+            case .success(let queryResult):
+                let histories = queryResult.matchResults.compactMap { (recordID, recordResult) -> RankingHistory? in
+                    switch recordResult {
+                    case .success(let record):
+                        return self.convertToRankingHistory(record: record)
+                    case .failure(let error):
+                        print("❌ 解析記錄失敗: \(error.localizedDescription)")
+                        return nil
+                    }
+                }
+                
+                print("✅ 從 CloudKit 查詢到 \(histories.count) 筆歷史記錄")
+                
+                // 過濾出屬於該專輯的記錄
+                let albumHistories = histories.filter { $0.albumId == albumId }
+                print("📊 其中 \(albumHistories.count) 筆屬於該專輯")
+                
+                // 處理數據並生成趨勢
+                let trend = self.processAlbumCountTrend(histories: albumHistories, albumId: albumId)
+                
+                DispatchQueue.main.async {
+                    completion(trend)
+                }
+                
+            case .failure(let error):
+                print("❌ CloudKit 查詢失敗: \(error.localizedDescription)")
+                // 降級使用本地快取
+                let trend = self.processAlbumCountTrendFromCache(albumId: albumId, userId: userId, timeRange: timeRange, since: sevenDaysAgo)
+                DispatchQueue.main.async {
+                    completion(trend)
+                }
+            }
+        }
+    }
+    
+    // MARK: - 查詢藝人數量趨勢
+    /// 獲取藝人在過去時間內的歌曲數量趨勢
+    func fetchArtistCountTrend(
+        userId: String,
+        artistId: String,
+        timeRange: String,
+        completion: @escaping (ArtistCountTrend?) -> Void
+    ) {
+        let sevenDaysAgo = Calendar.current.date(byAdding: .day, value: -7, to: Date())!
+        
+        print("📊 [CloudKit] 查詢藝人數量趨勢")
+        print("  - userId: \(userId)")
+        print("  - artistId: \(artistId)")
+        print("  - timeRange: \(timeRange)")
+        
+        // 如果 CloudKit 可用，從雲端查詢
+        guard isCloudKitAvailable, let db = database else {
+            print("⚠️ CloudKit 不可用，使用本地快取")
+            let trend = processArtistCountTrendFromCache(artistId: artistId, userId: userId, timeRange: timeRange, since: sevenDaysAgo)
+            completion(trend)
+            return
+        }
+        
+        // 查詢過去 7 天所有的記錄
+        let userPredicate = NSPredicate(format: "userId == %@", userId)
+        let timeRangePredicate = NSPredicate(format: "timeRange == %@", timeRange)
+        let datePredicate = NSPredicate(format: "recordedDate >= %@", sevenDaysAgo as NSDate)
+        let compoundPredicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            userPredicate, timeRangePredicate, datePredicate
+        ])
+        
+        let query = CKQuery(recordType: recordType, predicate: compoundPredicate)
+        query.sortDescriptors = [NSSortDescriptor(key: "recordedDate", ascending: true)]
+        
+        print("☁️ 從 CloudKit 查詢藝人歷史數據...")
+        
+        db.fetch(withQuery: query, inZoneWith: nil, desiredKeys: nil, resultsLimit: CKQueryOperation.maximumResults) { result in
+            switch result {
+            case .success(let queryResult):
+                let histories = queryResult.matchResults.compactMap { (recordID, recordResult) -> RankingHistory? in
+                    switch recordResult {
+                    case .success(let record):
+                        return self.convertToRankingHistory(record: record)
+                    case .failure(let error):
+                        print("❌ 解析記錄失敗: \(error.localizedDescription)")
+                        return nil
+                    }
+                }
+                
+                print("✅ 從 CloudKit 查詢到 \(histories.count) 筆歷史記錄")
+                
+                // 過濾出包含該藝人的記錄
+                let artistHistories = histories.filter { history in
+                    guard let artistIds = history.artistIds else { return false }
+                    return artistIds.split(separator: ",").map(String.init).contains(artistId)
+                }
+                print("📊 其中 \(artistHistories.count) 筆包含該藝人")
+                
+                // 處理數據並生成趨勢
+                let trend = self.processArtistCountTrend(histories: artistHistories, artistId: artistId)
+                
+                DispatchQueue.main.async {
+                    completion(trend)
+                }
+                
+            case .failure(let error):
+                print("❌ CloudKit 查詢失敗: \(error.localizedDescription)")
+                // 降級使用本地快取
+                let trend = self.processArtistCountTrendFromCache(artistId: artistId, userId: userId, timeRange: timeRange, since: sevenDaysAgo)
+                DispatchQueue.main.async {
+                    completion(trend)
+                }
+            }
+        }
+    }
+    
+    // MARK: - 處理專輯數量趨勢數據
+    private func processAlbumCountTrend(histories: [RankingHistory], albumId: String) -> AlbumCountTrend? {
+        guard !histories.isEmpty else {
+            print("⚠️ 沒有歷史數據")
+            return nil
+        }
+        
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        
+        // 生成過去 7 天的日期
+        let past7Days = (0...6).compactMap { daysAgo in
+            calendar.date(byAdding: .day, value: -daysAgo, to: today)
+        }.reversed()
+        
+        // 按日期分組
+        let groupedByDay = Dictionary(grouping: histories) { history in
+            calendar.startOfDay(for: history.recordedDate)
+        }
+        
+        // 為每一天統計數量
+        var dataPoints: [CountDataPoint] = []
+        
+        for date in past7Days {
+            if let dayHistories = groupedByDay[date] {
+                // 去重（同一天可能有多次快照）
+                let uniqueTracks = Set(dayHistories.map { $0.trackId })
+                let count = uniqueTracks.count
+                
+                dataPoints.append(CountDataPoint(
+                    date: date,
+                    count: count
+                ))
+                print("  - \(date): \(count) 首歌")
+            } else {
+                dataPoints.append(CountDataPoint(
+                    date: date,
+                    count: 0
+                ))
+                print("  - \(date): 0 首歌（無數據）")
+            }
+        }
+        
+        return AlbumCountTrend(
+            albumId: albumId,
+            albumName: "",  // 在 View 層設定
+            dataPoints: dataPoints
+        )
+    }
+    
+    // MARK: - 處理藝人數量趨勢數據
+    private func processArtistCountTrend(histories: [RankingHistory], artistId: String) -> ArtistCountTrend? {
+        guard !histories.isEmpty else {
+            print("⚠️ 沒有歷史數據")
+            return nil
+        }
+        
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        
+        // 生成過去 7 天的日期
+        let past7Days = (0...6).compactMap { daysAgo in
+            calendar.date(byAdding: .day, value: -daysAgo, to: today)
+        }.reversed()
+        
+        // 按日期分組
+        let groupedByDay = Dictionary(grouping: histories) { history in
+            calendar.startOfDay(for: history.recordedDate)
+        }
+        
+        // 為每一天統計數量
+        var dataPoints: [CountDataPoint] = []
+        
+        for date in past7Days {
+            if let dayHistories = groupedByDay[date] {
+                // 去重（同一天可能有多次快照）
+                let uniqueTracks = Set(dayHistories.map { $0.trackId })
+                let count = uniqueTracks.count
+                
+                dataPoints.append(CountDataPoint(
+                    date: date,
+                    count: count
+                ))
+                print("  - \(date): \(count) 首歌")
+            } else {
+                dataPoints.append(CountDataPoint(
+                    date: date,
+                    count: 0
+                ))
+                print("  - \(date): 0 首歌（無數據）")
+            }
+        }
+        
+        return ArtistCountTrend(
+            artistId: artistId,
+            artistName: "",  // 在 View 層設定
+            dataPoints: dataPoints
+        )
+    }
+    
+    // MARK: - 從本地快取處理專輯趨勢
+    private func processAlbumCountTrendFromCache(albumId: String, userId: String, timeRange: String, since: Date) -> AlbumCountTrend? {
+        let filtered = localCache.filter { history in
+            history.userId == userId &&
+            history.timeRange == timeRange &&
+            history.recordedDate >= since &&
+            history.albumId == albumId
+        }
+        
+        guard !filtered.isEmpty else {
+            return nil
+        }
+        
+        return processAlbumCountTrend(histories: filtered, albumId: albumId)
+    }
+    
+    // MARK: - 從本地快取處理藝人趨勢
+    private func processArtistCountTrendFromCache(artistId: String, userId: String, timeRange: String, since: Date) -> ArtistCountTrend? {
+        let filtered = localCache.filter { history in
+            guard history.userId == userId &&
+                  history.timeRange == timeRange &&
+                  history.recordedDate >= since,
+                  let artistIds = history.artistIds else {
+                return false
+            }
+            return artistIds.split(separator: ",").map(String.init).contains(artistId)
+        }
+        
+        guard !filtered.isEmpty else {
+            return nil
+        }
+        
+        return processArtistCountTrend(histories: filtered, artistId: artistId)
     }
 }

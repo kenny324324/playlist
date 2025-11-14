@@ -17,6 +17,10 @@ struct ArtistDetailView: View {
     @State private var statsError: String?
     @State private var isLoadingStats = false
     
+    // 長條圖數據
+    @State private var artistCountTrend: ArtistCountTrend?
+    @State private var isLoadingTrend = false
+    
     // Sheet 控制狀態
     @State private var selectedStatsType: StatsCardType?
     
@@ -822,9 +826,18 @@ struct ArtistDetailView: View {
     
     // MARK: - Artist Stats Section
     private func artistStatsSection(stats: ArtistStats, artistName: String) -> some View {
-        VStack(spacing: 16) {
-            // 第一行：4週 + 6個月
-            HStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: 12) {
+            // 長條圖（移到上面）
+            if isLoadingTrend {
+                trendChartLoadingPlaceholder()
+            } else {
+                trendChartSection(trend: artistCountTrend)
+            }
+            
+            // 統計卡片（移到下面）
+            VStack(spacing: 16) {
+                // 第一行：4週 + 6個月
+                HStack(spacing: 12) {
                 SmallStatCard(
                     number: "\(stats.tracksInShortTerm)",
                     text: "\(stats.tracksInShortTerm) \(String(localized: "stats.artist.tracksOf")) \(artistName) \(String(localized: "stats.album.inTop50.4weeks"))",
@@ -864,10 +877,11 @@ struct ArtistDetailView: View {
                     }
                 )
             }
+            }
+            .padding(.horizontal, 20)
         }
-        .padding(.horizontal, 20)
         .padding(.top, 24)
-        .padding(.bottom, 24)
+        .padding(.bottom, 30)
         .sheet(item: $selectedStatsType) { statsType in
             if let stats = artistStats, let artist = artistDetail {
                 StatsDetailSheet(
@@ -890,6 +904,44 @@ struct ArtistDetailView: View {
         }
         selectedStatsType = type
     }
+    
+    // MARK: - Trend Chart Section
+    
+    private func trendChartSection(trend: ArtistCountTrend?) -> some View {
+        // 如果沒有數據，創建 7 個空的數據點
+        let dataPoints: [CountDataPoint]
+        if let trend = trend, trend.hasData {
+            dataPoints = trend.dataPoints
+        } else {
+            // 創建過去 7 天的空數據點
+            let calendar = Calendar.current
+            let today = calendar.startOfDay(for: Date())
+            let points = (0...6).compactMap { daysAgo -> CountDataPoint? in
+                guard let date = calendar.date(byAdding: .day, value: -daysAgo, to: today) else { return nil }
+                return CountDataPoint(date: date, count: 0)
+            }
+            dataPoints = Array(points.reversed())
+        }
+        
+        return CountBarChart(
+            dataPoints: dataPoints,
+            title: String(localized: "rankingTrend.past7Days"),
+            emptyMessage: trend == nil || !trend!.hasData ? String(localized: "stats.chart.noData") : nil
+        )
+        .padding(16)
+        .background(Color(red: 0.15, green: 0.15, blue: 0.15))
+        .cornerRadius(12)
+        .padding(.horizontal, 20)
+    }
+    
+    private func trendChartLoadingPlaceholder() -> some View {
+        RoundedRectangle(cornerRadius: 12)
+            .fill(Color.gray.opacity(0.3))
+            .frame(height: 220)
+            .shimmer()
+            .padding(.horizontal, 20)
+    }
+    
     
     // MARK: - Helper Functions for Stats
     private func getTracks(for type: StatsCardType, stats: ArtistStats) -> [RankedTrack] {
@@ -951,6 +1003,36 @@ struct ArtistDetailView: View {
                         self.statsError = error.localizedDescription
                     }
                     self.isLoadingStats = false
+                }
+            }
+            
+            // 同時查詢長條圖數據
+            self.loadArtistCountTrend()
+        }
+    }
+    
+    // MARK: - Load Artist Count Trend
+    private func loadArtistCountTrend() {
+        isLoadingTrend = true
+        
+        // 先獲取用戶資料以取得 userId
+        SpotifyAPIService.fetchCurrentUserProfile(accessToken: accessToken) { userProfile in
+            guard let userId = userProfile?.id else {
+                DispatchQueue.main.async {
+                    self.isLoadingTrend = false
+                }
+                return
+            }
+            
+            // 從 CloudKit 查詢藝人數量趨勢
+            CloudKitRankingService.shared.fetchArtistCountTrend(
+                userId: userId,
+                artistId: self.artistId,
+                timeRange: "short_term"
+            ) { trend in
+                DispatchQueue.main.async {
+                    self.artistCountTrend = trend
+                    self.isLoadingTrend = false
                 }
             }
         }

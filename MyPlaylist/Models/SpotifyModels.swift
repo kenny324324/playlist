@@ -426,6 +426,8 @@ struct RankingHistory: Codable {
     let rank: Int
     let timeRange: String
     let recordedDate: Date
+    let albumId: String?      // 專輯 ID（用於專輯統計趨勢）
+    let artistIds: String?    // 藝人 ID，逗號分隔（用於藝人統計趨勢）
 }
 
 // MARK: - Rank Change

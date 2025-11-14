@@ -28,7 +28,9 @@ class RankingHistoryService {
                 trackId: track.id,
                 rank: index + 1,
                 timeRange: timeRange,
-                recordedDate: now
+                recordedDate: now,
+                albumId: track.album.id,
+                artistIds: track.artists.compactMap { $0.id }.joined(separator: ",")
             )
             history.append(record)
         }
