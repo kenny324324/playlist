@@ -1280,11 +1280,24 @@ class CloudKitRankingService: ObservableObject {
                 
                 if let latestDate = latestDate {
                     // 只保留最新一輪的記錄
-                    latestHistories = albumHistories.filter { 
+                    let latestRound = albumHistories.filter { 
                         calendar.isDate($0.recordedDate, equalTo: latestDate, toGranularity: .minute)
                     }
+                    
+                    // 對 trackId 去重（保留每首歌的第一條記錄）
+                    var seenTrackIds = Set<String>()
+                    latestHistories = latestRound.filter { history in
+                        if seenTrackIds.contains(history.trackId) {
+                            return false
+                        } else {
+                            seenTrackIds.insert(history.trackId)
+                            return true
+                        }
+                    }
+                    
                     print("📅 最新記錄時間: \(latestDate)")
-                    print("✅ 最新一輪共 \(latestHistories.count) 首歌")
+                    print("📊 最新一輪原始記錄: \(latestRound.count) 筆")
+                    print("✅ 去重後共 \(latestHistories.count) 首歌")
                 } else {
                     latestHistories = []
                 }
@@ -1386,11 +1399,24 @@ class CloudKitRankingService: ObservableObject {
                 
                 if let latestDate = latestDate {
                     // 只保留最新一輪的記錄
-                    latestHistories = artistHistories.filter { 
+                    let latestRound = artistHistories.filter { 
                         calendar.isDate($0.recordedDate, equalTo: latestDate, toGranularity: .minute)
                     }
+                    
+                    // 對 trackId 去重（保留每首歌的第一條記錄）
+                    var seenTrackIds = Set<String>()
+                    latestHistories = latestRound.filter { history in
+                        if seenTrackIds.contains(history.trackId) {
+                            return false
+                        } else {
+                            seenTrackIds.insert(history.trackId)
+                            return true
+                        }
+                    }
+                    
                     print("📅 最新記錄時間: \(latestDate)")
-                    print("✅ 最新一輪共 \(latestHistories.count) 首歌")
+                    print("📊 最新一輪原始記錄: \(latestRound.count) 筆")
+                    print("✅ 去重後共 \(latestHistories.count) 首歌")
                 } else {
                     latestHistories = []
                 }
