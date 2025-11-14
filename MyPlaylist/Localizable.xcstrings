@@ -4,6 +4,9 @@
     "" : {
 
     },
+    "--" : {
+
+    },
     ":" : {
 
     },
@@ -22,6 +25,16 @@
     },
     "%lld" : {
 
+    },
+    "%lld %@ · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld %2$@ · %3$@"
+          }
+        }
+      }
     },
     "•" : {
 
@@ -6013,6 +6026,7 @@
       }
     },
     "stats.chart.highest" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

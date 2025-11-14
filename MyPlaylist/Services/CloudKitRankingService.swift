@@ -1219,7 +1219,7 @@ class CloudKitRankingService: ObservableObject {
         ])
         
         let query = CKQuery(recordType: recordType, predicate: compoundPredicate)
-        query.sortDescriptors = [NSSortDescriptor(key: "rank", ascending: true)]
+        query.sortDescriptors = [NSSortDescriptor(key: "recordedDate", ascending: false)]  // 使用 recordedDate 而不是 rank
         
         print("☁️ 從 CloudKit 查詢該日資料...")
         
@@ -1238,8 +1238,8 @@ class CloudKitRankingService: ObservableObject {
                 
                 print("✅ 查詢到 \(histories.count) 筆該日記錄")
                 
-                // 過濾出屬於該專輯的記錄
-                let albumHistories = histories.filter { $0.albumId == albumId }
+                // 過濾出屬於該專輯的記錄，並按 rank 排序
+                let albumHistories = histories.filter { $0.albumId == albumId }.sorted { $0.rank < $1.rank }
                 print("📊 其中 \(albumHistories.count) 筆屬於該專輯")
                 
                 DispatchQueue.main.async {
@@ -1307,7 +1307,7 @@ class CloudKitRankingService: ObservableObject {
         ])
         
         let query = CKQuery(recordType: recordType, predicate: compoundPredicate)
-        query.sortDescriptors = [NSSortDescriptor(key: "rank", ascending: true)]
+        query.sortDescriptors = [NSSortDescriptor(key: "recordedDate", ascending: false)]  // 使用 recordedDate 而不是 rank
         
         print("☁️ 從 CloudKit 查詢該日資料...")
         
@@ -1326,11 +1326,11 @@ class CloudKitRankingService: ObservableObject {
                 
                 print("✅ 查詢到 \(histories.count) 筆該日記錄")
                 
-                // 過濾出包含該藝人的記錄
+                // 過濾出包含該藝人的記錄，並按 rank 排序
                 let artistHistories = histories.filter { history in
                     guard let artistIds = history.artistIds else { return false }
                     return artistIds.split(separator: ",").map(String.init).contains(artistId)
-                }
+                }.sorted { $0.rank < $1.rank }
                 print("📊 其中 \(artistHistories.count) 筆包含該藝人")
                 
                 DispatchQueue.main.async {

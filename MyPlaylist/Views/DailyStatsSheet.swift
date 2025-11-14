@@ -100,32 +100,26 @@ struct DailyStatsSheet: View {
                         case .empty:
                             Rectangle()
                                 .fill(Color.gray.opacity(0.3))
-                                .overlay(ProgressView().tint(.white))
-                        case .failure:
-                            Rectangle()
-                                .fill(Color.gray.opacity(0.3))
-                                .overlay(Image(systemName: "music.note").foregroundColor(.gray))
                         case .success(let image):
                             image
                                 .resizable()
                                 .aspectRatio(contentMode: .fill)
+                        case .failure(_):
+                            Rectangle()
+                                .fill(Color.gray.opacity(0.3))
                         @unknown default:
-                            Rectangle().fill(Color.gray.opacity(0.3))
+                            Rectangle()
+                                .fill(Color.gray.opacity(0.3))
                         }
                     }
-                    .frame(width: 45, height: 45)
-                    .cornerRadius(4)
-                } else {
-                    Rectangle()
-                        .fill(Color.gray.opacity(0.3))
-                        .frame(width: 45, height: 45)
-                        .cornerRadius(4)
+                    .frame(width: 56, height: 56)
+                    .cornerRadius(8)
                 }
                 
                 // 歌曲資訊
                 VStack(alignment: .leading, spacing: 4) {
                     Text(track.name)
-                        .font(.appFont(size: 16, weight: .bold))
+                        .font(.appFont(size: 16, weight: .medium))
                         .foregroundColor(.white)
                         .lineLimit(1)
                     
@@ -135,22 +129,21 @@ struct DailyStatsSheet: View {
                         .lineLimit(1)
                 }
             } else {
-                // 載入佔位符
-                Rectangle()
+                // 佔位符（載入中）
+                RoundedRectangle(cornerRadius: 8)
                     .fill(Color.gray.opacity(0.3))
-                    .frame(width: 45, height: 45)
-                    .cornerRadius(4)
+                    .frame(width: 56, height: 56)
                     .shimmer()
                 
                 VStack(alignment: .leading, spacing: 6) {
                     RoundedRectangle(cornerRadius: 4)
                         .fill(Color.gray.opacity(0.3))
-                        .frame(width: 120, height: 18)
+                        .frame(width: 150, height: 18)
                         .shimmer()
                     
                     RoundedRectangle(cornerRadius: 4)
                         .fill(Color.gray.opacity(0.3))
-                        .frame(width: 80, height: 14)
+                        .frame(width: 100, height: 14)
                         .shimmer()
                 }
             }
@@ -158,26 +151,22 @@ struct DailyStatsSheet: View {
             Spacer()
             
             Image(systemName: "chevron.right")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(.gray)
+                .font(.system(size: 14))
+                .foregroundColor(.gray.opacity(0.5))
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(Color.white.opacity(0.08))
-        .cornerRadius(8)
-        .padding(.horizontal, 20)
-        .padding(.vertical, 4)
+        .padding(.horizontal, 24)
+        .padding(.vertical, 12)
     }
     
     // MARK: - Loading View
     private var loadingView: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 12) {
             ProgressView()
+                .progressViewStyle(CircularProgressViewStyle(tint: .spotifyGreen))
                 .scaleEffect(1.2)
-                .tint(.spotifyGreen)
             
             Text(String(localized: "common.loading"))
-                .font(.appFont(size: 16, weight: .medium))
+                .font(.appFont(size: 14, weight: .medium))
                 .foregroundColor(.gray)
         }
     }
@@ -186,36 +175,25 @@ struct DailyStatsSheet: View {
     private var emptyStateView: some View {
         VStack(spacing: 16) {
             Image(systemName: "music.note.list")
-                .font(.system(size: 56))
+                .font(.system(size: 50))
                 .foregroundColor(.gray)
             
             Text(String(localized: "stats.chart.noData"))
-                .font(.appFont(size: 18, weight: .bold))
-                .foregroundColor(.white)
-            
-            Text(String(localized: "stats.detail.noTracksDescription"))
-                .font(.appFont(size: 14, weight: .medium))
+                .font(.appFont(size: 16, weight: .medium))
                 .foregroundColor(.gray)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 40)
         }
-        .padding(.horizontal, 16)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     
     // MARK: - Load Tracks
     private func loadTracks() {
-        print("📊 [DailyStatsSheet] loadTracks called")
-        print("  - histories: \(histories?.count ?? 0) 筆")
-        
         guard let histories = histories, !histories.isEmpty else {
-            print("⚠️ [DailyStatsSheet] 沒有 histories")
             isLoading = false
             return
         }
         
         // 按排名排序
         let sortedHistories = histories.sorted { $0.rank < $1.rank }
-        print("✅ [DailyStatsSheet] 排序後有 \(sortedHistories.count) 筆記錄")
         
         // 初始化 trackDetails（先設為 nil）
         trackDetails = sortedHistories.map { (trackId: $0.trackId, rank: $0.rank, detail: nil) }
@@ -225,12 +203,10 @@ struct DailyStatsSheet: View {
         
         for (index, history) in sortedHistories.enumerated() {
             group.enter()
-            print("🔍 [DailyStatsSheet] 查詢歌曲 \(index + 1)/\(sortedHistories.count): \(history.trackId)")
             SpotifyAPIService.fetchTrackDetail(trackId: history.trackId, accessToken: accessToken) { detail in
                 DispatchQueue.main.async {
                     if index < self.trackDetails.count {
                         self.trackDetails[index].detail = detail
-                        print("✅ [DailyStatsSheet] 取得歌曲 \(index + 1) 詳情")
                     }
                     group.leave()
                 }
@@ -238,7 +214,6 @@ struct DailyStatsSheet: View {
         }
         
         group.notify(queue: .main) {
-            print("🎉 [DailyStatsSheet] 所有歌曲載入完成")
             self.isLoading = false
         }
     }
