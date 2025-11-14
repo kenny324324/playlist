@@ -114,6 +114,7 @@ struct DailyStatsSheet: View {
                         case .empty:
                             Rectangle()
                                 .fill(Color.gray.opacity(0.3))
+                                .overlay(ProgressView().tint(.white))
                         case .success(let image):
                             image
                                 .resizable()
@@ -121,19 +122,25 @@ struct DailyStatsSheet: View {
                         case .failure(_):
                             Rectangle()
                                 .fill(Color.gray.opacity(0.3))
+                                .overlay(Image(systemName: "music.note").foregroundColor(.gray))
                         @unknown default:
                             Rectangle()
                                 .fill(Color.gray.opacity(0.3))
                         }
                     }
-                    .frame(width: 56, height: 56)
-                    .cornerRadius(8)
+                    .frame(width: 45, height: 45)
+                    .cornerRadius(4)
+                } else {
+                    Rectangle()
+                        .fill(Color.gray.opacity(0.3))
+                        .frame(width: 45, height: 45)
+                        .cornerRadius(4)
                 }
                 
                 // 歌曲資訊
                 VStack(alignment: .leading, spacing: 4) {
                     Text(track.name)
-                        .font(.appFont(size: 16, weight: .medium))
+                        .font(.appFont(size: 16, weight: .bold))
                         .foregroundColor(.white)
                         .lineLimit(1)
                     
@@ -144,9 +151,9 @@ struct DailyStatsSheet: View {
                 }
             } else {
                 // 佔位符（載入中）
-                RoundedRectangle(cornerRadius: 8)
+                RoundedRectangle(cornerRadius: 4)
                     .fill(Color.gray.opacity(0.3))
-                    .frame(width: 56, height: 56)
+                    .frame(width: 45, height: 45)
                     .shimmer()
                 
                 VStack(alignment: .leading, spacing: 6) {
@@ -165,11 +172,15 @@ struct DailyStatsSheet: View {
             Spacer()
             
             Image(systemName: "chevron.right")
-                .font(.system(size: 14))
-                .foregroundColor(.gray.opacity(0.5))
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(.gray)
         }
-        .padding(.horizontal, 24)
-        .padding(.vertical, 12)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(Color.white.opacity(0.08))
+        .cornerRadius(8)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 4)
     }
     
     // MARK: - Loading View

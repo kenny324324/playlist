@@ -1059,20 +1059,36 @@ class CloudKitRankingService: ObservableObject {
             calendar.startOfDay(for: history.recordedDate)
         }
         
-        // 為每一天統計數量
+        // 為每一天統計數量（只取最後一輪的記錄）
         var dataPoints: [CountDataPoint] = []
         
         for date in past7Days {
             if let dayHistories = groupedByDay[date] {
-                // 去重（同一天可能有多次快照）
-                let uniqueTracks = Set(dayHistories.map { $0.trackId })
-                let count = uniqueTracks.count
+                // 找出該天最後一輪的記錄時間
+                let latestTime = dayHistories.map { $0.recordedDate }.max()
                 
-                dataPoints.append(CountDataPoint(
-                    date: date,
-                    count: count
-                ))
-                print("  - \(date): \(count) 首歌")
+                if let latestTime = latestTime {
+                    // 只保留最後一輪的記錄（同一分鐘內的記錄）
+                    let latestRoundHistories = dayHistories.filter { history in
+                        calendar.isDate(history.recordedDate, equalTo: latestTime, toGranularity: .minute)
+                    }
+                    
+                    // 計算最後一輪的歌曲數量
+                    let uniqueTracks = Set(latestRoundHistories.map { $0.trackId })
+                    let count = uniqueTracks.count
+                    
+                    dataPoints.append(CountDataPoint(
+                        date: date,
+                        count: count
+                    ))
+                    print("  - \(date): \(count) 首歌（最後一輪時間: \(latestTime)）")
+                } else {
+                    dataPoints.append(CountDataPoint(
+                        date: date,
+                        count: 0
+                    ))
+                    print("  - \(date): 0 首歌（無數據）")
+                }
             } else {
                 dataPoints.append(CountDataPoint(
                     date: date,
@@ -1109,20 +1125,36 @@ class CloudKitRankingService: ObservableObject {
             calendar.startOfDay(for: history.recordedDate)
         }
         
-        // 為每一天統計數量
+        // 為每一天統計數量（只取最後一輪的記錄）
         var dataPoints: [CountDataPoint] = []
         
         for date in past7Days {
             if let dayHistories = groupedByDay[date] {
-                // 去重（同一天可能有多次快照）
-                let uniqueTracks = Set(dayHistories.map { $0.trackId })
-                let count = uniqueTracks.count
+                // 找出該天最後一輪的記錄時間
+                let latestTime = dayHistories.map { $0.recordedDate }.max()
                 
-                dataPoints.append(CountDataPoint(
-                    date: date,
-                    count: count
-                ))
-                print("  - \(date): \(count) 首歌")
+                if let latestTime = latestTime {
+                    // 只保留最後一輪的記錄（同一分鐘內的記錄）
+                    let latestRoundHistories = dayHistories.filter { history in
+                        calendar.isDate(history.recordedDate, equalTo: latestTime, toGranularity: .minute)
+                    }
+                    
+                    // 計算最後一輪的歌曲數量
+                    let uniqueTracks = Set(latestRoundHistories.map { $0.trackId })
+                    let count = uniqueTracks.count
+                    
+                    dataPoints.append(CountDataPoint(
+                        date: date,
+                        count: count
+                    ))
+                    print("  - \(date): \(count) 首歌（最後一輪時間: \(latestTime)）")
+                } else {
+                    dataPoints.append(CountDataPoint(
+                        date: date,
+                        count: 0
+                    ))
+                    print("  - \(date): 0 首歌（無數據）")
+                }
             } else {
                 dataPoints.append(CountDataPoint(
                     date: date,
@@ -1238,12 +1270,27 @@ class CloudKitRankingService: ObservableObject {
                 
                 print("✅ 查詢到 \(histories.count) 筆該日記錄")
                 
-                // 過濾出屬於該專輯的記錄（已按 rank 排序）
+                // 過濾出屬於該專輯的記錄
                 let albumHistories = histories.filter { $0.albumId == albumId }
                 print("📊 其中 \(albumHistories.count) 筆屬於該專輯")
                 
+                // 找出最新的記錄時間（該天最後一輪的資料）
+                let latestDate = albumHistories.map { $0.recordedDate }.max()
+                let latestHistories: [RankingHistory]
+                
+                if let latestDate = latestDate {
+                    // 只保留最新一輪的記錄
+                    latestHistories = albumHistories.filter { 
+                        calendar.isDate($0.recordedDate, equalTo: latestDate, toGranularity: .minute)
+                    }
+                    print("📅 最新記錄時間: \(latestDate)")
+                    print("✅ 最新一輪共 \(latestHistories.count) 首歌")
+                } else {
+                    latestHistories = []
+                }
+                
                 DispatchQueue.main.async {
-                    completion(albumHistories)
+                    completion(latestHistories)
                 }
                 
             case .failure(let error):
@@ -1326,15 +1373,30 @@ class CloudKitRankingService: ObservableObject {
                 
                 print("✅ 查詢到 \(histories.count) 筆該日記錄")
                 
-                // 過濾出包含該藝人的記錄（已按 rank 排序）
+                // 過濾出包含該藝人的記錄
                 let artistHistories = histories.filter { history in
                     guard let artistIds = history.artistIds else { return false }
                     return artistIds.split(separator: ",").map(String.init).contains(artistId)
                 }
                 print("📊 其中 \(artistHistories.count) 筆包含該藝人")
                 
+                // 找出最新的記錄時間（該天最後一輪的資料）
+                let latestDate = artistHistories.map { $0.recordedDate }.max()
+                let latestHistories: [RankingHistory]
+                
+                if let latestDate = latestDate {
+                    // 只保留最新一輪的記錄
+                    latestHistories = artistHistories.filter { 
+                        calendar.isDate($0.recordedDate, equalTo: latestDate, toGranularity: .minute)
+                    }
+                    print("📅 最新記錄時間: \(latestDate)")
+                    print("✅ 最新一輪共 \(latestHistories.count) 首歌")
+                } else {
+                    latestHistories = []
+                }
+                
                 DispatchQueue.main.async {
-                    completion(artistHistories)
+                    completion(latestHistories)
                 }
                 
             case .failure(let error):

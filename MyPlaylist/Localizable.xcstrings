@@ -4,9 +4,6 @@
     "" : {
 
     },
-    "--" : {
-
-    },
     ":" : {
 
     },
@@ -296,6 +293,9 @@
           }
         }
       }
+    },
+    "common.loading" : {
+
     },
     "common.save" : {
       "extractionState" : "stale",
