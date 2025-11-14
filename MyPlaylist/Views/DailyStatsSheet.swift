@@ -17,12 +17,17 @@ struct DailyStatsSheet: View {
             ZStack {
                 Color.spotifyText.ignoresSafeArea()
                 
-                if isLoading && histories != nil {
-                    // 載入中（histories 不是 nil 但還在載入歌曲詳情）
+                if histories == nil {
+                    // 等待 CloudKit 查詢
+                    loadingView
+                } else if isLoading {
+                    // 正在載入歌曲詳情
                     loadingView
                 } else if trackDetails.isEmpty {
+                    // 沒有資料
                     emptyStateView
                 } else {
+                    // 顯示歌曲列表
                     ScrollView(showsIndicators: false) {
                         VStack(spacing: 0) {
                             subtitleView
@@ -67,6 +72,12 @@ struct DailyStatsSheet: View {
         }
         .onAppear {
             loadTracks()
+        }
+        .onChange(of: histories) { newHistories in
+            // 當 histories 從 nil 變為有值時重新載入
+            if newHistories != nil {
+                loadTracks()
+            }
         }
     }
     
@@ -188,9 +199,17 @@ struct DailyStatsSheet: View {
     // MARK: - Load Tracks
     private func loadTracks() {
         guard let histories = histories, !histories.isEmpty else {
-            isLoading = false
+            // histories 為 nil 或空，保持 loading 狀態等待數據
+            if histories != nil {
+                // histories 不是 nil 但是空的，表示真的沒有資料
+                isLoading = false
+            }
+            // 如果 histories 是 nil，保持 isLoading = true，繼續顯示 loading
             return
         }
+        
+        // 開始載入歌曲詳情
+        isLoading = true
         
         // 按排名排序
         let sortedHistories = histories.sorted { $0.rank < $1.rank }
