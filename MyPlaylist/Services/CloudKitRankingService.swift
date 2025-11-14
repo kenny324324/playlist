@@ -1059,36 +1059,20 @@ class CloudKitRankingService: ObservableObject {
             calendar.startOfDay(for: history.recordedDate)
         }
         
-        // 為每一天統計數量（只取最後一輪的記錄）
+        // 為每一天統計數量
         var dataPoints: [CountDataPoint] = []
         
         for date in past7Days {
             if let dayHistories = groupedByDay[date] {
-                // 找出該天最後一輪的記錄時間
-                let latestTime = dayHistories.map { $0.recordedDate }.max()
+                // 去重（同一天可能有多次快照）
+                let uniqueTracks = Set(dayHistories.map { $0.trackId })
+                let count = uniqueTracks.count
                 
-                if let latestTime = latestTime {
-                    // 只保留最後一輪的記錄（同一分鐘內的記錄）
-                    let latestRoundHistories = dayHistories.filter { history in
-                        calendar.isDate(history.recordedDate, equalTo: latestTime, toGranularity: .minute)
-                    }
-                    
-                    // 計算最後一輪的歌曲數量
-                    let uniqueTracks = Set(latestRoundHistories.map { $0.trackId })
-                    let count = uniqueTracks.count
-                    
-                    dataPoints.append(CountDataPoint(
-                        date: date,
-                        count: count
-                    ))
-                    print("  - \(date): \(count) 首歌（最後一輪時間: \(latestTime)）")
-                } else {
-                    dataPoints.append(CountDataPoint(
-                        date: date,
-                        count: 0
-                    ))
-                    print("  - \(date): 0 首歌（無數據）")
-                }
+                dataPoints.append(CountDataPoint(
+                    date: date,
+                    count: count
+                ))
+                print("  - \(date): \(count) 首歌")
             } else {
                 dataPoints.append(CountDataPoint(
                     date: date,
@@ -1125,36 +1109,20 @@ class CloudKitRankingService: ObservableObject {
             calendar.startOfDay(for: history.recordedDate)
         }
         
-        // 為每一天統計數量（只取最後一輪的記錄）
+        // 為每一天統計數量
         var dataPoints: [CountDataPoint] = []
         
         for date in past7Days {
             if let dayHistories = groupedByDay[date] {
-                // 找出該天最後一輪的記錄時間
-                let latestTime = dayHistories.map { $0.recordedDate }.max()
+                // 去重（同一天可能有多次快照）
+                let uniqueTracks = Set(dayHistories.map { $0.trackId })
+                let count = uniqueTracks.count
                 
-                if let latestTime = latestTime {
-                    // 只保留最後一輪的記錄（同一分鐘內的記錄）
-                    let latestRoundHistories = dayHistories.filter { history in
-                        calendar.isDate(history.recordedDate, equalTo: latestTime, toGranularity: .minute)
-                    }
-                    
-                    // 計算最後一輪的歌曲數量
-                    let uniqueTracks = Set(latestRoundHistories.map { $0.trackId })
-                    let count = uniqueTracks.count
-                    
-                    dataPoints.append(CountDataPoint(
-                        date: date,
-                        count: count
-                    ))
-                    print("  - \(date): \(count) 首歌（最後一輪時間: \(latestTime)）")
-                } else {
-                    dataPoints.append(CountDataPoint(
-                        date: date,
-                        count: 0
-                    ))
-                    print("  - \(date): 0 首歌（無數據）")
-                }
+                dataPoints.append(CountDataPoint(
+                    date: date,
+                    count: count
+                ))
+                print("  - \(date): \(count) 首歌")
             } else {
                 dataPoints.append(CountDataPoint(
                     date: date,
@@ -1204,241 +1172,5 @@ class CloudKitRankingService: ObservableObject {
         }
         
         return processArtistCountTrend(histories: filtered, artistId: artistId)
-    }
-    
-    // MARK: - 查詢單日專輯/藝人歌曲
-    /// 查詢特定日期的專輯歌曲排名
-    func fetchAlbumTracksForDate(
-        userId: String,
-        albumId: String,
-        date: Date,
-        timeRange: String,
-        completion: @escaping ([RankingHistory]) -> Void
-    ) {
-        let calendar = Calendar.current
-        let startOfDay = calendar.startOfDay(for: date)
-        guard let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay) else {
-            completion([])
-            return
-        }
-        
-        print("📊 [CloudKit] 查詢單日專輯歌曲")
-        print("  - userId: \(userId)")
-        print("  - albumId: \(albumId)")
-        print("  - date: \(startOfDay)")
-        print("  - timeRange: \(timeRange)")
-        
-        // 如果 CloudKit 可用，從雲端查詢
-        guard isCloudKitAvailable, let db = database else {
-            print("⚠️ CloudKit 不可用，使用本地快取")
-            let filtered = localCache.filter { history in
-                history.userId == userId &&
-                history.timeRange == timeRange &&
-                history.albumId == albumId &&
-                calendar.isDate(history.recordedDate, inSameDayAs: date)
-            }
-            completion(filtered)
-            return
-        }
-        
-        // 查詢該天的記錄
-        let userPredicate = NSPredicate(format: "userId == %@", userId)
-        let timeRangePredicate = NSPredicate(format: "timeRange == %@", timeRange)
-        let datePredicate = NSPredicate(format: "recordedDate >= %@ AND recordedDate < %@", 
-                                       startOfDay as NSDate, endOfDay as NSDate)
-        let compoundPredicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
-            userPredicate, timeRangePredicate, datePredicate
-        ])
-        
-        let query = CKQuery(recordType: recordType, predicate: compoundPredicate)
-        query.sortDescriptors = [NSSortDescriptor(key: "rank", ascending: true)]
-        
-        print("☁️ 從 CloudKit 查詢該日資料...")
-        
-        db.fetch(withQuery: query, inZoneWith: nil, desiredKeys: nil, resultsLimit: CKQueryOperation.maximumResults) { result in
-            switch result {
-            case .success(let queryResult):
-                let histories = queryResult.matchResults.compactMap { (recordID, recordResult) -> RankingHistory? in
-                    switch recordResult {
-                    case .success(let record):
-                        return self.convertToRankingHistory(record: record)
-                    case .failure(let error):
-                        print("❌ 解析記錄失敗: \(error.localizedDescription)")
-                        return nil
-                    }
-                }
-                
-                print("✅ 查詢到 \(histories.count) 筆該日記錄")
-                
-                // 過濾出屬於該專輯的記錄
-                let albumHistories = histories.filter { $0.albumId == albumId }
-                print("📊 其中 \(albumHistories.count) 筆屬於該專輯")
-                
-                // 找出最新的記錄時間（該天最後一輪的資料）
-                let latestDate = albumHistories.map { $0.recordedDate }.max()
-                let latestHistories: [RankingHistory]
-                
-                if let latestDate = latestDate {
-                    // 只保留最新一輪的記錄
-                    let latestRound = albumHistories.filter { 
-                        calendar.isDate($0.recordedDate, equalTo: latestDate, toGranularity: .minute)
-                    }
-                    
-                    // 對 trackId 去重（保留每首歌的第一條記錄）
-                    var seenTrackIds = Set<String>()
-                    latestHistories = latestRound.filter { history in
-                        if seenTrackIds.contains(history.trackId) {
-                            return false
-                        } else {
-                            seenTrackIds.insert(history.trackId)
-                            return true
-                        }
-                    }
-                    
-                    print("📅 最新記錄時間: \(latestDate)")
-                    print("📊 最新一輪原始記錄: \(latestRound.count) 筆")
-                    print("✅ 去重後共 \(latestHistories.count) 首歌")
-                } else {
-                    latestHistories = []
-                }
-                
-                DispatchQueue.main.async {
-                    completion(latestHistories)
-                }
-                
-            case .failure(let error):
-                print("❌ CloudKit 查詢失敗: \(error.localizedDescription)")
-                // 降級使用本地快取
-                let filtered = self.localCache.filter { history in
-                    history.userId == userId &&
-                    history.timeRange == timeRange &&
-                    history.albumId == albumId &&
-                    calendar.isDate(history.recordedDate, inSameDayAs: date)
-                }
-                DispatchQueue.main.async {
-                    completion(filtered)
-                }
-            }
-        }
-    }
-    
-    /// 查詢特定日期的藝人歌曲排名
-    func fetchArtistTracksForDate(
-        userId: String,
-        artistId: String,
-        date: Date,
-        timeRange: String,
-        completion: @escaping ([RankingHistory]) -> Void
-    ) {
-        let calendar = Calendar.current
-        let startOfDay = calendar.startOfDay(for: date)
-        guard let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay) else {
-            completion([])
-            return
-        }
-        
-        print("📊 [CloudKit] 查詢單日藝人歌曲")
-        print("  - userId: \(userId)")
-        print("  - artistId: \(artistId)")
-        print("  - date: \(startOfDay)")
-        print("  - timeRange: \(timeRange)")
-        
-        // 如果 CloudKit 可用，從雲端查詢
-        guard isCloudKitAvailable, let db = database else {
-            print("⚠️ CloudKit 不可用，使用本地快取")
-            let filtered = localCache.filter { history in
-                guard let artistIds = history.artistIds else { return false }
-                return history.userId == userId &&
-                history.timeRange == timeRange &&
-                artistIds.split(separator: ",").map(String.init).contains(artistId) &&
-                calendar.isDate(history.recordedDate, inSameDayAs: date)
-            }
-            completion(filtered)
-            return
-        }
-        
-        // 查詢該天的記錄
-        let userPredicate = NSPredicate(format: "userId == %@", userId)
-        let timeRangePredicate = NSPredicate(format: "timeRange == %@", timeRange)
-        let datePredicate = NSPredicate(format: "recordedDate >= %@ AND recordedDate < %@", 
-                                       startOfDay as NSDate, endOfDay as NSDate)
-        let compoundPredicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
-            userPredicate, timeRangePredicate, datePredicate
-        ])
-        
-        let query = CKQuery(recordType: recordType, predicate: compoundPredicate)
-        query.sortDescriptors = [NSSortDescriptor(key: "rank", ascending: true)]
-        
-        print("☁️ 從 CloudKit 查詢該日資料...")
-        
-        db.fetch(withQuery: query, inZoneWith: nil, desiredKeys: nil, resultsLimit: CKQueryOperation.maximumResults) { result in
-            switch result {
-            case .success(let queryResult):
-                let histories = queryResult.matchResults.compactMap { (recordID, recordResult) -> RankingHistory? in
-                    switch recordResult {
-                    case .success(let record):
-                        return self.convertToRankingHistory(record: record)
-                    case .failure(let error):
-                        print("❌ 解析記錄失敗: \(error.localizedDescription)")
-                        return nil
-                    }
-                }
-                
-                print("✅ 查詢到 \(histories.count) 筆該日記錄")
-                
-                // 過濾出包含該藝人的記錄
-                let artistHistories = histories.filter { history in
-                    guard let artistIds = history.artistIds else { return false }
-                    return artistIds.split(separator: ",").map(String.init).contains(artistId)
-                }
-                print("📊 其中 \(artistHistories.count) 筆包含該藝人")
-                
-                // 找出最新的記錄時間（該天最後一輪的資料）
-                let latestDate = artistHistories.map { $0.recordedDate }.max()
-                let latestHistories: [RankingHistory]
-                
-                if let latestDate = latestDate {
-                    // 只保留最新一輪的記錄
-                    let latestRound = artistHistories.filter { 
-                        calendar.isDate($0.recordedDate, equalTo: latestDate, toGranularity: .minute)
-                    }
-                    
-                    // 對 trackId 去重（保留每首歌的第一條記錄）
-                    var seenTrackIds = Set<String>()
-                    latestHistories = latestRound.filter { history in
-                        if seenTrackIds.contains(history.trackId) {
-                            return false
-                        } else {
-                            seenTrackIds.insert(history.trackId)
-                            return true
-                        }
-                    }
-                    
-                    print("📅 最新記錄時間: \(latestDate)")
-                    print("📊 最新一輪原始記錄: \(latestRound.count) 筆")
-                    print("✅ 去重後共 \(latestHistories.count) 首歌")
-                } else {
-                    latestHistories = []
-                }
-                
-                DispatchQueue.main.async {
-                    completion(latestHistories)
-                }
-                
-            case .failure(let error):
-                print("❌ CloudKit 查詢失敗: \(error.localizedDescription)")
-                // 降級使用本地快取
-                let filtered = self.localCache.filter { history in
-                    guard let artistIds = history.artistIds else { return false }
-                    return history.userId == userId &&
-                    history.timeRange == timeRange &&
-                    artistIds.split(separator: ",").map(String.init).contains(artistId) &&
-                    calendar.isDate(history.recordedDate, inSameDayAs: date)
-                }
-                DispatchQueue.main.async {
-                    completion(filtered)
-                }
-            }
-        }
     }
 }

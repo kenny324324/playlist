@@ -21,11 +21,6 @@ struct AlbumDetailView: View {
     // Sheet 控制狀態
     @State private var selectedStatsType: StatsCardType?
     
-    // 單日統計 Sheet
-    @State private var selectedDatePoint: CountDataPoint?
-    @State private var dailyHistories: [RankingHistory]?
-    @State private var userId: String?
-    
     enum DetailTab: String, CaseIterable {
         case info
         case stats
@@ -109,17 +104,6 @@ struct AlbumDetailView: View {
         .toolbarColorScheme(.light, for: .navigationBar)
         .onAppear {
             refreshAccessTokenAndLoad()
-        }
-        .sheet(item: $selectedDatePoint) { point in
-            if let album = albumDetail {
-                DailyStatsSheet(
-                    date: point.date,
-                    targetName: album.name,
-                    histories: dailyHistories,
-                    accessToken: accessToken,
-                    audioPlayer: audioPlayer
-                )
-            }
         }
     }
     
@@ -845,10 +829,7 @@ struct AlbumDetailView: View {
         return CountBarChart(
             dataPoints: dataPoints,
             title: String(localized: "rankingTrend.past7Days"),
-            emptyMessage: trend == nil || !trend!.hasData ? String(localized: "stats.chart.noData") : nil,
-            onBarTap: { point in
-                handleBarTap(point: point)
-            }
+            emptyMessage: trend == nil || !trend!.hasData ? String(localized: "stats.chart.noData") : nil
         )
         .padding(16)
         .background(Color(red: 0.15, green: 0.15, blue: 0.15))
@@ -946,11 +927,6 @@ struct AlbumDetailView: View {
                 return
             }
             
-            // 保存 userId 供後續使用
-            DispatchQueue.main.async {
-                self.userId = userId
-            }
-            
             // 從 CloudKit 查詢專輯數量趨勢
             CloudKitRankingService.shared.fetchAlbumCountTrend(
                 userId: userId,
@@ -961,27 +937,6 @@ struct AlbumDetailView: View {
                     self.albumCountTrend = trend
                     self.isLoadingTrend = false
                 }
-            }
-        }
-    }
-    
-    // MARK: - Handle Bar Tap
-    private func handleBarTap(point: CountDataPoint) {
-        guard let userId = userId else { return }
-        
-        // 設定選中的數據點
-        selectedDatePoint = point
-        dailyHistories = nil  // 重置為 nil 表示載入中
-        
-        // 查詢該日期的歌曲
-        CloudKitRankingService.shared.fetchAlbumTracksForDate(
-            userId: userId,
-            albumId: albumId,
-            date: point.date,
-            timeRange: "short_term"
-        ) { histories in
-            DispatchQueue.main.async {
-                self.dailyHistories = histories
             }
         }
     }
