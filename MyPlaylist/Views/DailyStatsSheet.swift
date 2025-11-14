@@ -71,9 +71,11 @@ struct DailyStatsSheet: View {
             }
         }
         .onAppear {
+            print("📱 [DailyStatsSheet] onAppear - histories: \(histories?.count ?? -1) 筆")
             loadTracks()
         }
         .onChange(of: histories) { newHistories in
+            print("🔄 [DailyStatsSheet] onChange - histories: \(newHistories?.count ?? -1) 筆")
             // 當 histories 從 nil 變為有值時重新載入
             if newHistories != nil {
                 loadTracks()
@@ -198,17 +200,26 @@ struct DailyStatsSheet: View {
     
     // MARK: - Load Tracks
     private func loadTracks() {
+        print("📊 [DailyStatsSheet] loadTracks() called")
+        print("  - histories: \(histories?.count ?? -1) 筆")
+        print("  - isLoading: \(isLoading)")
+        
         guard let histories = histories, !histories.isEmpty else {
+            print("⚠️ [DailyStatsSheet] histories 是 nil 或空")
             // histories 為 nil 或空，保持 loading 狀態等待數據
             if histories != nil {
                 // histories 不是 nil 但是空的，表示真的沒有資料
+                print("  → histories 是空陣列，設置 isLoading = false")
                 isLoading = false
+            } else {
+                print("  → histories 是 nil，保持 isLoading = true")
             }
             // 如果 histories 是 nil，保持 isLoading = true，繼續顯示 loading
             return
         }
         
         // 開始載入歌曲詳情
+        print("✅ [DailyStatsSheet] 開始載入 \(histories.count) 首歌曲")
         isLoading = true
         
         // 按排名排序
@@ -216,16 +227,19 @@ struct DailyStatsSheet: View {
         
         // 初始化 trackDetails（先設為 nil）
         trackDetails = sortedHistories.map { (trackId: $0.trackId, rank: $0.rank, detail: nil) }
+        print("  - trackDetails 已初始化，共 \(trackDetails.count) 筆")
         
         // 使用 DispatchGroup 來等待所有請求完成
         let group = DispatchGroup()
         
         for (index, history) in sortedHistories.enumerated() {
             group.enter()
+            print("🔍 [DailyStatsSheet] 查詢歌曲 \(index + 1)/\(sortedHistories.count): \(history.trackId)")
             SpotifyAPIService.fetchTrackDetail(trackId: history.trackId, accessToken: accessToken) { detail in
                 DispatchQueue.main.async {
                     if index < self.trackDetails.count {
                         self.trackDetails[index].detail = detail
+                        print("✅ [DailyStatsSheet] 取得歌曲 \(index + 1) 詳情: \(detail?.name ?? "nil")")
                     }
                     group.leave()
                 }
@@ -233,6 +247,7 @@ struct DailyStatsSheet: View {
         }
         
         group.notify(queue: .main) {
+            print("🎉 [DailyStatsSheet] 所有歌曲載入完成，設置 isLoading = false")
             self.isLoading = false
         }
     }
