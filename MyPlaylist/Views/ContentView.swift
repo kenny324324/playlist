@@ -122,7 +122,9 @@ struct ContentView: View {
                     checkLoginAndPreload: {
                         // 在啟動畫面時預載資料
                         checkIfLoggedIn()
-                    }
+                    },
+                    userName: userProfile?.display_name,
+                    isLoggedIn: isLoggedIn
                 )
                 .transition(transitionStyle.transition)  // 使用選擇的過渡動畫
             } else {

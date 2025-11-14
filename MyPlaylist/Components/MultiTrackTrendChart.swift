@@ -397,8 +397,7 @@ struct MultiTrackTrendChart: View {
                     }
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 16)
+            .padding(12)
         }
         .background(Color(red: 0.1, green: 0.1, blue: 0.1))
         .cornerRadius(10)

@@ -6,9 +6,12 @@ struct LaunchScreenView: View {
     @State private var loadingProgress: Double = 0.0
     @State private var loadingText: LocalizedStringKey = "launch.loading.checking"
     @State private var shouldPreloadData: Bool = true
+    @State private var showWelcomeText: Bool = false
     
     var onLoadingComplete: () -> Void
     var checkLoginAndPreload: (() -> Void)? = nil
+    var userName: String? = nil
+    var isLoggedIn: Bool = false
     
     var body: some View {
         ZStack {
@@ -65,22 +68,48 @@ struct LaunchScreenView: View {
                 
                 Spacer()
                 
-                // 底部區域：載入文字 + 進度條
+                // 底部區域：載入文字 / 歡迎文字 + 進度條
                 VStack(spacing: 16) {
-                    // 載入文字（放大、變粗）
-                    Text(loadingText)
-                        .font(.custom("SpotifyMix-Bold", size: 18))
-                        .foregroundColor(.gray)
-                        .multilineTextAlignment(.center)
-                        .transition(.opacity)
-                        .animation(.easeInOut(duration: 0.3), value: loadingText)
+                    // 文字區域（固定寬度避免跳動）
+                    Group {
+                        if showWelcomeText {
+                            // 歡迎文字（主題色 + 光暈）
+                            if isLoggedIn, let userName = userName {
+                                Text("\(userName)" + String(localized: "launch.welcome.ready"))
+                                    .font(.custom("SpotifyMix-Bold", size: 18))
+                                    .foregroundColor(themeManager.themeColor)
+                                    .multilineTextAlignment(.center)
+                                    .shadow(color: themeManager.themeColor.opacity(0.6), radius: 10)
+                                    .shadow(color: themeManager.themeColor.opacity(0.3), radius: 20)
+                                    .transition(.opacity)
+                            } else {
+                                Text("launch.welcome.pleaseLogin")
+                                    .font(.custom("SpotifyMix-Bold", size: 18))
+                                    .foregroundColor(themeManager.themeColor)
+                                    .multilineTextAlignment(.center)
+                                    .shadow(color: themeManager.themeColor.opacity(0.6), radius: 10)
+                                    .shadow(color: themeManager.themeColor.opacity(0.3), radius: 20)
+                                    .transition(.opacity)
+                            }
+                        } else {
+                            // 載入文字（放大、變粗）
+                            Text(loadingText)
+                                .font(.custom("SpotifyMix-Bold", size: 18))
+                                .foregroundColor(.gray)
+                                .multilineTextAlignment(.center)
+                                .transition(.opacity)
+                                .animation(.easeInOut(duration: 0.3), value: loadingText)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 50)
                     
                     // 進度條
                     ProgressView(value: loadingProgress)
                         .progressViewStyle(LinearProgressViewStyle(tint: themeManager.themeColor))
                         .frame(width: 200)
                         .scaleEffect(y: 1.5, anchor: .center)  // 讓進度條粗 1.5 倍
-                        .opacity(0.8)
+                        .opacity(showWelcomeText ? 0 : 0.8)
                 }
                 .padding(.bottom, 60)
             }
@@ -124,15 +153,22 @@ struct LaunchScreenView: View {
             }
         }
         
-        // 完成載入（最少顯示 2 秒保證使用者看到品牌）
+        // 步驟 4: 顯示歡迎文字（最少顯示 1 秒）
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
             withAnimation(.linear(duration: 0.2)) {
                 loadingProgress = 1.0
             }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                withAnimation(.easeInOut(duration: 0.4)) {
-                    onLoadingComplete()
-                }
+            
+            // 切換到歡迎文字
+            withAnimation(.easeInOut(duration: 0.3)) {
+                showWelcomeText = true
+            }
+        }
+        
+        // 完成載入（最少顯示 1 秒歡迎文字）
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+            withAnimation(.easeInOut(duration: 0.4)) {
+                onLoadingComplete()
             }
         }
     }
