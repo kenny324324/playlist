@@ -143,6 +143,9 @@ struct RankingTrendChart: View {
         var fillStarted = false
         var isFirstSegment = true
         
+        // 記錄需要遮罩掉的區域（出榜期間的底部連線）
+        var maskOutRanges: [(startX: CGFloat, endX: CGFloat)] = []
+        
         for (index, point) in trend.dataPoints.enumerated() {
             let x = paddingX + CGFloat(index) / 6 * availableWidth
             
@@ -219,12 +222,29 @@ struct RankingTrendChart: View {
                         completePath.addLine(to: bottomPoint)
                         dashedPath.move(to: prev)
                         dashedPath.addLine(to: bottomPoint)
+                        
+                        // 記錄出榜的起始 X 位置（用於遮罩）
+                        // 檢查接下來幾天是否也在榜外，找到進榜的那天
+                        var nextRankedIndex = -1
+                        for i in (index + 1)..<trend.dataPoints.count {
+                            if trend.dataPoints[i].rank != nil {
+                                nextRankedIndex = i
+                                break
+                            }
+                        }
+                        
+                        if nextRankedIndex > index {
+                            // 記錄需要遮罩的範圍（從出榜到進榜之間）
+                            let nextX = paddingX + CGFloat(nextRankedIndex - 1) / 6 * availableWidth
+                            let nextMidX = (nextX + paddingX + CGFloat(nextRankedIndex) / 6 * availableWidth) / 2
+                            maskOutRanges.append((startX: midX, endX: nextMidX))
+                        }
                     }
                     
                     // 關閉填充路徑
                     if fillStarted {
-                    fillPath.addLine(to: CGPoint(x: prev.x, y: size.height))
-                    fillPath.closeSubpath()
+                        fillPath.addLine(to: CGPoint(x: prev.x, y: size.height))
+                        fillPath.closeSubpath()
                     }
                 }
                 previousPoint = nil
@@ -255,20 +275,27 @@ struct RankingTrendChart: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
                 )
             
-            // 先繪製完整路徑作為底層（實線）
+            // 完整路徑（全部使用實線）- 帶遮罩隱藏出榜期間的底部連線
             completePath
                 .trim(from: 0, to: lineProgress)
                 .stroke(Color.spotifyGreen, lineWidth: 2)
-            
-            // 在進榜/出榜部分疊加虛線
-            dashedPath
-                .trim(from: 0, to: lineProgress)
-                .stroke(
-                    Color.spotifyGreen,
-                    style: StrokeStyle(
-                        lineWidth: 2,
-                        dash: [5, 3]
-                    )
+                .mask(
+                    ZStack {
+                        // 整個區域白色（顯示所有線條）
+                        Rectangle()
+                            .fill(Color.white)
+                            .frame(width: size.width, height: size.height)
+                        
+                        // 在出榜期間的底部區域挖空（隱藏連線）
+                        ForEach(Array(maskOutRanges.enumerated()), id: \.offset) { _, range in
+                            Rectangle()
+                                .fill(Color.black)
+                                .frame(width: range.endX - range.startX, height: 30)
+                                .position(x: (range.startX + range.endX) / 2, y: size.height)
+                                .blendMode(.destinationOut)
+                        }
+                    }
+                    .compositingGroup()
                 )
         }
     }

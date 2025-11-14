@@ -7,9 +7,13 @@ struct LaunchScreenView: View {
     @State private var loadingText: LocalizedStringKey = "launch.loading.checking"
     @State private var shouldPreloadData: Bool = true
     @State private var showWelcomeText: Bool = false
+    @State private var dataLoadingCompleted: Bool = false
+    @State private var minimumDisplayTimeReached: Bool = false
+    @State private var showNetworkError: Bool = false
+    @State private var loadingFailed: Bool = false
     
     var onLoadingComplete: () -> Void
-    var checkLoginAndPreload: (() -> Void)? = nil
+    var checkLoginAndPreload: ((@escaping (Bool) -> Void) -> Void)? = nil
     var userName: String? = nil
     var isLoggedIn: Bool = false
     
@@ -118,10 +122,34 @@ struct LaunchScreenView: View {
         .onAppear {
             startLoading()
         }
+        .alert("launch.error.network.title", isPresented: $showNetworkError) {
+            Button("launch.error.network.settings") {
+                // 跳轉到系統設定
+                if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(settingsUrl)
+                }
+            }
+            Button("launch.error.network.retry") {
+                // 重試載入
+                retryLoading()
+            }
+            Button("launch.error.network.cancel", role: .cancel) {
+                // 取消（留在載入畫面）
+            }
+        } message: {
+            Text("launch.error.network.message")
+        }
     }
     
     // MARK: - 載入流程
     private func startLoading() {
+        // 重置狀態
+        dataLoadingCompleted = false
+        minimumDisplayTimeReached = false
+        loadingFailed = false
+        showWelcomeText = false
+        loadingProgress = 0.0
+        
         isAnimating = true
         
         // 步驟 1: 檢查帳號狀態
@@ -131,42 +159,78 @@ struct LaunchScreenView: View {
                 loadingProgress = 0.2
             }
             
-            // 在背景執行登入檢查
+            // 在背景執行登入檢查，並等待完成回調
             if let preload = checkLoginAndPreload {
-                preload()
+                preload { success in
+                    // 資料載入完成的回調
+                    DispatchQueue.main.async {
+                        if success {
+                            self.dataLoadingCompleted = true
+                            self.checkIfCanProceed()
+                        } else {
+                            // 載入失敗，顯示網路錯誤
+                            self.loadingFailed = true
+                            self.showNetworkError = true
+                        }
+                    }
+                }
+            } else {
+                // 如果沒有預載函數，直接標記為完成
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    self.dataLoadingCompleted = true
+                    self.checkIfCanProceed()
+                }
             }
         }
         
-        // 步驟 2: 載入音樂資料
+        // 步驟 2: 載入音樂資料（視覺顯示）
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            guard !self.loadingFailed else { return }
             loadingText = "launch.loading.data"
             withAnimation(.linear(duration: 0.5)) {
                 loadingProgress = 0.6
             }
         }
         
-        // 步驟 3: 準備完成
+        // 步驟 3: 準備完成（視覺顯示）
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            guard !self.loadingFailed else { return }
             loadingText = "launch.loading.ready"
             withAnimation(.linear(duration: 0.3)) {
                 loadingProgress = 0.9
             }
         }
         
-        // 步驟 4: 顯示歡迎文字（最少顯示 1 秒）
+        // 最小顯示時間 2 秒（保證品牌展示）
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-            withAnimation(.linear(duration: 0.2)) {
-                loadingProgress = 1.0
-            }
-            
-            // 切換到歡迎文字
-            withAnimation(.easeInOut(duration: 0.3)) {
-                showWelcomeText = true
-            }
+            self.minimumDisplayTimeReached = true
+            self.checkIfCanProceed()
+        }
+    }
+    
+    // 重試載入
+    private func retryLoading() {
+        startLoading()
+    }
+    
+    // 檢查是否可以進入主畫面
+    private func checkIfCanProceed() {
+        // 必須同時滿足：1) 資料載入完成 2) 最小顯示時間已達到
+        guard dataLoadingCompleted && minimumDisplayTimeReached else {
+            return
         }
         
-        // 完成載入（最少顯示 1 秒歡迎文字）
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+        // 更新進度到 100% 並顯示歡迎文字
+        withAnimation(.linear(duration: 0.2)) {
+            loadingProgress = 1.0
+        }
+        
+        withAnimation(.easeInOut(duration: 0.3)) {
+            showWelcomeText = true
+        }
+        
+        // 顯示歡迎文字 1 秒後進入主畫面
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             withAnimation(.easeInOut(duration: 0.4)) {
                 onLoadingComplete()
             }

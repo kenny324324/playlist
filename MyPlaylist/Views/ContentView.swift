@@ -119,9 +119,11 @@ struct ContentView: View {
                         // 首次啟動時請求通知權限
                         requestNotificationPermissionIfNeeded()
                     },
-                    checkLoginAndPreload: {
-                        // 在啟動畫面時預載資料
-                        checkIfLoggedIn()
+                    checkLoginAndPreload: { completion in
+                        // 在啟動畫面時預載資料，完成後回調（傳入 success 狀態）
+                        checkIfLoggedInWithCompletion { success in
+                            completion(success)
+                        }
                     },
                     userName: userProfile?.display_name,
                     isLoggedIn: isLoggedIn
@@ -428,6 +430,90 @@ struct ContentView: View {
                     return
                 }
                 establishSession(with: token)
+            }
+        }
+    }
+    
+    // 檢查是否已登入（帶完成回調，用於載入畫面）
+    func checkIfLoggedInWithCompletion(completion: @escaping (Bool) -> Void) {
+        SpotifyAuthServiceV2.ensureValidAccessToken { token in
+            DispatchQueue.main.async {
+                guard let token = token else {
+                    self.resetSessionState()
+                    // 沒有登入，但不算失敗（可以進入登入畫面）
+                    completion(true)
+                    return
+                }
+                self.establishSessionWithCompletion(with: token, completion: completion)
+            }
+        }
+    }
+    
+    private func establishSessionWithCompletion(with token: String, completion: @escaping (Bool) -> Void) {
+        self.accessToken = token
+        self.isLoggedIn = true
+        
+        // 使用 DispatchGroup 來等待兩個 API 都完成
+        let group = DispatchGroup()
+        var userFetchSuccess = false
+        var tracksFetchSuccess = false
+        
+        // 取得使用者資料
+        group.enter()
+        SpotifyAPIService.fetchCurrentUserProfile(accessToken: token) { user in
+            DispatchQueue.main.async {
+                if user != nil {
+                    self.userProfile = user
+                    userFetchSuccess = true
+                }
+                group.leave()
+            }
+        }
+        
+        // 取得熱門歌曲
+        group.enter()
+        SpotifyAPIService.fetchTopTracks(accessToken: token, timeRange: "short_term") { fetchedTracks in
+            DispatchQueue.main.async {
+                if !fetchedTracks.isEmpty {
+                    self.tracks = fetchedTracks
+                    tracksFetchSuccess = true
+                }
+                group.leave()
+            }
+        }
+        
+        // 設置最長等待時間（10 秒），避免網路問題導致無限等待
+        let timeout = DispatchTime.now() + .seconds(10)
+        var hasNotified = false
+        
+        group.notify(queue: .main) {
+            guard !hasNotified else { return }
+            hasNotified = true
+            
+            // 檢查是否至少有一個 API 成功
+            let success = userFetchSuccess || tracksFetchSuccess
+            
+            if success {
+                print("✅ [Launch] 資料載入完成")
+                completion(true)
+            } else {
+                print("❌ [Launch] 資料載入失敗")
+                self.resetSessionState()
+                completion(false)
+            }
+        }
+        
+        // 超時保護
+        DispatchQueue.global().asyncAfter(deadline: timeout) {
+            DispatchQueue.main.async {
+                guard !hasNotified else { return }
+                hasNotified = true
+                
+                print("⚠️ [Launch] 資料載入超時")
+                
+                // 超時視為網路問題
+                self.resetSessionState()
+                completion(false)
             }
         }
     }
