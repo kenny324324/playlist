@@ -420,7 +420,7 @@ struct NewReleaseAlbum: Codable, Identifiable {
 }
 
 // MARK: - Ranking History Models
-struct RankingHistory: Codable {
+struct RankingHistory: Codable, Equatable {
     let userId: String        // 新增：用戶 ID，區分不同帳號
     let trackId: String
     let rank: Int
