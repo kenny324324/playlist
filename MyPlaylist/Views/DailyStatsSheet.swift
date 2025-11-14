@@ -72,13 +72,17 @@ struct DailyStatsSheet: View {
         }
         .onAppear {
             print("📱 [DailyStatsSheet] onAppear - histories: \(histories?.count ?? -1) 筆")
-            loadTracks()
+            if histories != nil {
+                loadTracks()
+            }
         }
         .onChange(of: histories) { newHistories in
             print("🔄 [DailyStatsSheet] onChange - histories: \(newHistories?.count ?? -1) 筆")
-            // 當 histories 從 nil 變為有值時重新載入
-            if newHistories != nil {
-                loadTracks()
+            // 使用 DispatchQueue 確保 View 已更新
+            DispatchQueue.main.async {
+                if newHistories != nil && !newHistories!.isEmpty {
+                    self.loadTracks()
+                }
             }
         }
     }
