@@ -24,7 +24,7 @@ struct DailyStatsSheet: View {
                     // 歌曲列表
                     if isLoading {
                         loadingPlaceholder()
-                    } else if tracks.isEmpty {
+                    } else if trackDetails.isEmpty {
                         emptyState
                     } else {
                         tracksList
