@@ -6,6 +6,7 @@ struct MultiTrackTrendChart: View {
     let trends: [TrackTrend]  // Top 5 歌曲的趨勢
     @State private var lineProgress: CGFloat = 0.0
     @State private var pulseAnimation: Bool = false
+    @State private var selectedIndex: Int? = nil  // 選中的專輯索引
     @ObservedObject private var themeManager = ThemeManager.shared
     
     // 主題顏色順序（使用系統定義的 10 種主題色）
@@ -28,8 +29,38 @@ struct MultiTrackTrendChart: View {
         return themeColor.color(for: themeManager.currentTone)
     }
     
+    // 計算折線透明度（根據選中狀態）
+    private func getLineOpacity(for index: Int) -> Double {
+        if let selected = selectedIndex {
+            return selected == index ? 1.0 : 0.2  // 選中的保持 100%，其他降至 20%
+        }
+        return 1.0  // 沒有選中時全部 100%
+    }
+    
+    // 計算封面縮放（根據選中狀態）
+    private func getAlbumScale(for index: Int) -> CGFloat {
+        if let selected = selectedIndex {
+            return selected == index ? 1.15 : 1.0  // 選中的放大 15%
+        }
+        return 1.0
+    }
+    
+    // 切換選中狀態
+    private func toggleSelection(for index: Int) {
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+            if selectedIndex == index {
+                selectedIndex = nil  // 再次點擊取消選中
+            } else {
+                selectedIndex = index  // 選中新的專輯
+            }
+        }
+    }
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
+            // 圖例（專輯封面）
+            trackLegend
+            
             // 圖表
             GeometryReader { geometry in
                 ZStack {
@@ -42,11 +73,13 @@ struct MultiTrackTrendChart: View {
                     // 所有歌曲的折線
                     ForEach(Array(trends.enumerated()), id: \.offset) { index, trackTrend in
                         trackPath(for: trackTrend, color: getColor(for: index), in: geometry.size)
+                            .opacity(getLineOpacity(for: index))
                     }
                     
                     // 所有歌曲的資料點
                     ForEach(Array(trends.enumerated()), id: \.offset) { index, trackTrend in
                         dataPointCircles(for: trackTrend, color: getColor(for: index), isTopRank: index == 0, in: geometry.size)
+                            .opacity(getLineOpacity(for: index))
                     }
                 }
             }
@@ -57,9 +90,6 @@ struct MultiTrackTrendChart: View {
             // X軸日期標籤
             dateLabels
                 .padding(.leading, 30)
-            
-            // 圖例
-            trackLegend
         }
         .onAppear {
             // 啟動折線繪製動畫
@@ -112,8 +142,10 @@ struct MultiTrackTrendChart: View {
         
         var solidPath = Path()  // 實線路徑（在 Top 5 內）
         var dashedPath = Path()  // 虛線路徑（進出 Top 5）
+        var fillPath = Path()  // 填充路徑（下方漸層）
         var previousPoint: CGPoint? = nil
         var previousWasOutOfTop5 = false
+        var fillStarted = false
         
         for (index, point) in trackTrend.dataPoints.enumerated() {
             let x = paddingX + CGFloat(index) / 6 * availableWidth
@@ -126,6 +158,9 @@ struct MultiTrackTrendChart: View {
                 if let prev = previousPoint {
                     // 前一個點存在且在 Top 5：正常連線（實線）
                     solidPath.addLine(to: currentPoint)
+                    if fillStarted {
+                        fillPath.addLine(to: currentPoint)
+                    }
                 } else if previousWasOutOfTop5 && index > 0 {
                     // 前一個點在榜外，當前點進榜
                     // 如果進榜到第5名，不畫虛線（因為會是平的）
@@ -143,9 +178,17 @@ struct MultiTrackTrendChart: View {
                         // 當前點設為實線的起點
                         solidPath.move(to: currentPoint)
                     }
+                    
+                    // 填充也從底部開始
+                    fillPath.move(to: CGPoint(x: x, y: size.height))
+                    fillPath.addLine(to: currentPoint)
+                    fillStarted = true
                 } else {
                     // 第一個點：開始新的線段
                     solidPath.move(to: currentPoint)
+                    fillPath.move(to: CGPoint(x: x, y: size.height))
+                    fillPath.addLine(to: currentPoint)
+                    fillStarted = true
                 }
                 
                 previousPoint = currentPoint
@@ -165,20 +208,49 @@ struct MultiTrackTrendChart: View {
                         dashedPath.move(to: prev)
                         dashedPath.addLine(to: bottomPoint)
                     }
+                    
+                    // 關閉填充路徑
+                    if fillStarted {
+                        fillPath.addLine(to: CGPoint(x: prev.x, y: size.height))
+                        fillPath.closeSubpath()
+                    }
                 }
                 previousPoint = nil
                 previousWasOutOfTop5 = true
+                fillStarted = false
             }
         }
         
+        // 結束填充路徑
+        if let prev = previousPoint, fillStarted {
+            fillPath.addLine(to: CGPoint(x: prev.x, y: size.height))
+            fillPath.closeSubpath()
+        }
+        
+        // 判斷是否被選中
+        let isSelected = selectedIndex != nil && trends.firstIndex(where: { $0.id == trackTrend.id }) == selectedIndex
+        let lineWidth: CGFloat = isSelected ? 3.5 : 2.5  // 選中時加粗
+        
         return ZStack {
+            // 下方填充漸層（選中時顯示）
+            if isSelected {
+                fillPath
+                    .fill(
+                        LinearGradient(
+                            colors: [color.opacity(0.3), color.opacity(0.0)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+            }
+            
             // 虛線（進出 Top 5）
             dashedPath
                 .trim(from: 0, to: lineProgress)
                 .stroke(
                     color,
                     style: StrokeStyle(
-                        lineWidth: 2.5,
+                        lineWidth: lineWidth,
                         dash: [5, 3]
                     )
                 )
@@ -186,7 +258,7 @@ struct MultiTrackTrendChart: View {
             // 實線（在 Top 5 內）
             solidPath
                 .trim(from: 0, to: lineProgress)
-                .stroke(color, lineWidth: 2.5)
+                .stroke(color, lineWidth: lineWidth)
         }
     }
     
@@ -260,40 +332,87 @@ struct MultiTrackTrendChart: View {
         .frame(height: 20)
     }
     
-    // MARK: - 圖例
+    // MARK: - 圖例（專輯封面式 - 橫向滾動）
     private var trackLegend: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            // 直接按照 trends 順序顯示（HomeView 已排序）
-            ForEach(Array(trends.enumerated()), id: \.offset) { index, trackTrend in
-                HStack(spacing: 8) {
-                    // 顏色指示器
-                    Circle()
-                        .fill(getColor(for: index))
-                        .frame(width: 10, height: 10)
-                    
-                    // 歌曲資訊
-                    Text(trackTrend.trackName)
-                        .font(.appFont(size: 13, weight: .medium))
-                        .foregroundColor(.white)
-                        .lineLimit(1)
-                    
-                    Text("•")
-                        .foregroundColor(.gray)
-                        .font(.system(size: 10))
-                    
-                    Text(trackTrend.artistName)
-                        .font(.appFont(size: 12, weight: .medium))
-                        .foregroundColor(.gray)
-                        .lineLimit(1)
-                    
-                    Spacer()
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 12) {
+                ForEach(Array(trends.enumerated()), id: \.offset) { index, trackTrend in
+                    HStack(spacing: 12) {
+                        // 專輯封面 + 彩色邊框
+                        ZStack {
+                            if let albumImageUrl = trackTrend.track.album.images.first?.url,
+                               let url = URL(string: albumImageUrl) {
+                                AsyncImage(url: url) { phase in
+                                    switch phase {
+                                    case .success(let image):
+                                        image
+                                            .resizable()
+                                            .aspectRatio(contentMode: .fill)
+                                    case .failure(_):
+                                        placeholderImage
+                                    case .empty:
+                                        placeholderImage
+                                    @unknown default:
+                                        placeholderImage
+                                    }
+                                }
+                            } else {
+                                placeholderImage
+                            }
+                        }
+                        .frame(width: 45, height: 45)
+                        .clipShape(RoundedRectangle(cornerRadius: 5))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 5)
+                                .stroke(getColor(for: index), lineWidth: 2.5)
+                        )
+                        .scaleEffect(getAlbumScale(for: index), anchor: .leading)
+                        .onTapGesture {
+                            HapticManager.shared.light()
+                            toggleSelection(for: index)
+                        }
+                        
+                        // 歌曲名稱與藝人（選中時在右邊顯示）
+                        if selectedIndex == index {
+                            VStack(alignment: .leading, spacing: 2) {
+                                // 歌曲名稱
+                                Text(trackTrend.trackName)
+                                    .font(.appFont(size: 11, weight: .bold))
+                                    .foregroundColor(.white)
+                                    .lineLimit(2)
+                                    .truncationMode(.tail)
+                                
+                                // 藝人名稱
+                                Text(trackTrend.track.artists.map { $0.name }.joined(separator: ", "))
+                                    .font(.appFont(size: 9, weight: .medium))
+                                    .foregroundColor(.white.opacity(0.6))
+                                    .lineLimit(1)
+                                    .truncationMode(.tail)
+                            }
+                            .frame(maxWidth: 100, alignment: .leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(.leading, 6)
+                            .transition(.opacity)
+                        }
+                    }
                 }
             }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 16)
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 12)
         .background(Color(red: 0.1, green: 0.1, blue: 0.1))
         .cornerRadius(10)
+    }
+    
+    // 佔位圖
+    private var placeholderImage: some View {
+        Rectangle()
+            .fill(Color.gray.opacity(0.3))
+            .overlay(
+                Image(systemName: "music.note")
+                    .font(.system(size: 24))
+                    .foregroundColor(.gray)
+            )
     }
     
     // MARK: - 輔助方法
@@ -311,12 +430,14 @@ struct TrackTrend: Identifiable {
     let trackName: String
     let artistName: String
     let dataPoints: [RankingDataPoint]
+    let track: Track  // 保留完整的 Track 物件以便存取專輯封面等資訊
     
     init(track: Track, dataPoints: [RankingDataPoint]) {
         self.id = track.id
         self.trackName = track.name
         self.artistName = track.artists.first?.name ?? ""
         self.dataPoints = dataPoints
+        self.track = track
     }
 }
 

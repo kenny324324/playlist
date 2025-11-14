@@ -966,12 +966,6 @@
         }
       }
     },
-    "Demo Mode" : {
-
-    },
-    "Demo Mode (For Review)" : {
-
-    },
     "detail.acousticness" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1620,6 +1614,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "語音性"
+          }
+        }
+      }
+    },
+    "detail.stats.authError" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "無法取得統計資料，請重新登入。"
           }
         }
       }
@@ -5411,6 +5416,9 @@
           }
         }
       }
+    },
+    "spo.stats" : {
+
     },
     "stats.4weeks" : {
       "extractionState" : "stale",

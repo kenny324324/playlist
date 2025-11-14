@@ -54,14 +54,13 @@ struct TopView: View {
     }
     
     var body: some View {
-        NavigationView {
-            VStack(spacing: 0) {
-                // 主要內容區域
-                contentView
-            }
-            .background(Color.spotifyText.ignoresSafeArea())
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
+        VStack(spacing: 0) {
+            // 主要內容區域
+            contentView
+        }
+        .background(Color.spotifyText.ignoresSafeArea())
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     HStack(spacing: 8) {
                         userProfileButton
@@ -103,7 +102,6 @@ struct TopView: View {
                     loadData()
                 }
             }
-        }
     }
     
     private var contentTypeSelector: some View { EmptyView() }

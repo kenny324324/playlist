@@ -28,33 +28,32 @@ struct SettingsView: View {
     @State private var showNotificationTimeAlert = false
     
     var body: some View {
-        NavigationView {
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: 20) {
-                    // 一般設定
-                    generalSettingsSection
-                    
-                    // 個人化
-                    personalizationSection
-                    
-                    // 通知設定
-                    notificationSection
-                    
-                    // 儲存與快取
-                    storageSection
-                    
-                    // 授權狀態
-                    authorizationSection
-                    
-                    // 關於
-                    aboutSection
-                }
-                .padding()
-                .padding(.top, 10)
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 20) {
+                // 一般設定
+                generalSettingsSection
+                
+                // 個人化
+                personalizationSection
+                
+                // 通知設定
+                notificationSection
+                
+                // 儲存與快取
+                storageSection
+                
+                // 授權狀態
+                authorizationSection
+                
+                // 關於
+                aboutSection
             }
-            .background(Color.spotifyText.ignoresSafeArea())
-            .navigationTitle("settings.title")
-                      .navigationBarTitleDisplayMode(.inline)
+            .padding()
+            .padding(.top, 10)
+        }
+        .background(Color.spotifyText.ignoresSafeArea())
+        .navigationTitle("settings.title")
+                  .navigationBarTitleDisplayMode(.inline)
                       .toolbar {
                           ToolbarItem(placement: .navigationBarLeading) {
                               if isLoggedIn {
@@ -83,13 +82,12 @@ struct SettingsView: View {
                               }
                           }
                       }
-                      .onAppear {
-                          calculateCacheSize()
-                          notificationService.checkAuthorizationStatus()
-                          applyNotificationSettings()
-                      }
+                  .onAppear {
+                      calculateCacheSize()
+                      notificationService.checkAuthorizationStatus()
+                      applyNotificationSettings()
                   }
-              }
+          }
     
     // MARK: - 一般設定
     private var generalSettingsSection: some View {

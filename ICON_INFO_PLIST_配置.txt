@@ -1,0 +1,462 @@
+
+╔══════════════════════════════════════════════════════════════════╗
+║          Info.plist Alternative Icons 配置生成工具                 ║
+╚══════════════════════════════════════════════════════════════════╝
+
+
+================================================================================
+簡化版配置（9 個 Alternative Icons - 只包含 default tone）
+================================================================================
+
+複製以下內容到 Info.plist 中：
+
+<key>CFBundleIcons</key>
+<dict>
+    <key>CFBundlePrimaryIcon</key>
+    <dict>
+        <key>CFBundleIconFiles</key>
+        <array>
+            <string>glass_icon</string>
+        </array>
+    </dict>
+    <key>CFBundleAlternateIcons</key>
+    <dict>
+        <key>AppIcon-color2-default</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AlternativeIcons/AppIcon-color2-default</string>
+            </array>
+        </dict>
+        <key>AppIcon-color3-default</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AlternativeIcons/AppIcon-color3-default</string>
+            </array>
+        </dict>
+        <key>AppIcon-color4-default</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AlternativeIcons/AppIcon-color4-default</string>
+            </array>
+        </dict>
+        <key>AppIcon-color5-default</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AlternativeIcons/AppIcon-color5-default</string>
+            </array>
+        </dict>
+        <key>AppIcon-color6-default</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AlternativeIcons/AppIcon-color6-default</string>
+            </array>
+        </dict>
+        <key>AppIcon-color7-default</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AlternativeIcons/AppIcon-color7-default</string>
+            </array>
+        </dict>
+        <key>AppIcon-color8-default</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AlternativeIcons/AppIcon-color8-default</string>
+            </array>
+        </dict>
+        <key>AppIcon-color9-default</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AlternativeIcons/AppIcon-color9-default</string>
+            </array>
+        </dict>
+        <key>AppIcon-color10-default</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AlternativeIcons/AppIcon-color10-default</string>
+            </array>
+        </dict>
+    </dict>
+</dict>
+================================================================================
+完整版配置（39 個 Alternative Icons）
+================================================================================
+
+複製以下內容到 Info.plist 中：
+
+<key>CFBundleIcons</key>
+<dict>
+    <key>CFBundlePrimaryIcon</key>
+    <dict>
+        <key>CFBundleIconFiles</key>
+        <array>
+            <string>glass_icon</string>
+        </array>
+    </dict>
+    <key>CFBundleAlternateIcons</key>
+    <dict>
+        <key>AppIcon-color1-soft</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AlternativeIcons/AppIcon-color1-soft</string>
+            </array>
+        </dict>
+        <key>AppIcon-color1-pastel</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AlternativeIcons/AppIcon-color1-pastel</string>
+            </array>
+        </dict>
+        <key>AppIcon-color1-earth</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AlternativeIcons/AppIcon-color1-earth</string>
+            </array>
+        </dict>
+        <key>AppIcon-color2-default</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AlternativeIcons/AppIcon-color2-default</string>
+            </array>
+        </dict>
+        <key>AppIcon-color2-soft</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AlternativeIcons/AppIcon-color2-soft</string>
+            </array>
+        </dict>
+        <key>AppIcon-color2-pastel</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AlternativeIcons/AppIcon-color2-pastel</string>
+            </array>
+        </dict>
+        <key>AppIcon-color2-earth</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AlternativeIcons/AppIcon-color2-earth</string>
+            </array>
+        </dict>
+        <key>AppIcon-color3-default</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AlternativeIcons/AppIcon-color3-default</string>
+            </array>
+        </dict>
+        <key>AppIcon-color3-soft</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AlternativeIcons/AppIcon-color3-soft</string>
+            </array>
+        </dict>
+        <key>AppIcon-color3-pastel</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AlternativeIcons/AppIcon-color3-pastel</string>
+            </array>
+        </dict>
+        <key>AppIcon-color3-earth</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AlternativeIcons/AppIcon-color3-earth</string>
+            </array>
+        </dict>
+        <key>AppIcon-color4-default</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AlternativeIcons/AppIcon-color4-default</string>
+            </array>
+        </dict>
+        <key>AppIcon-color4-soft</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AlternativeIcons/AppIcon-color4-soft</string>
+            </array>
+        </dict>
+        <key>AppIcon-color4-pastel</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AlternativeIcons/AppIcon-color4-pastel</string>
+            </array>
+        </dict>
+        <key>AppIcon-color4-earth</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AlternativeIcons/AppIcon-color4-earth</string>
+            </array>
+        </dict>
+        <key>AppIcon-color5-default</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AlternativeIcons/AppIcon-color5-default</string>
+            </array>
+        </dict>
+        <key>AppIcon-color5-soft</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AlternativeIcons/AppIcon-color5-soft</string>
+            </array>
+        </dict>
+        <key>AppIcon-color5-pastel</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AlternativeIcons/AppIcon-color5-pastel</string>
+            </array>
+        </dict>
+        <key>AppIcon-color5-earth</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AlternativeIcons/AppIcon-color5-earth</string>
+            </array>
+        </dict>
+        <key>AppIcon-color6-default</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AlternativeIcons/AppIcon-color6-default</string>
+            </array>
+        </dict>
+        <key>AppIcon-color6-soft</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AlternativeIcons/AppIcon-color6-soft</string>
+            </array>
+        </dict>
+        <key>AppIcon-color6-pastel</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AlternativeIcons/AppIcon-color6-pastel</string>
+            </array>
+        </dict>
+        <key>AppIcon-color6-earth</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AlternativeIcons/AppIcon-color6-earth</string>
+            </array>
+        </dict>
+        <key>AppIcon-color7-default</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AlternativeIcons/AppIcon-color7-default</string>
+            </array>
+        </dict>
+        <key>AppIcon-color7-soft</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AlternativeIcons/AppIcon-color7-soft</string>
+            </array>
+        </dict>
+        <key>AppIcon-color7-pastel</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AlternativeIcons/AppIcon-color7-pastel</string>
+            </array>
+        </dict>
+        <key>AppIcon-color7-earth</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AlternativeIcons/AppIcon-color7-earth</string>
+            </array>
+        </dict>
+        <key>AppIcon-color8-default</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AlternativeIcons/AppIcon-color8-default</string>
+            </array>
+        </dict>
+        <key>AppIcon-color8-soft</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AlternativeIcons/AppIcon-color8-soft</string>
+            </array>
+        </dict>
+        <key>AppIcon-color8-pastel</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AlternativeIcons/AppIcon-color8-pastel</string>
+            </array>
+        </dict>
+        <key>AppIcon-color8-earth</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AlternativeIcons/AppIcon-color8-earth</string>
+            </array>
+        </dict>
+        <key>AppIcon-color9-default</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AlternativeIcons/AppIcon-color9-default</string>
+            </array>
+        </dict>
+        <key>AppIcon-color9-soft</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AlternativeIcons/AppIcon-color9-soft</string>
+            </array>
+        </dict>
+        <key>AppIcon-color9-pastel</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AlternativeIcons/AppIcon-color9-pastel</string>
+            </array>
+        </dict>
+        <key>AppIcon-color9-earth</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AlternativeIcons/AppIcon-color9-earth</string>
+            </array>
+        </dict>
+        <key>AppIcon-color10-default</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AlternativeIcons/AppIcon-color10-default</string>
+            </array>
+        </dict>
+        <key>AppIcon-color10-soft</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AlternativeIcons/AppIcon-color10-soft</string>
+            </array>
+        </dict>
+        <key>AppIcon-color10-pastel</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AlternativeIcons/AppIcon-color10-pastel</string>
+            </array>
+        </dict>
+        <key>AppIcon-color10-earth</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AlternativeIcons/AppIcon-color10-earth</string>
+            </array>
+        </dict>
+    </dict>
+</dict>
+
+================================================================================
+PlistBuddy 命令（進階用法 - 自動化配置）
+================================================================================
+
+將以下命令儲存為 .sh 腳本並執行：
+
+#!/bin/bash
+# 自動配置 Info.plist 的 Alternative Icons
+
+PLIST="MyPlaylist/Info.plist"
+
+# 添加主要結構
+/usr/libexec/PlistBuddy -c "Add :CFBundleIcons dict" "$PLIST" 2>/dev/null
+/usr/libexec/PlistBuddy -c "Add :CFBundleIcons:CFBundlePrimaryIcon dict" "$PLIST" 2>/dev/null
+/usr/libexec/PlistBuddy -c "Add :CFBundleIcons:CFBundlePrimaryIcon:CFBundleIconFiles array" "$PLIST" 2>/dev/null
+/usr/libexec/PlistBuddy -c "Add :CFBundleIcons:CFBundlePrimaryIcon:CFBundleIconFiles:0 string glass_icon" "$PLIST" 2>/dev/null
+/usr/libexec/PlistBuddy -c "Add :CFBundleIcons:CFBundleAlternateIcons dict" "$PLIST" 2>/dev/null
+
+# AppIcon-color2-default
+/usr/libexec/PlistBuddy -c "Add :CFBundleIcons:CFBundleAlternateIcons:AppIcon-color2-default dict" "$PLIST" 2>/dev/null
+/usr/libexec/PlistBuddy -c "Add :CFBundleIcons:CFBundleAlternateIcons:AppIcon-color2-default:CFBundleIconFiles array" "$PLIST" 2>/dev/null
+/usr/libexec/PlistBuddy -c "Add :CFBundleIcons:CFBundleAlternateIcons:AppIcon-color2-default:CFBundleIconFiles:0 string AlternativeIcons/AppIcon-color2-default" "$PLIST" 2>/dev/null
+
+# AppIcon-color3-default
+/usr/libexec/PlistBuddy -c "Add :CFBundleIcons:CFBundleAlternateIcons:AppIcon-color3-default dict" "$PLIST" 2>/dev/null
+/usr/libexec/PlistBuddy -c "Add :CFBundleIcons:CFBundleAlternateIcons:AppIcon-color3-default:CFBundleIconFiles array" "$PLIST" 2>/dev/null
+/usr/libexec/PlistBuddy -c "Add :CFBundleIcons:CFBundleAlternateIcons:AppIcon-color3-default:CFBundleIconFiles:0 string AlternativeIcons/AppIcon-color3-default" "$PLIST" 2>/dev/null
+
+# AppIcon-color4-default
+/usr/libexec/PlistBuddy -c "Add :CFBundleIcons:CFBundleAlternateIcons:AppIcon-color4-default dict" "$PLIST" 2>/dev/null
+/usr/libexec/PlistBuddy -c "Add :CFBundleIcons:CFBundleAlternateIcons:AppIcon-color4-default:CFBundleIconFiles array" "$PLIST" 2>/dev/null
+/usr/libexec/PlistBuddy -c "Add :CFBundleIcons:CFBundleAlternateIcons:AppIcon-color4-default:CFBundleIconFiles:0 string AlternativeIcons/AppIcon-color4-default" "$PLIST" 2>/dev/null
+
+# AppIcon-color5-default
+/usr/libexec/PlistBuddy -c "Add :CFBundleIcons:CFBundleAlternateIcons:AppIcon-color5-default dict" "$PLIST" 2>/dev/null
+/usr/libexec/PlistBuddy -c "Add :CFBundleIcons:CFBundleAlternateIcons:AppIcon-color5-default:CFBundleIconFiles array" "$PLIST" 2>/dev/null
+/usr/libexec/PlistBuddy -c "Add :CFBundleIcons:CFBundleAlternateIcons:AppIcon-color5-default:CFBundleIconFiles:0 string AlternativeIcons/AppIcon-color5-default" "$PLIST" 2>/dev/null
+
+# AppIcon-color6-default
+/usr/libexec/PlistBuddy -c "Add :CFBundleIcons:CFBundleAlternateIcons:AppIcon-color6-default dict" "$PLIST" 2>/dev/null
+/usr/libexec/PlistBuddy -c "Add :CFBundleIcons:CFBundleAlternateIcons:AppIcon-color6-default:CFBundleIconFiles array" "$PLIST" 2>/dev/null
+/usr/libexec/PlistBuddy -c "Add :CFBundleIcons:CFBundleAlternateIcons:AppIcon-color6-default:CFBundleIconFiles:0 string AlternativeIcons/AppIcon-color6-default" "$PLIST" 2>/dev/null
+
+# AppIcon-color7-default
+/usr/libexec/PlistBuddy -c "Add :CFBundleIcons:CFBundleAlternateIcons:AppIcon-color7-default dict" "$PLIST" 2>/dev/null
+/usr/libexec/PlistBuddy -c "Add :CFBundleIcons:CFBundleAlternateIcons:AppIcon-color7-default:CFBundleIconFiles array" "$PLIST" 2>/dev/null
+/usr/libexec/PlistBuddy -c "Add :CFBundleIcons:CFBundleAlternateIcons:AppIcon-color7-default:CFBundleIconFiles:0 string AlternativeIcons/AppIcon-color7-default" "$PLIST" 2>/dev/null
+
+# AppIcon-color8-default
+/usr/libexec/PlistBuddy -c "Add :CFBundleIcons:CFBundleAlternateIcons:AppIcon-color8-default dict" "$PLIST" 2>/dev/null
+/usr/libexec/PlistBuddy -c "Add :CFBundleIcons:CFBundleAlternateIcons:AppIcon-color8-default:CFBundleIconFiles array" "$PLIST" 2>/dev/null
+/usr/libexec/PlistBuddy -c "Add :CFBundleIcons:CFBundleAlternateIcons:AppIcon-color8-default:CFBundleIconFiles:0 string AlternativeIcons/AppIcon-color8-default" "$PLIST" 2>/dev/null
+
+# AppIcon-color9-default
+/usr/libexec/PlistBuddy -c "Add :CFBundleIcons:CFBundleAlternateIcons:AppIcon-color9-default dict" "$PLIST" 2>/dev/null
+/usr/libexec/PlistBuddy -c "Add :CFBundleIcons:CFBundleAlternateIcons:AppIcon-color9-default:CFBundleIconFiles array" "$PLIST" 2>/dev/null
+/usr/libexec/PlistBuddy -c "Add :CFBundleIcons:CFBundleAlternateIcons:AppIcon-color9-default:CFBundleIconFiles:0 string AlternativeIcons/AppIcon-color9-default" "$PLIST" 2>/dev/null
+
+# AppIcon-color10-default
+/usr/libexec/PlistBuddy -c "Add :CFBundleIcons:CFBundleAlternateIcons:AppIcon-color10-default dict" "$PLIST" 2>/dev/null
+/usr/libexec/PlistBuddy -c "Add :CFBundleIcons:CFBundleAlternateIcons:AppIcon-color10-default:CFBundleIconFiles array" "$PLIST" 2>/dev/null
+/usr/libexec/PlistBuddy -c "Add :CFBundleIcons:CFBundleAlternateIcons:AppIcon-color10-default:CFBundleIconFiles:0 string AlternativeIcons/AppIcon-color10-default" "$PLIST" 2>/dev/null
+
+
+echo "✅ Info.plist 配置完成！"
+
+
+================================================================================
+📝 使用說明
+================================================================================
+
+1. 推薦使用「簡化版配置」（9 個 icons）
+2. 在 Xcode 中打開 MyPlaylist/Info.plist
+3. 右鍵點擊 → Open As → Source Code
+4. 將生成的 XML 配置複製貼上
+5. 儲存並重新建置專案
+
+注意：
+- 確保 AlternativeIcons 資料夾已加入 Xcode 專案
+- 使用 "Create folder references" 而不是 "Create groups"
+
