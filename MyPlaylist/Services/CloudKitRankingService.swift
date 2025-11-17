@@ -24,6 +24,27 @@ class CloudKitRankingService: ObservableObject {
     
     // 狀態追蹤（用於 UI 顯示）
     @Published var syncStatus: CloudKitSyncStatus = .unavailable
+
+    private struct DailyAggregateRecord {
+        enum EntityType: String {
+            case album
+            case artist
+        }
+        
+        let userId: String
+        let entityType: EntityType
+        let entityId: String
+        let timeRange: String
+        let dayKey: Date
+        let count: Int
+        let capturedAt: Date
+    }
+    
+    private struct DailyAggregateData {
+        let dayKey: Date
+        let count: Int
+        let capturedAt: Date
+    }
     
     // CloudKit 容器和資料庫（延遲初始化）
     private var _container: CKContainer?
@@ -32,6 +53,7 @@ class CloudKitRankingService: ObservableObject {
     
     // Record Type 名稱
     private let recordType = "RankingHistory"
+    private let aggregateRecordType = "DailyAggregate"
     
     // 本地快取（用於離線存取和快速讀取）
     private var localCache: [RankingHistory] = []
@@ -183,6 +205,13 @@ class CloudKitRankingService: ObservableObject {
                 switch result {
                 case .success:
                     print("✅ CloudKit: 成功同步 \(recordsToSave.count) 筆排名記錄")
+                    // 寫入每日加總資料
+                    self.saveDailyAggregates(
+                        userId: userId,
+                        timeRange: timeRange,
+                        tracks: tracks,
+                        recordedDate: now
+                    )
                     // 清理舊記錄
                     self.cleanupOldRecords(userId: userId)
                     // 更新狀態為可用
@@ -517,6 +546,16 @@ class CloudKitRankingService: ObservableObject {
             localCache = cache
             saveLocalCache()
             UserDefaults.standard.removeObject(forKey: cacheKey)
+            return
+        }
+        
+        // Older RankingHistoryService（UserDefaults "rankingHistory"）資料也一起遷移
+        if localCache.isEmpty,
+           let legacyData = UserDefaults.standard.data(forKey: "rankingHistory"),
+           let cache = try? JSONDecoder().decode([RankingHistory].self, from: legacyData) {
+            localCache = cache
+            saveLocalCache()
+            UserDefaults.standard.removeObject(forKey: "rankingHistory")
         }
     }
     
@@ -531,6 +570,181 @@ class CloudKitRankingService: ObservableObject {
             } catch {
                 print("❌ 儲存本地排名快取失敗: \(error.localizedDescription)")
             }
+        }
+    }
+
+    private func saveDailyAggregates(
+        userId: String,
+        timeRange: String,
+        tracks: [Track],
+        recordedDate: Date
+    ) {
+        guard isCloudKitAvailable, let db = database else {
+            return
+        }
+        guard !tracks.isEmpty else { return }
+        
+        let dayKey = Calendar.current.startOfDay(for: recordedDate)
+        var aggregates: [DailyAggregateRecord] = []
+        
+        var albumCounts: [String: Int] = [:]
+        var artistCounts: [String: Int] = [:]
+        
+        for track in tracks {
+            if let albumId = track.album.id, !albumId.isEmpty {
+                albumCounts[albumId, default: 0] += 1
+            }
+            
+            let artistIds = track.artists.compactMap { $0.id }.filter { !$0.isEmpty }
+            for artistId in artistIds {
+                artistCounts[artistId, default: 0] += 1
+            }
+        }
+        
+        let capturedAt = recordedDate
+        for (albumId, count) in albumCounts {
+            aggregates.append(DailyAggregateRecord(
+                userId: userId,
+                entityType: .album,
+                entityId: albumId,
+                timeRange: timeRange,
+                dayKey: dayKey,
+                count: count,
+                capturedAt: capturedAt
+            ))
+        }
+        
+        for (artistId, count) in artistCounts {
+            aggregates.append(DailyAggregateRecord(
+                userId: userId,
+                entityType: .artist,
+                entityId: artistId,
+                timeRange: timeRange,
+                dayKey: dayKey,
+                count: count,
+                capturedAt: capturedAt
+            ))
+        }
+        
+        guard !aggregates.isEmpty else { return }
+        
+        let recordsToSave: [CKRecord] = aggregates.map { aggregate in
+            let keyTimestamp = Int(aggregate.dayKey.timeIntervalSince1970)
+            let recordName = "\(aggregate.userId)_\(aggregate.entityType.rawValue)_\(aggregate.entityId)_\(aggregate.timeRange)_\(keyTimestamp)"
+            let recordID = CKRecord.ID(recordName: recordName)
+            let record = CKRecord(recordType: aggregateRecordType, recordID: recordID)
+            
+            record["userId"] = aggregate.userId as CKRecordValue
+            record["entityType"] = aggregate.entityType.rawValue as CKRecordValue
+            record["entityId"] = aggregate.entityId as CKRecordValue
+            record["timeRange"] = aggregate.timeRange as CKRecordValue
+            record["dayKey"] = aggregate.dayKey as CKRecordValue
+            record["count"] = aggregate.count as CKRecordValue
+            record["capturedAt"] = aggregate.capturedAt as CKRecordValue
+            
+            return record
+        }
+        
+        let operation = CKModifyRecordsOperation(recordsToSave: recordsToSave, recordIDsToDelete: nil)
+        operation.savePolicy = .allKeys
+        operation.qualityOfService = .utility
+        operation.modifyRecordsResultBlock = { result in
+            if case .failure(let error) = result {
+                print("❌ CloudKit: 儲存 DailyAggregate 失敗：\(error.localizedDescription)")
+            } else {
+                print("✅ CloudKit: 更新每日加總 \(recordsToSave.count) 筆")
+            }
+        }
+        db.add(operation)
+    }
+    
+    private func fetchDailyAggregates(
+        db: CKDatabase,
+        userId: String,
+        entityType: DailyAggregateRecord.EntityType,
+        entityId: String,
+        timeRange: String,
+        since: Date,
+        completion: @escaping ([DailyAggregateData]) -> Void
+    ) {
+        var fetchedAggregates: [DailyAggregateData] = []
+        
+        let predicates: [NSPredicate] = [
+            NSPredicate(format: "userId == %@", userId),
+            NSPredicate(format: "entityType == %@", entityType.rawValue),
+            NSPredicate(format: "entityId == %@", entityId),
+            NSPredicate(format: "timeRange == %@", timeRange),
+            NSPredicate(format: "dayKey >= %@", since as NSDate)
+        ]
+        let predicate = NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
+        let query = CKQuery(recordType: aggregateRecordType, predicate: predicate)
+        query.sortDescriptors = [NSSortDescriptor(key: "dayKey", ascending: false)]
+        
+        func finish() {
+            DispatchQueue.main.async {
+                completion(fetchedAggregates)
+            }
+        }
+        
+        func fetchPage(cursor: CKQueryOperation.Cursor? = nil) {
+            let operation: CKQueryOperation
+            if let cursor = cursor {
+                operation = CKQueryOperation(cursor: cursor)
+            } else {
+                operation = CKQueryOperation(query: query)
+            }
+            
+            operation.resultsLimit = 400
+            operation.desiredKeys = ["dayKey", "count", "capturedAt"]
+            
+            operation.recordMatchedBlock = { _, recordResult in
+                if case .success(let record) = recordResult,
+                   let dayKey = record["dayKey"] as? Date,
+                   let count = record["count"] as? Int,
+                   let capturedAt = record["capturedAt"] as? Date {
+                    fetchedAggregates.append(DailyAggregateData(dayKey: dayKey, count: count, capturedAt: capturedAt))
+                }
+            }
+            
+            operation.queryResultBlock = { result in
+                switch result {
+                case .success(let cursor):
+                    if let cursor = cursor {
+                        fetchPage(cursor: cursor)
+                    } else {
+                        finish()
+                    }
+                case .failure(let error):
+                    print("❌ CloudKit DailyAggregate 查詢失敗: \(error.localizedDescription)")
+                    finish()
+                }
+            }
+            
+            db.add(operation)
+        }
+        
+        fetchPage()
+    }
+    
+    private func buildAggregateDataPoints(from aggregates: [DailyAggregateData]) -> [CountDataPoint] {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let past7Days = (0...6).compactMap { calendar.date(byAdding: .day, value: -$0, to: today) }.reversed()
+        
+        var latestPerDay: [Date: DailyAggregateData] = [:]
+        for aggregate in aggregates {
+            let day = calendar.startOfDay(for: aggregate.dayKey)
+            if let existing = latestPerDay[day] {
+                if aggregate.capturedAt > existing.capturedAt {
+                    latestPerDay[day] = aggregate
+                }
+            } else {
+                latestPerDay[day] = aggregate
+            }
+        }
+        
+        return past7Days.map { date in
+            CountDataPoint(date: date, count: latestPerDay[date]?.count ?? 0)
         }
     }
     
@@ -889,6 +1103,7 @@ class CloudKitRankingService: ObservableObject {
         userId: String,
         albumId: String,
         timeRange: String,
+        fallbackTrackIds: Set<String>? = nil,
         completion: @escaping (AlbumCountTrend?) -> Void
     ) {
         let sevenDaysAgo = Calendar.current.date(byAdding: .day, value: -7, to: Date())!
@@ -898,7 +1113,6 @@ class CloudKitRankingService: ObservableObject {
         print("  - albumId: \(albumId)")
         print("  - timeRange: \(timeRange)")
         
-        // 如果 CloudKit 可用，從雲端查詢
         guard isCloudKitAvailable, let db = database else {
             print("⚠️ CloudKit 不可用，使用本地快取")
             let trend = processAlbumCountTrendFromCache(albumId: albumId, userId: userId, timeRange: timeRange, since: sevenDaysAgo)
@@ -906,59 +1120,28 @@ class CloudKitRankingService: ObservableObject {
             return
         }
         
-        // 查詢過去 7 天所有的記錄（不限制 trackId 或 albumId）
-        let userPredicate = NSPredicate(format: "userId == %@", userId)
-        let timeRangePredicate = NSPredicate(format: "timeRange == %@", timeRange)
-        let datePredicate = NSPredicate(format: "recordedDate >= %@", sevenDaysAgo as NSDate)
-        let compoundPredicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
-            userPredicate, timeRangePredicate, datePredicate
-        ])
-        
-        let query = CKQuery(recordType: recordType, predicate: compoundPredicate)
-        query.sortDescriptors = [NSSortDescriptor(key: "recordedDate", ascending: false)]  // 改為降序，最新的在前面
-        
-        print("☁️ 從 CloudKit 查詢專輯歷史數據...")
-        
-        db.fetch(withQuery: query, inZoneWith: nil, desiredKeys: nil, resultsLimit: CKQueryOperation.maximumResults) { result in
-            switch result {
-            case .success(let queryResult):
-                let histories = queryResult.matchResults.compactMap { (recordID, recordResult) -> RankingHistory? in
-                    switch recordResult {
-                    case .success(let record):
-                        return self.convertToRankingHistory(record: record)
-                    case .failure(let error):
-                        print("❌ 解析記錄失敗: \(error.localizedDescription)")
-                        return nil
-                    }
-                }
-                
-                print("✅ 從 CloudKit 查詢到 \(histories.count) 筆歷史記錄")
-                
-                // 調試：檢查有多少記錄包含 albumId
-                let recordsWithAlbumId = histories.filter { $0.albumId != nil && !$0.albumId!.isEmpty }
-                print("📋 其中 \(recordsWithAlbumId.count) 筆記錄包含 albumId")
-                if let latest = histories.first {
-                    print("📅 最新記錄日期: \(latest.recordedDate), albumId: \(latest.albumId ?? "nil")")
-                }
-                
-                // 過濾出屬於該專輯的記錄
-                let albumHistories = histories.filter { $0.albumId == albumId }
-                print("📊 其中 \(albumHistories.count) 筆屬於該專輯（albumId: \(albumId)）")
-                
-                // 處理數據並生成趨勢
-                let trend = self.processAlbumCountTrend(histories: albumHistories, albumId: albumId)
-                
-                DispatchQueue.main.async {
-                    completion(trend)
-                }
-                
-            case .failure(let error):
-                print("❌ CloudKit 查詢失敗: \(error.localizedDescription)")
-                // 降級使用本地快取
-                let trend = self.processAlbumCountTrendFromCache(albumId: albumId, userId: userId, timeRange: timeRange, since: sevenDaysAgo)
-                DispatchQueue.main.async {
-                    completion(trend)
-                }
+        fetchDailyAggregates(
+            db: db,
+            userId: userId,
+            entityType: .album,
+            entityId: albumId,
+            timeRange: timeRange,
+            since: sevenDaysAgo
+        ) { aggregates in
+            if !aggregates.isEmpty {
+                let dataPoints = self.buildAggregateDataPoints(from: aggregates)
+                let trend = AlbumCountTrend(albumId: albumId, albumName: "", dataPoints: dataPoints)
+                completion(trend)
+            } else {
+                self.fetchAlbumCountTrendFromHistory(
+                    db: db,
+                    userId: userId,
+                    albumId: albumId,
+                    timeRange: timeRange,
+                    fallbackTrackIds: fallbackTrackIds,
+                    since: sevenDaysAgo,
+                    completion: completion
+                )
             }
         }
     }
@@ -969,6 +1152,7 @@ class CloudKitRankingService: ObservableObject {
         userId: String,
         artistId: String,
         timeRange: String,
+        fallbackTrackIds: Set<String>? = nil,
         completion: @escaping (ArtistCountTrend?) -> Void
     ) {
         let sevenDaysAgo = Calendar.current.date(byAdding: .day, value: -7, to: Date())!
@@ -978,7 +1162,6 @@ class CloudKitRankingService: ObservableObject {
         print("  - artistId: \(artistId)")
         print("  - timeRange: \(timeRange)")
         
-        // 如果 CloudKit 可用，從雲端查詢
         guard isCloudKitAvailable, let db = database else {
             print("⚠️ CloudKit 不可用，使用本地快取")
             let trend = processArtistCountTrendFromCache(artistId: artistId, userId: userId, timeRange: timeRange, since: sevenDaysAgo)
@@ -986,61 +1169,78 @@ class CloudKitRankingService: ObservableObject {
             return
         }
         
-        // 查詢過去 7 天所有的記錄
-        let userPredicate = NSPredicate(format: "userId == %@", userId)
-        let timeRangePredicate = NSPredicate(format: "timeRange == %@", timeRange)
-        let datePredicate = NSPredicate(format: "recordedDate >= %@", sevenDaysAgo as NSDate)
-        let compoundPredicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
-            userPredicate, timeRangePredicate, datePredicate
-        ])
-        
-        let query = CKQuery(recordType: recordType, predicate: compoundPredicate)
-        query.sortDescriptors = [NSSortDescriptor(key: "recordedDate", ascending: false)]  // 改為降序，最新的在前面
-        
-        print("☁️ 從 CloudKit 查詢藝人歷史數據...")
-        
-        db.fetch(withQuery: query, inZoneWith: nil, desiredKeys: nil, resultsLimit: CKQueryOperation.maximumResults) { result in
-            switch result {
-            case .success(let queryResult):
-                let histories = queryResult.matchResults.compactMap { (recordID, recordResult) -> RankingHistory? in
-                    switch recordResult {
-                    case .success(let record):
-                        return self.convertToRankingHistory(record: record)
-                    case .failure(let error):
-                        print("❌ 解析記錄失敗: \(error.localizedDescription)")
-                        return nil
-                    }
-                }
-                
-                print("✅ 從 CloudKit 查詢到 \(histories.count) 筆歷史記錄")
-                
-                // 過濾出包含該藝人的記錄
-                let artistHistories = histories.filter { history in
-                    guard let artistIds = history.artistIds else { return false }
-                    return artistIds.split(separator: ",").map(String.init).contains(artistId)
-                }
-                print("📊 其中 \(artistHistories.count) 筆包含該藝人")
-                
-                // 處理數據並生成趨勢
-                let trend = self.processArtistCountTrend(histories: artistHistories, artistId: artistId)
-                
-                DispatchQueue.main.async {
-                    completion(trend)
-                }
-                
-            case .failure(let error):
-                print("❌ CloudKit 查詢失敗: \(error.localizedDescription)")
-                // 降級使用本地快取
-                let trend = self.processArtistCountTrendFromCache(artistId: artistId, userId: userId, timeRange: timeRange, since: sevenDaysAgo)
-                DispatchQueue.main.async {
-                    completion(trend)
-                }
+        fetchDailyAggregates(
+            db: db,
+            userId: userId,
+            entityType: .artist,
+            entityId: artistId,
+            timeRange: timeRange,
+            since: sevenDaysAgo
+        ) { aggregates in
+            if !aggregates.isEmpty {
+                let dataPoints = self.buildAggregateDataPoints(from: aggregates)
+                let trend = ArtistCountTrend(artistId: artistId, artistName: "", dataPoints: dataPoints)
+                completion(trend)
+            } else {
+                self.fetchArtistCountTrendFromHistory(
+                    db: db,
+                    userId: userId,
+                    artistId: artistId,
+                    timeRange: timeRange,
+                    fallbackTrackIds: fallbackTrackIds,
+                    since: sevenDaysAgo,
+                    completion: completion
+                )
             }
         }
     }
     
+    // MARK: - 共用過濾工具（供測試與診斷使用）
+    func filterAlbumHistories(_ histories: [RankingHistory], albumId: String, fallbackTrackIds: Set<String>?) -> [RankingHistory] {
+        histories.filter { history in
+            if let historyAlbumId = history.albumId, !historyAlbumId.isEmpty {
+                return historyAlbumId == albumId
+            }
+            guard let fallbackTrackIds = fallbackTrackIds else { return false }
+            return fallbackTrackIds.contains(history.trackId)
+        }
+    }
+    
+    func filterArtistHistories(_ histories: [RankingHistory], artistId: String, fallbackTrackIds: Set<String>?) -> [RankingHistory] {
+        histories.filter { history in
+            if let artistIdsString = history.artistIds, !artistIdsString.isEmpty {
+                let artistIds = artistIdsString.split(separator: ",").map(String.init)
+                return artistIds.contains(artistId)
+            }
+            guard let fallbackTrackIds = fallbackTrackIds else { return false }
+            return fallbackTrackIds.contains(history.trackId)
+        }
+    }
+    
+    struct CloudKitDiagnosticsSnapshot {
+        let syncStatus: CloudKitSyncStatus
+        let totalEntries: Int
+        let earliestDate: Date?
+        let latestDate: Date?
+        let distinctDays: Int
+    }
+    
+    func diagnosticsSnapshot(userId: String, timeRange: String) -> CloudKitDiagnosticsSnapshot {
+        let entries = localCache.filter { $0.userId == userId && $0.timeRange == timeRange }
+        let earliest = entries.map(\.recordedDate).min()
+        let latest = entries.map(\.recordedDate).max()
+        let distinctDays = Set(entries.map { Calendar.current.startOfDay(for: $0.recordedDate) }).count
+        return CloudKitDiagnosticsSnapshot(
+            syncStatus: syncStatus,
+            totalEntries: entries.count,
+            earliestDate: earliest,
+            latestDate: latest,
+            distinctDays: distinctDays
+        )
+    }
+    
     // MARK: - 處理專輯數量趨勢數據
-    private func processAlbumCountTrend(histories: [RankingHistory], albumId: String) -> AlbumCountTrend? {
+    func processAlbumCountTrend(histories: [RankingHistory], albumId: String) -> AlbumCountTrend? {
         guard !histories.isEmpty else {
             print("⚠️ 沒有歷史數據")
             return nil
@@ -1090,7 +1290,7 @@ class CloudKitRankingService: ObservableObject {
     }
     
     // MARK: - 處理藝人數量趨勢數據
-    private func processArtistCountTrend(histories: [RankingHistory], artistId: String) -> ArtistCountTrend? {
+    func processArtistCountTrend(histories: [RankingHistory], artistId: String) -> ArtistCountTrend? {
         guard !histories.isEmpty else {
             print("⚠️ 沒有歷史數據")
             return nil
@@ -1155,6 +1355,100 @@ class CloudKitRankingService: ObservableObject {
         return processAlbumCountTrend(histories: filtered, albumId: albumId)
     }
     
+    private func fetchAlbumCountTrendFromHistory(
+        db: CKDatabase?,
+        userId: String,
+        albumId: String,
+        timeRange: String,
+        fallbackTrackIds: Set<String>?,
+        since: Date,
+        completion: @escaping (AlbumCountTrend?) -> Void
+    ) {
+        guard let db = db else {
+            let trend = processAlbumCountTrendFromCache(albumId: albumId, userId: userId, timeRange: timeRange, since: since)
+            completion(trend)
+            return
+        }
+        
+        let userPredicate = NSPredicate(format: "userId == %@", userId)
+        let timeRangePredicate = NSPredicate(format: "timeRange == %@", timeRange)
+        let datePredicate = NSPredicate(format: "recordedDate >= %@", since as NSDate)
+        let compoundPredicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            userPredicate, timeRangePredicate, datePredicate
+        ])
+        
+        let query = CKQuery(recordType: recordType, predicate: compoundPredicate)
+        query.sortDescriptors = [NSSortDescriptor(key: "recordedDate", ascending: false)]
+        
+        print("☁️ 從 CloudKit 查詢專輯歷史數據 (fallback)...")
+        
+        var fetchedHistories: [RankingHistory] = []
+        
+        func finishWithHistories(_ histories: [RankingHistory]) {
+            print("✅ 從 CloudKit 查詢到 \(histories.count) 筆歷史記錄（含所有分頁）")
+            
+            let recordsWithAlbumId = histories.filter { $0.albumId != nil && !$0.albumId!.isEmpty }
+            print("📋 其中 \(recordsWithAlbumId.count) 筆記錄包含 albumId")
+            if let latest = histories.sorted(by: { $0.recordedDate > $1.recordedDate }).first {
+                print("📅 最新記錄日期: \(latest.recordedDate), albumId: \(latest.albumId ?? "nil")")
+            }
+            
+            let albumHistories = self.filterAlbumHistories(histories, albumId: albumId, fallbackTrackIds: fallbackTrackIds)
+            print("📊 其中 \(albumHistories.count) 筆屬於該專輯（含 fallback track IDs）")
+            
+            let trend = self.processAlbumCountTrend(histories: albumHistories, albumId: albumId)
+            
+            DispatchQueue.main.async {
+                completion(trend)
+            }
+        }
+        
+        func fetchPage(cursor: CKQueryOperation.Cursor? = nil) {
+            let operation: CKQueryOperation
+            if let cursor = cursor {
+                operation = CKQueryOperation(cursor: cursor)
+            } else {
+                operation = CKQueryOperation(query: query)
+            }
+            
+            operation.resultsLimit = 400
+            operation.desiredKeys = ["trackId", "recordedDate", "albumId", "timeRange", "userId"]
+            
+            operation.recordMatchedBlock = { _, recordResult in
+                switch recordResult {
+                case .success(let record):
+                    if let history = self.convertToRankingHistory(record: record) {
+                        fetchedHistories.append(history)
+                    }
+                case .failure(let error):
+                    print("❌ 解析記錄失敗: \(error.localizedDescription)")
+                }
+            }
+            
+            operation.queryResultBlock = { result in
+                switch result {
+                case .success(let cursor):
+                    if let cursor = cursor {
+                        print("📄 已取得 \(fetchedHistories.count) 筆資料，繼續下一頁…")
+                        fetchPage(cursor: cursor)
+                    } else {
+                        finishWithHistories(fetchedHistories)
+                    }
+                case .failure(let error):
+                    print("❌ CloudKit 查詢失敗: \(error.localizedDescription)")
+                    let trend = self.processAlbumCountTrendFromCache(albumId: albumId, userId: userId, timeRange: timeRange, since: since)
+                    DispatchQueue.main.async {
+                        completion(trend)
+                    }
+                }
+            }
+            
+            db.add(operation)
+        }
+        
+        fetchPage()
+    }
+    
     // MARK: - 從本地快取處理藝人趨勢
     private func processArtistCountTrendFromCache(artistId: String, userId: String, timeRange: String, since: Date) -> ArtistCountTrend? {
         let filtered = localCache.filter { history in
@@ -1172,5 +1466,93 @@ class CloudKitRankingService: ObservableObject {
         }
         
         return processArtistCountTrend(histories: filtered, artistId: artistId)
+    }
+    
+    private func fetchArtistCountTrendFromHistory(
+        db: CKDatabase?,
+        userId: String,
+        artistId: String,
+        timeRange: String,
+        fallbackTrackIds: Set<String>?,
+        since: Date,
+        completion: @escaping (ArtistCountTrend?) -> Void
+    ) {
+        guard let db = db else {
+            let trend = processArtistCountTrendFromCache(artistId: artistId, userId: userId, timeRange: timeRange, since: since)
+            completion(trend)
+            return
+        }
+        
+        let userPredicate = NSPredicate(format: "userId == %@", userId)
+        let timeRangePredicate = NSPredicate(format: "timeRange == %@", timeRange)
+        let datePredicate = NSPredicate(format: "recordedDate >= %@", since as NSDate)
+        let compoundPredicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            userPredicate, timeRangePredicate, datePredicate
+        ])
+        
+        let query = CKQuery(recordType: recordType, predicate: compoundPredicate)
+        query.sortDescriptors = [NSSortDescriptor(key: "recordedDate", ascending: false)]
+        
+        print("☁️ 從 CloudKit 查詢藝人歷史數據 (fallback)...")
+        
+        var fetchedHistories: [RankingHistory] = []
+        
+        func finishWithHistories(_ histories: [RankingHistory]) {
+            print("✅ 從 CloudKit 查詢到 \(histories.count) 筆歷史記錄（含所有分頁）")
+            
+            let artistHistories = self.filterArtistHistories(histories, artistId: artistId, fallbackTrackIds: fallbackTrackIds)
+            print("📊 其中 \(artistHistories.count) 筆包含該藝人（含 fallback track IDs）")
+            
+            let trend = self.processArtistCountTrend(histories: artistHistories, artistId: artistId)
+            
+            DispatchQueue.main.async {
+                completion(trend)
+            }
+        }
+        
+        func fetchPage(cursor: CKQueryOperation.Cursor? = nil) {
+            let operation: CKQueryOperation
+            if let cursor = cursor {
+                operation = CKQueryOperation(cursor: cursor)
+            } else {
+                operation = CKQueryOperation(query: query)
+            }
+            
+            operation.resultsLimit = 400
+            operation.desiredKeys = ["trackId", "recordedDate", "artistIds", "timeRange", "userId"]
+            
+            operation.recordMatchedBlock = { _, recordResult in
+                switch recordResult {
+                case .success(let record):
+                    if let history = self.convertToRankingHistory(record: record) {
+                        fetchedHistories.append(history)
+                    }
+                case .failure(let error):
+                    print("❌ 解析記錄失敗: \(error.localizedDescription)")
+                }
+            }
+            
+            operation.queryResultBlock = { result in
+                switch result {
+                case .success(let cursor):
+                    if let cursor = cursor {
+                        print("📄 已取得 \(fetchedHistories.count) 筆資料，繼續下一頁…")
+                        fetchPage(cursor: cursor)
+                    } else {
+                        finishWithHistories(fetchedHistories)
+                    }
+                case .failure(let error):
+                    print("❌ CloudKit 查詢失敗: \(error.localizedDescription)")
+                    let trend = self.processArtistCountTrendFromCache(artistId: artistId, userId: userId, timeRange: timeRange, since: since)
+                    DispatchQueue.main.async {
+                        completion(trend)
+                    }
+                }
+            }
+            
+            db.add(operation)
+        }
+        
+        fetchPage()
     }
 }

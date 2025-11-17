@@ -1009,8 +1009,10 @@ struct HomeView: View {
             guard !trackIds.isEmpty else {
                 print("⚠️ [Top5Trends] 沒有找到任何歷史記錄，將使用當前 Top 5")
                 
-                // 獲取當前 Top 5
-                SpotifyAPIService.fetchTopTracks(accessToken: accessToken, timeRange: "short_term") { currentTracks in
+                    // 獲取當前 Top 5
+                    SpotifyAPIService.fetchTopTracks(accessToken: accessToken, timeRange: "short_term") { currentTracks in
+                        self.recordHomeSnapshotIfNeeded(userId: userId, tracks: currentTracks)
+                        
                     let top5Tracks = Array(currentTracks.prefix(5))
                     var trends: [TrackTrend] = []
                     
@@ -1048,6 +1050,8 @@ struct HomeView: View {
             
             // 第二步：獲取當前 Top 50 以取得歌曲資訊
             SpotifyAPIService.fetchTopTracks(accessToken: accessToken, timeRange: "short_term") { currentTracks in
+                self.recordHomeSnapshotIfNeeded(userId: userId, tracks: currentTracks)
+                
                 var trends: [TrackTrend] = []
                 let group = DispatchGroup()
                 
@@ -1147,14 +1151,35 @@ struct HomeView: View {
                         print("  #\(index + 1) \(trend.trackName): 當前 #\(currentRank), 在 Top 5 出現 \(inTop5Count)/7 天")
                     }
                     
+                    // 僅保留曾在 Top5 出現過的曲目（至少一天 rank <= 5）
+                    let filteredTrends = sortedTrends.filter { trend in
+                        trend.dataPoints.contains { ($0.rank ?? 6) <= 5 }
+                    }
+                    
+                    let trendsToDisplay = filteredTrends.isEmpty ? sortedTrends : filteredTrends
+                    
                     // 先設置資料，再結束載入狀態，避免閃爍
-                    self.top5Trends = sortedTrends
+                    self.top5Trends = trendsToDisplay
                     self.isLoadingTrends = false
                     
-                    print("✅ [Top5Trends] 最終顯示 \(sortedTrends.count) 條趨勢線")
+                    print("✅ [Top5Trends] 最終顯示 \(trendsToDisplay.count) 條趨勢線")
                 }
             }
             }
+        }
+    }
+    
+    /// 從 Home 頁面載入時也嘗試紀錄一次 Spotify 排名，避免必須進入 Top 分頁才有雲端資料
+    private func recordHomeSnapshotIfNeeded(userId: String, tracks: [Track]) {
+        guard !tracks.isEmpty else { return }
+        
+        CloudKitRankingService.shared.shouldRecord(userId: userId, for: "short_term") { shouldRecord in
+            guard shouldRecord else { return }
+            CloudKitRankingService.shared.saveCurrentRanking(
+                userId: userId,
+                tracks: tracks,
+                timeRange: "short_term"
+            )
         }
     }
     
