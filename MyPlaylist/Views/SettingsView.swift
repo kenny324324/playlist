@@ -26,6 +26,18 @@ struct SettingsView: View {
     @AppStorage("dailyNotificationHour") private var dailyNotificationHour: Int = 20
     @AppStorage("dailyNotificationMinute") private var dailyNotificationMinute: Int = 0
     @State private var showNotificationTimeAlert = false
+#if DEBUG
+    // CloudKit 補寫（僅開發模式可見）
+    @State private var showBackfillConfirmAlert = false
+    @State private var showBackfillResultAlert = false
+    @State private var backfillResultMessage: String = ""
+    @State private var isBackfillingRankingHistory = false
+#endif
+#if DEBUG
+    @State private var diagnosticsSnapshot: CloudKitRankingService.CloudKitDiagnosticsSnapshot?
+    @State private var isDiagnosticsLoading = false
+    @State private var lastSnapshotDate: Date? = DailySnapshotScheduler.shared.lastSnapshotDate()
+#endif
     
     var body: some View {
         ScrollView(showsIndicators: false) {
@@ -44,6 +56,11 @@ struct SettingsView: View {
                 
                 // 授權狀態
                 authorizationSection
+                
+#if DEBUG
+                // 診斷資訊
+                diagnosticsSection
+#endif
                 
                 // 關於
                 aboutSection
@@ -86,6 +103,10 @@ struct SettingsView: View {
                       calculateCacheSize()
                       notificationService.checkAuthorizationStatus()
                       applyNotificationSettings()
+#if DEBUG
+                      refreshDiagnosticsSnapshot()
+                      lastSnapshotDate = DailySnapshotScheduler.shared.lastSnapshotDate()
+#endif
                   }
           }
     
@@ -562,6 +583,19 @@ struct SettingsView: View {
         } message: {
             Text("settings.clearDataCache.message")
         }
+#if DEBUG
+        .alert("補寫 CloudKit 資料", isPresented: $showBackfillConfirmAlert) {
+            Button("common.cancel", role: .cancel) { }
+            Button("開始補寫", action: backfillCloudKitHistory)
+        } message: {
+            Text("會將此裝置最近 7 天的 Top 50 快照寫入 iCloud，用來補齊缺漏資料。")
+        }
+        .alert("補寫結果", isPresented: $showBackfillResultAlert) {
+            Button("common.ok", role: .cancel) { }
+        } message: {
+            Text(backfillResultMessage)
+        }
+#endif
     }
     
     // MARK: - 授權狀態
@@ -600,6 +634,27 @@ struct SettingsView: View {
                         )
                     }
                     .buttonStyle(PlainButtonStyle())
+                    
+#if DEBUG
+                    Divider()
+                        .background(Color.gray.opacity(0.3))
+                        .padding(.leading, 50)
+                    
+                    Button(action: {
+                        showBackfillConfirmAlert = true
+                    }) {
+                        SettingRow(
+                            icon: "icloud.and.arrow.up",
+                            title: "補寫 CloudKit 排名資料",
+                            value: isBackfillingRankingHistory ? "處理中…" : "",
+                            showChevron: false,
+                            themeColor: themeManager.themeColor
+                        )
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .disabled(isBackfillingRankingHistory)
+                    .opacity(isBackfillingRankingHistory ? 0.6 : 1.0)
+#endif
                 }
             }
             .background(Color.white.opacity(0.1))
@@ -614,6 +669,65 @@ struct SettingsView: View {
             Text("settings.reauthorize.message")
         }
     }
+    
+#if DEBUG
+    // MARK: - 診斷資訊
+    private var diagnosticsSection: some View {
+        VStack(alignment: .leading, spacing: 15) {
+            Text("診斷資訊")
+                .font(.custom("SpotifyMix-Bold", size: 22))
+                .foregroundColor(.white)
+            
+            VStack(alignment: .leading, spacing: 10) {
+                if !isLoggedIn {
+                    Text("登入後會顯示 CloudKit 線上資料覆蓋與快照資訊。")
+                        .font(.custom("SpotifyMix-Medium", size: 15))
+                        .foregroundColor(.gray)
+                } else if isDiagnosticsLoading {
+                    HStack(spacing: 12) {
+                        ProgressView()
+                            .tint(.white)
+                        Text("載入中…")
+                            .font(.custom("SpotifyMix-Medium", size: 15))
+                            .foregroundColor(.gray)
+                    }
+                } else if let snapshot = diagnosticsSnapshot {
+                    diagnosticsRow(title: "CloudKit 狀態", value: diagnosticsStatusText(snapshot.syncStatus))
+                    diagnosticsRow(title: "快取筆數", value: "\(snapshot.totalEntries)")
+                    diagnosticsRow(title: "覆蓋天數", value: "\(snapshot.distinctDays)")
+                    diagnosticsRow(title: "最早記錄", value: formattedDate(snapshot.earliestDate))
+                    diagnosticsRow(title: "最新記錄", value: formattedDate(snapshot.latestDate))
+                    diagnosticsRow(title: "每日快照時間", value: formattedDate(lastSnapshotDate))
+                } else {
+                    Text("目前沒有可用的診斷資料。")
+                        .font(.custom("SpotifyMix-Medium", size: 15))
+                        .foregroundColor(.gray)
+                }
+                
+                Divider()
+                    .background(Color.gray.opacity(0.3))
+                
+                Button(action: {
+                    refreshDiagnosticsSnapshot()
+                }) {
+                    HStack {
+                        Image(systemName: "arrow.clockwise")
+                        Text("重新整理")
+                    }
+                    .font(.custom("SpotifyMix-Medium", size: 16))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.gray.opacity(0.3))
+                    .cornerRadius(12)
+                }
+            }
+            .padding()
+            .background(Color.white.opacity(0.08))
+            .cornerRadius(15)
+        }
+    }
+#endif
     
     // MARK: - 關於
     private var aboutSection: some View {
@@ -710,6 +824,90 @@ struct SettingsView: View {
             UIApplication.shared.open(url)
         }
     }
+#if DEBUG
+    private func backfillCloudKitHistory() {
+        guard !isBackfillingRankingHistory else { return }
+        guard let userId = userProfile?.id else {
+            backfillResultMessage = "無法取得使用者資訊，請重新登入後再試一次。"
+            showBackfillResultAlert = true
+            return
+        }
+        
+        isBackfillingRankingHistory = true
+        CloudKitRankingService.shared.backfillLocalCacheToCloudKit(
+            userId: userId,
+            timeRange: defaultTimeRange
+        ) { result in
+            DispatchQueue.main.async {
+                self.isBackfillingRankingHistory = false
+                
+                switch result {
+                case .success(let count):
+                    if count == 0 {
+                        self.backfillResultMessage = "目前沒有可補寫的本地資料。"
+                    } else {
+                        self.backfillResultMessage = "已補寫 \(count) 筆資料到 CloudKit。"
+                    }
+                case .failure(let error):
+                    self.backfillResultMessage = "補寫失敗：\(error.localizedDescription)"
+                }
+                
+                self.showBackfillResultAlert = true
+            }
+        }
+    }
+#endif
+    
+#if DEBUG
+    private func refreshDiagnosticsSnapshot() {
+        guard isLoggedIn, let userId = userProfile?.id else {
+            diagnosticsSnapshot = nil
+            return
+        }
+        
+        isDiagnosticsLoading = true
+        DispatchQueue.global(qos: .userInitiated).async {
+            let snapshot = CloudKitRankingService.shared.diagnosticsSnapshot(userId: userId, timeRange: defaultTimeRange)
+            DispatchQueue.main.async {
+                self.diagnosticsSnapshot = snapshot
+                self.lastSnapshotDate = DailySnapshotScheduler.shared.lastSnapshotDate()
+                self.isDiagnosticsLoading = false
+            }
+        }
+    }
+    
+    private func diagnosticsRow(title: String, value: String) -> some View {
+        HStack {
+            Text(title)
+                .font(.custom("SpotifyMix-Medium", size: 15))
+                .foregroundColor(.gray)
+            Spacer()
+            Text(value)
+                .font(.custom("SpotifyMix-Bold", size: 15))
+                .foregroundColor(.white)
+        }
+    }
+    
+    private func diagnosticsStatusText(_ status: CloudKitSyncStatus) -> String {
+        switch status {
+        case .available:
+            return "可用"
+        case .syncing:
+            return "同步中"
+        case .unavailable:
+            return "不可用"
+        }
+    }
+    
+    private func formattedDate(_ date: Date?) -> String {
+        guard let date else { return "—" }
+        let formatter = DateFormatter()
+        formatter.locale = Locale.current
+        formatter.timeZone = TimeZone.current
+        formatter.dateFormat = "MM/dd HH:mm"
+        return formatter.string(from: date)
+    }
+#endif
     
     private func timeRangeDisplayName(_ range: String) -> String {
         switch range {

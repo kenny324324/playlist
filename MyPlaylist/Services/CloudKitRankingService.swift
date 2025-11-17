@@ -760,6 +760,82 @@ class CloudKitRankingService: ObservableObject {
         localCache.removeAll { $0.userId == userId && $0.recordedDate < sevenDaysAgo }
     }
     
+    // MARK: - 回填本地快取到 CloudKit
+    /// 將本機最近的排名快取補寫到 CloudKit，適合在正式環境缺資料時使用
+    func backfillLocalCacheToCloudKit(
+        userId: String,
+        timeRange: String,
+        completion: @escaping (Result<Int, Error>) -> Void
+    ) {
+        let recordsToUpload = localCache.filter {
+            $0.userId == userId &&
+            $0.timeRange == timeRange
+        }
+        
+        guard !recordsToUpload.isEmpty else {
+            DispatchQueue.main.async {
+                print("ℹ️ [CloudKit] 沒有可補寫的本地快取資料")
+                completion(.success(0))
+            }
+            return
+        }
+        
+        guard isCloudKitAvailable, let db = database else {
+            let error = NSError(
+                domain: "CloudKitRankingService",
+                code: -1,
+                userInfo: [NSLocalizedDescriptionKey: "CloudKit 不可用，無法補寫資料"]
+            )
+            DispatchQueue.main.async {
+                completion(.failure(error))
+            }
+            return
+        }
+        
+        DispatchQueue.main.async {
+            self.syncStatus = .syncing
+        }
+        
+        print("☁️ [CloudKit] 開始補寫 \(recordsToUpload.count) 筆本地資料到雲端")
+        
+        let ckRecords: [CKRecord] = recordsToUpload.map { history in
+            let timestamp = Int(history.recordedDate.timeIntervalSince1970)
+            let recordID = CKRecord.ID(recordName: "\(history.userId)_\(history.trackId)_\(history.timeRange)_\(timestamp)")
+            let record = CKRecord(recordType: recordType, recordID: recordID)
+            
+            record["userId"] = history.userId as CKRecordValue
+            record["trackId"] = history.trackId as CKRecordValue
+            record["rank"] = history.rank as CKRecordValue
+            record["timeRange"] = history.timeRange as CKRecordValue
+            record["recordedDate"] = history.recordedDate as CKRecordValue
+            record["albumId"] = (history.albumId ?? "") as CKRecordValue
+            record["artistIds"] = (history.artistIds ?? "") as CKRecordValue
+            
+            return record
+        }
+        
+        let operation = CKModifyRecordsOperation(recordsToSave: ckRecords, recordIDsToDelete: nil)
+        operation.savePolicy = .allKeys
+        operation.qualityOfService = .userInitiated
+        
+        operation.modifyRecordsResultBlock = { result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success:
+                    print("✅ [CloudKit] 補寫完成，共寫入 \(recordsToUpload.count) 筆記錄")
+                    self.syncStatus = .available
+                    completion(.success(recordsToUpload.count))
+                case .failure(let error):
+                    print("❌ [CloudKit] 補寫失敗：\(error.localizedDescription)")
+                    self.syncStatus = .unavailable
+                    completion(.failure(error))
+                }
+            }
+        }
+        
+        db.add(operation)
+    }
+    
     // MARK: - 查詢特定歌曲的排名歷史
     /// 獲取特定歌曲在過去 7 天的排名歷史
     func fetchTrackRankingHistory(
