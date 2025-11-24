@@ -25,11 +25,22 @@ struct SearchResultsView: View {
                 )
             } else if searchText.isEmpty {
                 // 空白狀態
-                VStack {
+                VStack(spacing: 12) {
                     Spacer()
-                    Text("輸入關鍵字以顯示搜尋結果") // This will use localization
-                        .font(.system(size: 16))
-                        .foregroundColor(.gray)
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 40))
+                        .foregroundColor(.white.opacity(0.5))
+                        .padding(.bottom, 8)
+                        
+                    Text("search.placeholder.title") // Needs localization
+                        .font(.appFont(size: 18, weight: .bold))
+                        .foregroundColor(.white)
+                        
+                    Text("search.placeholder.subtitle") // Needs localization
+                        .font(.appFont(size: 14, weight: .medium))
+                        .foregroundColor(.white.opacity(0.6))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 40)
                     Spacer()
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -48,16 +59,21 @@ struct SearchResultsView: View {
                 } label: {
                     HStack(spacing: 8) {
                         Text(selectedCategory.localizedName)
-                            .font(.system(size: 16, weight: .semibold))
+                            .font(.appFont(size: 15, weight: .bold))
                             .foregroundColor(.white)
                         
                         Image(systemName: "chevron.down")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(.white)
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(.white.opacity(0.7))
                     }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(Material.ultraThinMaterial) // 使用毛玻璃效果
+                    .clipShape(Capsule())
+                    .overlay(
+                        Capsule().stroke(Color.white.opacity(0.2), lineWidth: 1)
+                    )
                 }
-                .buttonStyle(.glass)
-                .tint(.spotifyGreen)
                 .padding(.trailing, 16)
                 .padding(.top, 12)
             } else {
@@ -71,26 +87,27 @@ struct SearchResultsView: View {
                 } label: {
                     HStack(spacing: 8) {
                         Text(selectedCategory.localizedName)
-                            .font(.system(size: 16, weight: .semibold))
+                            .font(.appFont(size: 15, weight: .bold))
                             .foregroundColor(.white)
                         
                         Image(systemName: "chevron.down")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(.white)
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(.white.opacity(0.7))
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .background(
-                        RoundedRectangle(cornerRadius: 20)
-                            .fill(Color.black.opacity(0.7))
-                            .shadow(color: Color.black.opacity(0.3), radius: 10, x: 0, y: 4)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(Color.black.opacity(0.6))
+                    .clipShape(Capsule())
+                    .overlay(
+                        Capsule().stroke(Color.white.opacity(0.2), lineWidth: 1)
                     )
                 }
                 .padding(.trailing, 16)
                 .padding(.top, 12)
             }
         }
-        .background(Color.spotifyText)
+        // 移除整個 SearchResultsView 的不透明背景
+        // .background(Color.spotifyText) 
     }
 }
 
@@ -169,10 +186,10 @@ struct SearchResultsContentView: View {
                             .font(.system(size: 50))
                             .foregroundColor(.gray)
                         Text("search.empty.title")
-                            .font(.system(size: 18, weight: .semibold))
+                            .font(.appFont(size: 18, weight: .bold))
                             .foregroundColor(.white)
                         Text("search.empty.message")
-                            .font(.system(size: 14))
+                            .font(.appFont(size: 14, weight: .medium))
                             .foregroundColor(.gray)
                     }
                     .padding(.top, 50)
@@ -244,7 +261,7 @@ struct SearchSectionView<Content: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 15) {
             Text(titleKey)
-                .font(.system(size: 22, weight: .bold))
+                .font(.appFont(size: 22, weight: .bold))
                 .foregroundColor(.white)
             
             content
@@ -282,12 +299,12 @@ struct SearchTrackRow: View {
             // 歌曲資訊
             VStack(alignment: .leading, spacing: 4) {
                 Text(track.name)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.appFont(size: 16, weight: .bold))
                     .foregroundColor(.white)
                     .lineLimit(1)
                 
                 Text(track.artists.map(\.name).joined(separator: ", "))
-                    .font(.system(size: 14))
+                    .font(.appFont(size: 14, weight: .medium))
                     .foregroundColor(.gray)
                     .lineLimit(1)
             }
@@ -334,20 +351,20 @@ struct SearchArtistRow: View {
             // 藝人資訊
             VStack(alignment: .leading, spacing: 4) {
                 Text(artist.name)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.appFont(size: 16, weight: .bold))
                     .foregroundColor(.white)
                     .lineLimit(1)
                 
                 HStack(spacing: 5) {
                     Text("search.row.artist")
-                        .font(.system(size: 14))
+                        .font(.appFont(size: 14, weight: .medium))
                         .foregroundColor(.gray)
                     
                     if let followers = artist.followers?.total {
                         Text("•")
                             .foregroundColor(.gray)
                         Text("\(formatNumber(followers)) \(Text("search.row.followers"))")
-                            .font(.system(size: 14))
+                            .font(.appFont(size: 14, weight: .medium))
                             .foregroundColor(.gray)
                     }
                 }
@@ -401,20 +418,20 @@ struct SearchAlbumRow: View {
             // 專輯資訊
             VStack(alignment: .leading, spacing: 4) {
                 Text(album.name)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.appFont(size: 16, weight: .bold))
                     .foregroundColor(.white)
                     .lineLimit(1)
                 
                 HStack(spacing: 5) {
                     Text("search.row.album")
-                        .font(.system(size: 14))
+                        .font(.appFont(size: 14, weight: .medium))
                         .foregroundColor(.gray)
                     
                     if let artist = album.artists.first {
                         Text("•")
                             .foregroundColor(.gray)
                         Text(artist.name)
-                            .font(.system(size: 14))
+                            .font(.appFont(size: 14, weight: .medium))
                             .foregroundColor(.gray)
                             .lineLimit(1)
                     }

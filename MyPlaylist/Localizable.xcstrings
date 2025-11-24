@@ -284,6 +284,9 @@
         }
       }
     },
+    "common.ok" : {
+
+    },
     "common.save" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2788,6 +2791,102 @@
     "Minute" : {
 
     },
+    "mood.chill" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chill"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "放鬆"
+          }
+        }
+      }
+    },
+    "mood.focus" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Focus"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "專注"
+          }
+        }
+      }
+    },
+    "mood.happy" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Happy"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開心"
+          }
+        }
+      }
+    },
+    "mood.party" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Party"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "派對"
+          }
+        }
+      }
+    },
+    "mood.sad" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sad"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "憂鬱"
+          }
+        }
+      }
+    },
+    "mood.workout" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Workout"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "健身"
+          }
+        }
+      }
+    },
     "nav.topArtists" : {
       "localizations" : {
         "en" : {
@@ -4088,6 +4187,22 @@
         }
       }
     },
+    "search.mood.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Browse by Mood"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "依心情瀏覽"
+          }
+        }
+      }
+    },
     "search.new.releases" : {
       "localizations" : {
         "en" : {
@@ -4112,6 +4227,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "新發行專輯"
+          }
+        }
+      }
+    },
+    "search.placeholder.subtitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Find your favorite songs, artists, and albums."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尋找您喜愛的歌曲、藝人與專輯。"
+          }
+        }
+      }
+    },
+    "search.placeholder.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search Music"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜尋音樂"
           }
         }
       }
@@ -5616,6 +5763,9 @@
     "spo.stats" : {
 
     },
+    "Stats Harness Ready" : {
+
+    },
     "stats.4weeks" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -6013,6 +6163,7 @@
       }
     },
     "stats.chart.highest" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -6069,6 +6220,7 @@
       }
     },
     "stats.chart.tracks" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7786,13 +7938,35 @@
         }
       }
     },
+    "會將此裝置最近 7 天的 Top 50 快照寫入 iCloud，用來補齊缺漏資料。" : {
+
+    },
     "清除" : {
 
     },
     "清除 Dashboard 快取" : {
 
     },
+    "登入後會顯示 CloudKit 線上資料覆蓋與快照資訊。" : {
+
+    },
+    "目前沒有可用的診斷資料。" : {
+
+    },
+    "補寫 CloudKit 資料" : {
+
+    },
+    "補寫結果" : {
+
+    },
+    "診斷資訊" : {
+
+    },
+    "載入中…" : {
+
+    },
     "輸入關鍵字以顯示搜尋結果" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7821,6 +7995,12 @@
       }
     },
     "這將清除今日聆聽時間和本月熱門資料的快取，並重新從 Spotify 載入資料。" : {
+
+    },
+    "重新整理" : {
+
+    },
+    "開始補寫" : {
 
     }
   },

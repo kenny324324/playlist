@@ -4,6 +4,7 @@ import SwiftUI
 extension Notification.Name {
     static let spotifyCallback = Notification.Name("spotifyCallback")
     static let spotifyUnauthorized = Notification.Name("spotifyUnauthorized")
+    static let spotifyTokenExpired = Notification.Name("spotifyTokenExpired")
 }
 
 // MARK: - Font Extension

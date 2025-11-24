@@ -53,6 +53,7 @@ struct SearchView: View {
     
     var body: some View {
         ZStack {
+            // 背景顏色
             Color.spotifyText.ignoresSafeArea()
             
             if !isLoggedIn {
@@ -74,7 +75,10 @@ struct SearchView: View {
                     newReleases: newReleases,
                     isLoading: isLoadingBrowseData,
                     audioPlayer: audioPlayer,
-                    accessToken: accessToken
+                    accessToken: accessToken,
+                    searchText: $searchText,
+                    selectedCategory: $selectedCategory,
+                    isSearchActive: $isSearchActive
                 )
             }
         }
@@ -153,6 +157,21 @@ struct SearchInitialContentView: View {
     @ObservedObject var audioPlayer: AudioPlayer
     let accessToken: String
     
+    // 需要從父視圖傳入這些 Binding 來控制搜尋
+    @Binding var searchText: String
+    @Binding var selectedCategory: SearchCategory
+    @Binding var isSearchActive: Bool
+    
+    // 情緒標籤資料
+    let moodTags: [(String, LocalizedStringKey, String)] = [
+        ("Happy", "mood.happy", "😊"),
+        ("Chill", "mood.chill", "☕️"),
+        ("Workout", "mood.workout", "💪"),
+        ("Party", "mood.party", "🎉"),
+        ("Focus", "mood.focus", "📚"),
+        ("Sad", "mood.sad", "🌧")
+    ]
+    
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
@@ -163,7 +182,7 @@ struct SearchInitialContentView: View {
                             .scaleEffect(1.5)
                             .tint(.spotifyGreen)
                         Text("search.loading")
-                            .font(.system(size: 16))
+                            .font(.appFont(size: 16, weight: .medium))
                             .foregroundColor(.gray)
                     }
                     .frame(maxWidth: .infinity)
@@ -177,10 +196,10 @@ struct SearchInitialContentView: View {
                                 .font(.system(size: 60))
                                 .foregroundColor(.gray)
                             Text("search.initial.title")
-                                .font(.system(size: 20, weight: .semibold))
+                                .font(.appFont(size: 20, weight: .bold))
                                 .foregroundColor(.white)
                             Text("search.initial.subtitle")
-                                .font(.system(size: 14))
+                                .font(.appFont(size: 14, weight: .medium))
                                 .foregroundColor(.gray)
                         }
                         Spacer()
@@ -188,11 +207,51 @@ struct SearchInitialContentView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     // 顯示新發行專輯
-                    NewReleasesSection(
-                        newReleases: newReleases,
-                        audioPlayer: audioPlayer,
-                        accessToken: accessToken
-                    )
+                    VStack(alignment: .leading, spacing: 24) {
+                        // 情緒標籤區塊
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("search.mood.title")
+                                .font(.appFont(size: 22, weight: .bold))
+                                .foregroundColor(.white)
+                            
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 12) {
+                                    ForEach(moodTags, id: \.0) { tag in
+                                        Button(action: {
+                                            // 點擊標籤直接搜尋
+                                            searchText = tag.0 + " Mix" // 搜尋 "Happy Mix" 等
+                                            selectedCategory = .all // 預設搜尋全部 (通常會包含歌單)
+                                            isSearchActive = true // 激活搜尋狀態
+                                        }) {
+                                            HStack(spacing: 6) {
+                                                Text(tag.2) // Emoji
+                                                Text(tag.1) // Localized Key
+                                                    .font(.appFont(size: 14, weight: .medium))
+                                            }
+                                            .padding(.horizontal, 16)
+                                            .padding(.vertical, 10)
+                                            .background(Color.white.opacity(0.1))
+                                            .foregroundColor(.white)
+                                            .clipShape(Capsule())
+                                            .overlay(
+                                                Capsule()
+                                                    .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                                            )
+                                        }
+                                    }
+                                }
+                                .padding(.horizontal, 20)
+                            }
+                            .padding(.horizontal, -20)
+                            .horizontalScrollFading(backgroundColor: .spotifyText)
+                        }
+                        
+                        NewReleasesSection(
+                            newReleases: newReleases,
+                            audioPlayer: audioPlayer,
+                            accessToken: accessToken
+                        )
+                    }
                 }
             }
             .padding(.horizontal)
@@ -210,7 +269,7 @@ struct NewReleasesSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("search.new.releases")
-                .font(.system(size: 22, weight: .bold))
+                .font(.appFont(size: 22, weight: .bold))
                 .foregroundColor(.white)
             
             ScrollView(.horizontal, showsIndicators: false) {
@@ -226,7 +285,10 @@ struct NewReleasesSection: View {
                         }
                     }
                 }
+                .padding(.horizontal, 20)
             }
+            .padding(.horizontal, -20)
+            .horizontalScrollFading(backgroundColor: .spotifyText)
         }
     }
 }
@@ -293,17 +355,17 @@ struct LoginPromptView: View {
                 .foregroundColor(.spotifyGreen)
             
             Text("search.login.title")
-                .font(.system(size: 24, weight: .bold))
+                .font(.appFont(size: 24, weight: .bold))
                 .foregroundColor(.white)
             
             Text("search.login.message")
-                .font(.system(size: 16))
+                .font(.appFont(size: 16, weight: .medium))
                 .foregroundColor(.gray)
                 .multilineTextAlignment(.center)
             
             Button(action: login) {
                 Text("search.login.button")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.appFont(size: 16, weight: .bold))
                     .foregroundColor(.black)
                     .frame(maxWidth: 300)
                     .padding(.vertical, 14)

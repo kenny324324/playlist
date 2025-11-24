@@ -67,8 +67,7 @@ class SpotifyAPIService {
 
         if httpResponse.statusCode == 401 {
             DispatchQueue.main.async {
-                SpotifyAuthServiceV2.logout()
-                NotificationCenter.default.post(name: .spotifyUnauthorized, object: nil)
+                NotificationCenter.default.post(name: .spotifyTokenExpired, object: nil)
             }
             return true
         }

@@ -102,6 +102,8 @@ struct ContentView: View {
     
     // 定時器：每秒檢查，但根據設定頻率執行
     private let currentlyPlayingTimer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+    @State private var didApplyUITestArguments = false
+    @State private var isRefreshingAccessToken = false
 
     var body: some View {
         ZStack {
@@ -140,6 +142,7 @@ struct ContentView: View {
         .onAppear {
             // 檢查編譯標誌（用於調試）
             DebugHelper.checkCompilationFlags()
+            applyUITestArgumentsIfNeeded()
         }
         .onChange(of: scenePhase) { newPhase in
             if newPhase == .active && !showLaunchScreen {
@@ -148,6 +151,9 @@ struct ContentView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .spotifyUnauthorized)) { _ in
             resetSessionState()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .spotifyTokenExpired)) { _ in
+            handleTokenExpiration()
         }
         .onReceive(currentlyPlayingTimer) { _ in
             if scenePhase == .active && isLoggedIn && !showLaunchScreen {
@@ -332,6 +338,23 @@ struct ContentView: View {
         }
     }
 
+    private func handleTokenExpiration() {
+        guard isLoggedIn else { return }
+        guard !isRefreshingAccessToken else { return }
+        
+        isRefreshingAccessToken = true
+        SpotifyAuthServiceV2.refreshAccessToken { token in
+            DispatchQueue.main.async {
+                self.isRefreshingAccessToken = false
+                guard let token = token else {
+                    self.resetSessionState()
+                    return
+                }
+                self.establishSession(with: token)
+            }
+        }
+    }
+    
     // Spotify 登入流程 - 新版使用 ASWebAuthenticationSession
     func login() {
         SpotifyAuthServiceV2.shared.login(presentationContext: presentationContextProvider) { result in
@@ -452,6 +475,7 @@ struct ContentView: View {
     private func establishSessionWithCompletion(with token: String, completion: @escaping (Bool) -> Void) {
         self.accessToken = token
         self.isLoggedIn = true
+        DailySnapshotScheduler.shared.scheduleIfNeeded(accessToken: token)
         
         // 使用 DispatchGroup 來等待兩個 API 都完成
         let group = DispatchGroup()
@@ -521,6 +545,7 @@ struct ContentView: View {
     private func establishSession(with token: String) {
         self.accessToken = token
         self.isLoggedIn = true
+        DailySnapshotScheduler.shared.scheduleIfNeeded(accessToken: token)
         fetchUserProfile(token: token)
         fetchTopTracks(token: token, timeRange: .shortTerm)
     }
@@ -571,6 +596,21 @@ struct ContentView: View {
                 }
             }
         }
+    }
+    
+    private func applyUITestArgumentsIfNeeded() {
+        guard !didApplyUITestArguments else { return }
+        let arguments = ProcessInfo.processInfo.arguments
+        
+        if arguments.contains("-uiTestDemoMode") {
+            demoModeManager.enableDemoMode()
+            accessToken = demoModeManager.demoAccessToken
+            userProfile = MockSpotifyData.demoUser
+            tracks = MockSpotifyData.demoTracks
+            isLoggedIn = true
+        }
+        
+        didApplyUITestArguments = true
     }
 }
 
