@@ -16,7 +16,7 @@ class RankingHistoryService {
     func saveCurrentRanking(userId: String, tracks: [Track], timeRange: String) {
         var history = loadHistory()
         
-        // 只保留最近7天的記錄，避免資料過多（每小時記錄一次，7天約168筆記錄）
+        // 只保留最近7天的記錄，避免資料過多（ 我是ㄒㄧㄤ每小時記錄一次，7天約168筆記錄）
         let sevenDaysAgo = Calendar.current.date(byAdding: .day, value: -7, to: Date())!
         history = history.filter { $0.recordedDate > sevenDaysAgo }
         

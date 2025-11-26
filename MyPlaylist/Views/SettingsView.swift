@@ -11,6 +11,8 @@ struct SettingsView: View {
     @State private var showClearDataCacheAlert = false
     @State private var showReauthorizeAlert = false
     @State private var cacheSize: String = "計算中..."
+    @State private var showMailComposer = false
+    @State private var showMailUnavailableAlert = false
     
     // 設定選項
     @AppStorage("updateFrequency") private var updateFrequency: Int = 5
@@ -787,10 +789,58 @@ struct SettingsView: View {
                     showChevron: false,
                     themeColor: themeManager.themeColor
                 )
+                
+                Divider()
+                    .background(Color.gray.opacity(0.3))
+                    .padding(.leading, 50)
+                
+                // 評分此 App
+                Button(action: {
+                    HapticManager.shared.light()
+                    AppRatingManager.shared.requestReview()
+                }) {
+                    SettingRow(
+                        icon: "star.fill",
+                        title: "settings.rateApp",
+                        value: "",
+                        showChevron: false,
+                        themeColor: themeManager.themeColor
+                    )
+                }
+                .buttonStyle(PlainButtonStyle())
+                
+                Divider()
+                    .background(Color.gray.opacity(0.3))
+                    .padding(.leading, 50)
+                
+                // 回報問題
+                Button(action: {
+                    HapticManager.shared.light()
+                    if MailService.shared.canSendMail() {
+                        showMailComposer = true
+                    } else {
+                        // 如果無法發送郵件，使用 mailto URL 打開郵件應用
+                        MailService.shared.openMailApp(type: .reportIssue)
+                    }
+                }) {
+                    SettingRow(
+                        icon: "envelope.fill",
+                        title: "settings.reportIssue",
+                        value: "",
+                        showChevron: false,
+                        themeColor: themeManager.themeColor
+                    )
+                }
+                .buttonStyle(PlainButtonStyle())
             }
             .background(Color.white.opacity(0.1))
             .cornerRadius(15)
         }
+        .mailSheet(
+            isPresented: $showMailComposer,
+            mailType: .reportIssue,
+            recipient: "kenny4work324@gmail.com"
+        )
     }
     
     // MARK: - Helper Functions

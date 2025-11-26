@@ -21,6 +21,10 @@ struct AlbumDetailView: View {
     // Sheet 控制狀態
     @State private var selectedStatsType: StatsCardType?
     
+    // 使用者資訊 / Token
+    @State private var currentUserId: String?
+    @State private var resolvedAccessToken: String?
+    
     enum DetailTab: String, CaseIterable {
         case info
         case stats
@@ -104,6 +108,8 @@ struct AlbumDetailView: View {
         .toolbarColorScheme(.light, for: .navigationBar)
         .onAppear {
             refreshAccessTokenAndLoad()
+            // 記錄顯著事件（查看專輯詳情）
+            AppRatingManager.shared.recordEvent(.viewedAlbumDetail)
         }
     }
     
@@ -534,6 +540,7 @@ struct AlbumDetailView: View {
                     NotificationCenter.default.post(name: .spotifyUnauthorized, object: nil)
                     return
                 }
+                self.resolvedAccessToken = token
                 loadAlbumDetails(with: token)
             }
         }
@@ -891,16 +898,23 @@ struct AlbumDetailView: View {
                 return
             }
             
+            self.resolvedAccessToken = token
+            let cacheIdentifier = self.currentUserId ?? token
+            
             StatsCalculationService.shared.calculateAlbumStats(
                 albumId: self.albumId,
                 accessToken: token,
-                cacheKey: token
+                cacheKey: cacheIdentifier
             ) { result in
                 DispatchQueue.main.async {
                     switch result {
                     case .success(let stats):
                         self.albumStats = stats
                         self.statsError = nil
+                        
+                        let combinedTracks = stats.shortTermTracks + stats.mediumTermTracks + stats.longTermTracks
+                        let fallbackTrackIds = Set(combinedTracks.map { $0.trackId })
+                        self.loadAlbumCountTrend(fallbackTrackIds: fallbackTrackIds)
                     case .failure(let error):
                         self.albumStats = nil
                         self.statsError = error.localizedDescription
@@ -908,35 +922,52 @@ struct AlbumDetailView: View {
                     self.isLoadingStats = false
                 }
             }
-            
-            // 同時查詢長條圖數據
-            self.loadAlbumCountTrend()
         }
     }
     
     // MARK: - Load Album Count Trend
-    private func loadAlbumCountTrend() {
+    private func loadAlbumCountTrend(fallbackTrackIds: Set<String>? = nil) {
         isLoadingTrend = true
         
-        // 先獲取用戶資料以取得 userId
-        SpotifyAPIService.fetchCurrentUserProfile(accessToken: accessToken) { userProfile in
-            guard let userId = userProfile?.id else {
+        ensureUserId { userId in
+            guard let userId = userId else {
                 DispatchQueue.main.async {
                     self.isLoadingTrend = false
                 }
                 return
             }
             
-            // 從 CloudKit 查詢專輯數量趨勢
             CloudKitRankingService.shared.fetchAlbumCountTrend(
                 userId: userId,
                 albumId: self.albumId,
-                timeRange: "short_term"
+                timeRange: "short_term",
+                fallbackTrackIds: fallbackTrackIds
             ) { trend in
                 DispatchQueue.main.async {
                     self.albumCountTrend = trend
                     self.isLoadingTrend = false
                 }
+            }
+        }
+    }
+    
+    private func ensureUserId(completion: @escaping (String?) -> Void) {
+        if let cachedId = currentUserId {
+            completion(cachedId)
+            return
+        }
+        
+        guard let tokenToUse = resolvedAccessToken ?? (accessToken.isEmpty ? nil : accessToken) else {
+            completion(nil)
+            return
+        }
+        
+        SpotifyAPIService.fetchCurrentUserProfile(accessToken: tokenToUse) { userProfile in
+            DispatchQueue.main.async {
+                if let id = userProfile?.id {
+                    self.currentUserId = id
+                }
+                completion(userProfile?.id)
             }
         }
     }

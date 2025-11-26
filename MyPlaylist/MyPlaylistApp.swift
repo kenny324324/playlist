@@ -13,8 +13,13 @@ struct MyPlaylistApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .preferredColorScheme(.dark)  // 強制使用深色模式
+            if let scenario = UITestScenario.current() {
+                UITestHarnessRoot(scenario: scenario)
+                    .preferredColorScheme(.dark)
+            } else {
+                ContentView()
+                    .preferredColorScheme(.dark)  // 強制使用深色模式
+            }
         }
     }
 }

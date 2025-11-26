@@ -23,12 +23,13 @@ final class MyPlaylistUITests: XCTestCase {
     }
 
     @MainActor
-    func testExample() throws {
-        // UI tests must launch the application that they test.
+    func testStatsHarnessChartIsVisible() throws {
         let app = XCUIApplication()
+        app.launchArguments.append("-uiTestStatsHarness")
         app.launch()
-
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
+        
+        XCTAssertTrue(app.staticTexts["statsHarness.title"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.otherElements["statsHarness.chart"].exists)
     }
 
     @MainActor

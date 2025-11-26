@@ -60,6 +60,7 @@ struct TopView: View {
         }
         .background(Color.spotifyText.ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
+        .navigationTitle("")
         .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     HStack(spacing: 8) {

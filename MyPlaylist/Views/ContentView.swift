@@ -143,6 +143,9 @@ struct ContentView: View {
             // 檢查編譯標誌（用於調試）
             DebugHelper.checkCompilationFlags()
             applyUITestArgumentsIfNeeded()
+            
+            // 記錄 App 啟動（用於評分提示）
+            AppRatingManager.shared.recordAppLaunch()
         }
         .onChange(of: scenePhase) { newPhase in
             if newPhase == .active && !showLaunchScreen {

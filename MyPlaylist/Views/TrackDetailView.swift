@@ -138,6 +138,8 @@ struct TrackDetailView: View {
         }
         .onAppear {
             refreshAccessTokenAndLoad()
+            // 記錄顯著事件（查看歌曲詳情）
+            AppRatingManager.shared.recordEvent(.viewedTrackDetail)
         }
     }
     
